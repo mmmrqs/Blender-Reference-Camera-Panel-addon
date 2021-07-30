@@ -37,7 +37,7 @@ bl_info = {
 #--- ### Change log
 
 #v2.1.0 (08.01.2021) - by Marcelo M. Marques 
-#Added:
+#Added: initial creation
 
 #--- ### Imports
 import bpy
@@ -127,7 +127,7 @@ class ReferenceCameraPreferences(AddonPreferences):
 
     RC_SCALE: FloatProperty(
         name="",
-        description="Scaling to be applied on the Remote Control panel over (in addition to) the interface ui_scale",
+        description="Scaling to be applied on the 'Remote Control' panel over (in addition to) the interface's ui_scale",
         default=1.0,
         max=2.00,
         min=0.50,
@@ -264,7 +264,7 @@ class ReferenceCameraPreferences(AddonPreferences):
             coords = "x: 0    " +\
                      "y: 0    "
         else:
-            panH = 64 # Panel height copied from 'drag_panel_op.py'
+            panH = 64 # <-- Panel height copied from 'drag_panel_op.py'
             pos_x = bpy.context.scene.get("bl_ui_panel_saved_data")["panX"]
             pos_y = bpy.context.scene.get("bl_ui_panel_saved_data")["panY"]
             # Note: Because of the scaling logic it was necessary to make this weird correction math below
@@ -284,6 +284,7 @@ class ReferenceCameraPreferences(AddonPreferences):
         box.scale_y = 0.5
         box.label(text="Additional information and Acknowledge:")
         box.label(text="This addon prepared and packaged by Marcelo M Marques (mmmrqs@gmail.com)")
+        box.label(text="-(upgrades at https://github.com/mmmrqs/Blender-Reference-Camera-Panel-addon)")
         box.label(text="Object Reference Cameras original project by Witold Jaworski (wjaworski@airplanes3d.net)")
         box.label(text="-(download it from http://airplanes3d.net/scripts-257_e.xml)")
         box.label(text="BL UI Widgets original project by Jayanam (jayanam.games@gmail.com)")
@@ -294,7 +295,7 @@ class ReferenceCameraPreferences(AddonPreferences):
 class Reset_Coords(bpy.types.Operator):
     bl_idname = "object.reset_coords" 
     bl_label = "Reset Pos"
-    bl_description = "Reset screen coords of the Remote Control panel for this current session.\n"\
+    bl_description = "Reset screen coords for the Remote Control panel in this current session.\n"\
                      "Use this button to recover the panel if it has gotten stuck out of the viewport area.\n"\
                      "Then you will need to reopen the panel for the reset screen position to take effect"
     @classmethod
@@ -305,7 +306,7 @@ class Reset_Coords(bpy.types.Operator):
         return self.execute(context)
         
     def execute(self,context):
-        # These numbers had to be manually accounted from 'drag_panel_op.py':
+        # These numbers copied from 'drag_panel_op.py':
         panW = 631             # Panel width
         panH = 64              # Panel height
         panX = 100             # Panel X coordinate, for top-left corner

@@ -40,15 +40,15 @@ modulesFullNames = {}
 
 modulesNames = [
                 'prefs',
-                'bl_ui_draw_op',
-		'bl_ui_widget',
-                'bl_ui_tooltip',
-                'bl_ui_label',
-                'bl_ui_button',
-                'bl_ui_patch',
-                'bl_ui_drag_panel',
-                'drag_panel_op',
-                'reference_cameras'
+                'bl_ui_widgets.bl_ui_draw_op',
+                'bl_ui_widgets.bl_ui_widget',
+                'bl_ui_widgets.bl_ui_label',
+                'bl_ui_widgets.bl_ui_patch',
+                'bl_ui_widgets.bl_ui_button',
+                'bl_ui_widgets.bl_ui_tooltip',
+                'bl_ui_widgets.bl_ui_drag_panel',
+                'addon.drag_panel_op',
+                'addon.reference_cameras',
                ]
 
 for currentModuleName in modulesNames:
@@ -66,6 +66,7 @@ if 'DEBUG_MODE' in sys.argv:
     print('---------------------------------------')
     print(time.time(), __name__ + ": registered")
     print()
+    sys.argv.remove('DEBUG_MODE')
  
 for currentModuleFullName in modulesFullNames.values():
     if currentModuleFullName in sys.modules:
