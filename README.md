@@ -6,7 +6,7 @@ This add-on was originally created by Witold Jaworsky(1) and has been enhanced b
 
 Feel free to create issues, file requests etc but be aware of that I may not find time to work on this as much as I'd probably like to. 
 
-(1) http://airplanes3d.net/scripts-257_e.xml (wjaworski@airplanes3d.net)
+(1) http://airplanes3d.net/scripts-257_e.xml (wjaworski@airplanes3d.net)     
 (2) https://github.com/jayanam/bl_ui_widgets (jayanam.games@gmail.com)
 
 
