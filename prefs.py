@@ -50,7 +50,7 @@ class ReferenceCameraPreferences(AddonPreferences):
 
     RC_MESHES: StringProperty(
         name="",
-        description="Name for a collection where the work in progress mesh(es) should be placed\nso that the 'switch mesh visibility' feature can be used",
+        description="Name (or suffix) for a collection where the work in progress mesh(es) should be placed\nso that the 'switch mesh visibility' feature can be used",
         default="RC:WIP"
     )
     
@@ -60,29 +60,18 @@ class ReferenceCameraPreferences(AddonPreferences):
         default="RC:Cameras"
     )
     
+    RC_TARGETS: StringProperty(
+        name="",
+        description="<Optional> Name (or suffix) for a collection where the target objects will be moved upon creation of new camera sets. If left blank targets will be placed in the main camera collection",
+        default="RC:Targets"
+    )
+    
     RC_TEMP: StringProperty(
         name="",
         description="Name (or suffix) for a 'working' collection for convenient view adjustments of the current camera",
         default="RC:Temporary"
     )
     
-    RC_TARGETS: StringProperty(
-        name="",
-        description="<Optional> Name for a collection where the target objects will be moved upon creation of new camera sets. If left blank targets will be placed in the main camera collection",
-        default="RC:Targets"
-    )
-    
-    #(identifier, name, description, icon, number)
-    RC_SUBP_MODE: EnumProperty(
-        name="N-Panel Layout option",
-        items=[
-            ('COMPACT',  "Compact",  "Display the 5 main camera modes using large buttons.", '', 0),
-            ('FULL',     "Full",     "Display all the 7 camera modes using narrow buttons.", '', 1),
-            ('EXTENDED', "Extended", "Display all features as in the 'Remote Control' panel.", '', 2)
-        ],
-        default='COMPACT'
-    )
-
     RC_SUBPANELS: IntProperty(
         name="",
         description="Maximum number of dynamic subpanels for grouping camera selection buttons (when children collections exist under the main camera collection)",
@@ -93,6 +82,49 @@ class ReferenceCameraPreferences(AddonPreferences):
         soft_min=0
     )
 
+    #(identifier, name, description, icon, number)
+    RC_SUBP_MODE: EnumProperty(
+        name="N-Panel Layout option",
+        items=[
+            ('COMPACT',  "Compact",  "Display the 5 main camera modes using large buttons.", '', 0),
+            ('FULL',     "Full",     "Display all the 7 camera modes using narrow buttons.", '', 1),
+            ('EXTENDED', "Extended", "Display all features likewise the 'Remote Control' panel.", '', 2)
+        ],
+        default='COMPACT'
+    )
+
+    RC_ACTION_MAIN: BoolProperty(
+        name="Camera Action mode (N-Panel)",
+        description="If (ON): camera action start when mode button is pressed.\nIf (OFF): just set the adjustment mode but do not start camera action",
+        default=False
+    )
+
+    RC_FOCUS: FloatProperty(
+        name="",
+        description="Perspective Camera lens value in millimeters",
+        default=50.0,
+        min=1.0,
+        soft_max=5000,
+        soft_min=1.0,
+        step=100,
+        precision=2,
+        unit='CAMERA',
+        subtype='DISTANCE_CAMERA'
+    )
+
+    RC_SENSOR: FloatProperty(
+        name="",
+        description="Perspective Camera sensor width in millimeters",
+        default=36.0,
+        min=1.0,
+        soft_max=100,
+        soft_min=1.0,
+        step=100,
+        precision=2,
+        unit='CAMERA'
+    )
+
+    #(identifier, name, description, icon, number)
     RC_TRGMODE: EnumProperty(
         name="",
         items=[
@@ -117,29 +149,45 @@ class ReferenceCameraPreferences(AddonPreferences):
     RC_OPACITY: FloatProperty(
         name="",
         description="Opacity level for the camera's backgroud image to blend against the viewport background color",
-        default=1.0,
+        default=0.5,
         max=1.0,
         min=0.0,
         soft_max=1.0,
         soft_min=0.0,
-        precision=3
+        step=1,
+        precision=3,
+        unit='NONE',
+        subtype='FACTOR'
+    )
+
+    #(identifier, name, description, icon, number)
+    RC_DEPTH: EnumProperty(
+        name="Depth option for rendering the camera's backgroud image",
+        items=[
+            ('BACK',  "Back",  "Display under everything.", '', 0),
+            ('FRONT', "Front", "Display over everything.", '', 1)
+        ],
+        default='FRONT'
+    )
+
+    RC_UI_BIND: BoolProperty(
+        name="General scaling for 'Remote Control' panel",
+        description="If (ON): remote panel size changes per Blender interface's resolution scale.\nIf (OFF): remote panel size can only change per its own addon scaling factor",
+        default=True
     )
 
     RC_SCALE: FloatProperty(
         name="",
-        description="Scaling to be applied on the 'Remote Control' panel over (in addition to) the interface's ui_scale",
+        description="Scaling to be applied on the 'Remote Control' panel over (in addition to) the interface's resolution scale",
         default=1.0,
         max=2.00,
         min=0.50,
         soft_max=2.00,
         soft_min=0.50,
-        precision=2
-    )
-
-    RC_ACTION_MAIN: BoolProperty(
-        name="Camera Action mode (N-Panel)",
-        description="If (ON): camera action start when mode button is pressed.\nIf (OFF): just set the adjustment mode but do not start camera action",
-        default=False
+        step=1,
+        precision=2,
+        unit='NONE',
+        subtype='FACTOR'
     )
 
     RC_ACTION_REMO: BoolProperty(
@@ -148,10 +196,10 @@ class ReferenceCameraPreferences(AddonPreferences):
         default=True
     )
 
-    RC_PINNED: BoolProperty(
+    RC_SLIDE: BoolProperty(
         name="Keep Remote Control panel pinned when resizing viewport",
-        description="If (ON): remote panel stays in place regardless of viewport resizing.\nIf (OFF): remote panel slides together with viewport's bottom border",
-        default=True
+        description="If (ON): remote panel slides together with viewport's bottom border.\nIf (OFF): remote panel stays in place regardless of viewport resizing",
+        default=False
     )
 
     RC_POSITION: BoolProperty(
@@ -173,92 +221,125 @@ class ReferenceCameraPreferences(AddonPreferences):
     )
 
     def ui_scale(self, value):
-        # From Preferences/Interface/"Display"
-        return int(round(value * bpy.context.preferences.view.ui_scale))
+        if bpy.context.preferences.addons[__package__].preferences.RC_UI_BIND:
+            # From Preferences/Interface/"Display"
+            return int(round(value * bpy.context.preferences.view.ui_scale))
+        else:
+            return value
         
     def over_scale(self, value):
         over_scale = bpy.context.preferences.addons[__package__].preferences.RC_SCALE
         return int(round(self.ui_scale(value) * over_scale))
         
-    def layout_scale(self, value):
-        # From Preferences/Interface/"Display"
-        scaled = round(value * bpy.context.preferences.view.ui_scale, 2)
-        scaled = 0.1 if scaled < 0.1 else scaled
-        scaled = 1.0 if scaled > 1.0 else scaled
-        return (scaled)
-
     def draw(self, context):
         layout = self.layout
-        split = layout.split(factor=self.layout_scale(0.35), align=True)
-        split.label(text="Meshes Collection name:")
-        split = split.split(factor=self.layout_scale(0.6), align=True)
+        
+        #-- N-Panel configuration
+
+        layout.separator()
+        layout.label(text=" N-Panel configuration")
+
+        split = layout.split(factor=0.45, align=True)
+        split.label(text="Meshes Collection name suffix:",icon='DECORATE')
+        split = split.split(factor=0.8, align=True)
         split.prop(self, 'RC_MESHES', text="")
 
-        split = layout.split(factor=self.layout_scale(0.35), align=True)
-        split.label(text="Cameras Collection name:")
-        split = split.split(factor=self.layout_scale(0.6), align=True)
+        split = layout.split(factor=0.45, align=True)
+        split.label(text="Cameras Collection name suffix:",icon='DECORATE')
+        split = split.split(factor=0.8, align=True)
         split.prop(self, "RC_CAMERAS", text="")
 
-        split = layout.split(factor=self.layout_scale(0.35), align=True)
-        split.label(text="Temporary Collection name:")
-        split = split.split(factor=self.layout_scale(0.6), align=True)
-        split.prop(self, "RC_TEMP", text="")
-        
-        split = layout.split(factor=self.layout_scale(0.35), align=True)
-        split.label(text="Targets Collection name:")
-        split = split.split(factor=self.layout_scale(0.6), align=True)
+        split = layout.split(factor=0.45, align=True)
+        split.label(text="Targets Collection name suffix:",icon='DECORATE')
+        split = split.split(factor=0.8, align=True)
         split.prop(self, "RC_TARGETS", text="")
 
-        split = layout.split(factor=self.layout_scale(0.35), align=True)
-        split.label(text="N-Panel Layout option:")
-        split = split.split(factor=self.layout_scale(0.6), align=True)
+        split = layout.split(factor=0.45, align=True)
+        split.label(text="Temporary Collection name suffix:",icon='DECORATE')
+        split = split.split(factor=0.8, align=True)
+        split.prop(self, "RC_TEMP", text="")
+        
+        split = layout.split(factor=0.45, align=True)
+        split.label(text="Subpanels max number:",icon='DECORATE')
+        split = split.split(factor=0.4, align=True)
+        split.prop(self, "RC_SUBPANELS", text="")
+
+        split = layout.split(factor=0.45, align=True)
+        split.label(text="N-Panel layout option:",icon='DECORATE')
+        split = split.split(factor=0.8, align=True)
         row = split.row()
         row.prop(self, "RC_SUBP_MODE", expand=True)
 
-        split = layout.split(factor=self.layout_scale(0.35), align=True)
-        split.label(text="Subpanels Max number:")
-        split = split.split(factor=self.layout_scale(0.6), align=True)
-        split.prop(self, "RC_SUBPANELS", text="")
+        split = layout.split(factor=0.45, align=True)
+        split.label(text="N-Panel action mode:",icon='DECORATE')
+        split = split.split(factor=0.8, align=True)
+        split.prop(self, "RC_ACTION_MAIN", text=" Start action immediately")
+        
+        #-- Defaults for creating new camera/target sets
 
-        split = layout.split(factor=self.layout_scale(0.35), align=True)
-        split.label(text="Target Objects Display mode:")
-        split = split.split(factor=self.layout_scale(0.6), align=True)
+        layout.separator()
+        layout.label(text=" Defaults for creating new camera/target sets")
+
+        split = layout.split(factor=0.45, align=True)
+        split.label(text="Perspective Camera focal lenght:",icon='DECORATE')
+        split = split.split(factor=0.4, align=True)
+        split.prop(self, "RC_FOCUS", expand=True)
+        
+        split = layout.split(factor=0.45, align=True)
+        split.label(text="Perspective Camera sensor width:",icon='DECORATE')
+        split = split.split(factor=0.4, align=True)
+        split.prop(self, "RC_SENSOR", expand=True)
+        
+        split = layout.split(factor=0.45, align=True)
+        split.label(text="Target Object display mode:",icon='DECORATE')
+        split = split.split(factor=0.4, align=True)
         split.prop(self, "RC_TRGMODE", text="", expand=False)
         
-        split = layout.split(factor=self.layout_scale(0.35), align=True)
-        split.label(text="Target Objects Display color:")
-        split = split.split(factor=self.layout_scale(0.6), align=True)
+        split = layout.split(factor=0.45, align=True)
+        split.label(text="Target Object display color:",icon='DECORATE')
+        split = split.split(factor=0.4, align=True)
         split.prop(self, "RC_TRGCOLOR", text="")
         
-        split = layout.split(factor=self.layout_scale(0.35), align=True)
-        split.label(text="Background Image Opacity level:")
-        split = split.split(factor=self.layout_scale(0.6), align=True)
+        split = layout.split(factor=0.45, align=True)
+        split.label(text="Background Image opacity level:",icon='DECORATE')
+        split = split.split(factor=0.4, align=True)
         split.prop(self, "RC_OPACITY", text="")
         
-        split = layout.split(factor=self.layout_scale(0.35), align=True)
-        split.label(text="Remote Panel over scaling:")
-        split = split.split(factor=self.layout_scale(0.6), align=True)
+        split = layout.split(factor=0.45, align=True)
+        split.label(text="Background Image depth option:",icon='DECORATE')
+        split = split.split(factor=0.8, align=True)
+        row = split.row()
+        row.prop(self, "RC_DEPTH", expand=True)
+        
+        #-- Remote Control Panel configuration
+
+        layout.separator()
+        layout.label(text=" Remote Control Panel configuration")
+
+        split = layout.split(factor=0.45, align=True)
+        split.label(text="General scaling for panel:",icon='DECORATE')
+        split = split.split(factor=0.8, align=True)
+        split.prop(self, "RC_UI_BIND", text=" Bound to Blender's UI")
+
+        split = layout.split(factor=0.45, align=True)
+        split.label(text="User defined addon scaling:",icon='DECORATE')
+        split = split.split(factor=0.4, align=True)
         split.prop(self, "RC_SCALE", text="")
         
-        split = layout.split(factor=self.layout_scale(0.35), align=True)
-        split.label(text="N-Panel Action mode:")
-        split = split.split(factor=self.layout_scale(0.6), align=True)
-        split.prop(self, "RC_ACTION_MAIN", text=" Start immediately")
-        
-        split = layout.split(factor=self.layout_scale(0.35), align=True)
-        split.label(text="Remote Panel Action mode:")
-        split = split.split(factor=self.layout_scale(0.6), align=True)
-        split.prop(self, "RC_ACTION_REMO", text=" Start immediately")
+        split = layout.split(factor=0.45, align=True)
+        split.label(text="Panel action mode:",icon='DECORATE')
+        split = split.split(factor=0.8, align=True)
+        split.prop(self, "RC_ACTION_REMO", text=" Start action immediately")
 
-        split = layout.split(factor=self.layout_scale(0.35), align=True)
-        split.label(text="Viewport resizing impact:")
-        split = split.split(factor=self.layout_scale(0.6), align=True)
-        split.prop(self, "RC_PINNED", text=" Remote Panel does not move")
+        split = layout.split(factor=0.45, align=True)
+        split.label(text="Panel sliding option:",icon='DECORATE')
+        split = split.split(factor=0.8, align=True)
+        split.prop(self, "RC_SLIDE", text=" Move along viewport border")
 
-        split = layout.split(factor=self.layout_scale(0.35), align=True)
-        split.label(text="Remote Panel start position:")
-        split = split.split(factor=self.layout_scale(0.6), align=True)
-        split.prop(self, "RC_POSITION", text=" Same as the last opened scene")
+        split = layout.split(factor=0.45, align=True)
+        split.label(text="Opening screen position:",icon='DECORATE')
+        split = split.split(factor=0.8, align=True)
+        split.prop(self, "RC_POSITION", text=" Same as in the last opened scene")
 
         if bpy.context.scene.get("bl_ui_panel_saved_data") is None:
             coords = "x: 0    " +\
@@ -271,12 +352,12 @@ class ReferenceCameraPreferences(AddonPreferences):
             coords = "x: " + str(pos_x) + "    " +\
                      "y: " + str(pos_y + int(panH * (self.over_scale(10000)/10000 - 1))) + "    "
         
-        split = layout.split(factor=self.layout_scale(0.35), align=True)
-        split.label(text="Remote Control screen coords:")
-        split = split.split(factor=self.layout_scale(0.6), align=True)
-        row = split.row(align=True)
-        row.label(text=coords)
-        row.operator(Reset_Coords.bl_idname)
+        split = layout.split(factor=0.45, align=True)
+        split.label(text="Current screen position:",icon='DECORATE')
+        split = split.split(factor=0.4, align=True)
+        split.label(text=coords)
+        split = split.split(factor=0.65, align=True)
+        split.operator(Reset_Coords.bl_idname)
         
         layout.separator()
         box = layout.box()
@@ -295,9 +376,9 @@ class ReferenceCameraPreferences(AddonPreferences):
 class Reset_Coords(bpy.types.Operator):
     bl_idname = "object.reset_coords" 
     bl_label = "Reset Pos"
-    bl_description = "Reset screen coords for the Remote Control panel in this current session.\n"\
-                     "Use this button to recover the panel if it has gotten stuck out of the viewport area.\n"\
-                     "Then you will need to reopen the panel for the reset screen position to take effect"
+    bl_description = "Resets the 'Remote Control' panel screen position for this current session only.\n"\
+                     "Use this button to recover the panel if it has got stuck out of the viewport area.\n"\
+                     "You will need to reopen the panel for the new screen position to take effect"
     @classmethod
     def poll(cls,context):
         return (not bpy.context.scene.get("bl_ui_panel_saved_data") is None)
@@ -314,9 +395,12 @@ class Reset_Coords(bpy.types.Operator):
         
         for area in bpy.data.screens['Layout'].areas:
             if area.type == 'VIEW_3D':
+                if bpy.context.preferences.addons[__package__].preferences.RC_UI_BIND:
+                    # From Preferences/Interface/"Display"
+                    ui_scale = bpy.context.preferences.view.ui_scale  
+                else:
+                    ui_scale = 1
                 over_scale = bpy.context.preferences.addons[__package__].preferences.RC_SCALE
-                # From Preferences/Interface/"Display"
-                ui_scale = bpy.context.preferences.view.ui_scale  
                 # Need this just because I want the panel to be centered
                 panX = int((area.width - panW*ui_scale*over_scale) / 2.0) + 1
                 break
