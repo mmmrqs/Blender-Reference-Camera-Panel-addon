@@ -133,7 +133,7 @@ class ReferenceCameraPreferences(AddonPreferences):
             ('WIRE',     "Wire",     "Display the camera's target object as a wireframe", '', 2),
             ('BOUNDS',   "Bounds",   "Display the bounds of the camera's target object", '', 3)
         ],
-        default='WIRE'
+        default='SOLID'
     )
 
     RC_TRGCOLOR: FloatVectorProperty(
@@ -186,8 +186,7 @@ class ReferenceCameraPreferences(AddonPreferences):
         soft_min=0.50,
         step=1,
         precision=2,
-        unit='NONE',
-        subtype='FACTOR'
+        unit='NONE'
     )
 
     RC_ACTION_REMO: BoolProperty(
