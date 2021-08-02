@@ -42,7 +42,6 @@ bl_info = {
 #Added: 'text_rotation' property that allows the text to be painted in any direction (value must be in radians).
 #Added: Shadow and Kerning related properties that allow the text to be painted using these characteristics.
 #Added: Colors, Size, Shadow and Kerning attributes default to values retrieved from user theme (can be overriden).
-#Fixed: New update() function and call to verify_screen_position() so that object behaves alright when viewport is resized.
 
 #--- ### Imports
 import bpy
