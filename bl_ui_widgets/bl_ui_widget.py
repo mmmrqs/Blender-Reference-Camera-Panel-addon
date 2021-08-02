@@ -143,13 +143,10 @@ class BL_UI_Widget():
     def tooltip_moved(self, value):
         self.__tooltip_shifted = value
 
-    def RC_PINNED(self):
-        """ Keep Remote Control pinned when resizing viewport. 
-            If (ON): remote panel stays in place regardless of viewport resizing; 
-            If (OFF): remote panel slides together with viewport's bottom border.
-        """
+    def RC_UI_BIND(self):
+        """ General scaling for 'Remote Control' panel """
         package = __package__[0:__package__.find(".")]
-        return (bpy.context.preferences.addons[package].preferences.RC_PINNED)
+        return (bpy.context.preferences.addons[package].preferences.RC_UI_BIND)
 
     def RC_SCALE(self):
         """ Scaling to be applied on the Remote Control panel  
@@ -158,9 +155,20 @@ class BL_UI_Widget():
         package = __package__[0:__package__.find(".")]
         return (bpy.context.preferences.addons[package].preferences.RC_SCALE)
 
+    def RC_SLIDE(self):
+        """ Keep Remote Control pinned when resizing viewport. 
+            If (ON): remote panel slides together with viewport's bottom border.
+            If (OFF): remote panel stays in place regardless of viewport resizing; 
+        """
+        package = __package__[0:__package__.find(".")]
+        return (bpy.context.preferences.addons[package].preferences.RC_SLIDE)
+
     def ui_scale(self, value):
-        # From Preferences/Interface/"Display"
-        return int(round(value * bpy.context.preferences.view.ui_scale))
+        if self.RC_UI_BIND():
+            # From Preferences/Interface/"Display"
+            return int(round(value * bpy.context.preferences.view.ui_scale))
+        else:
+            return value
         
     def over_scale(self, value):
         # Applies the over scale as configured in the addon preferences
@@ -252,7 +260,7 @@ class BL_UI_Widget():
                 former_area_height = self.__area_height
                 self.__area_height = area_height 
                 self.__ui_scale = self.over_scale(10000)
-                if self.RC_PINNED():
+                if not self.RC_SLIDE():
                     # This is to prevent the panel to slide when user resizes screen viewport
                     drag_offset_x = 0   # Want to keep same x_pos
                     drag_offset_y = 0   # Want to keep same y_pos
@@ -480,16 +488,22 @@ class BL_UI_Widget():
             try:
                 area_height = self.get_area_height()
 
-                y_screen_flip = area_height - self.over_scale(self.y_screen)
+                y_screen_flip = area_height - self.y_screen
         
-                off_x, off_y =  self.over_scale(self._image_position)
-                sx, sy = self.over_scale(self._image_size)
+                off_x = self.over_scale(self._image_position[0])
+                off_y = self.over_scale(self._image_position[1])
+                
+                sx = self.over_scale(self._image_size[0])
+                sy = self.over_scale(self._image_size[1])
+                
+                x_screen = self.over_scale(self.x_screen)
+                y_screen = self.over_scale(y_screen_flip)
                 
                 # Bottom left, top left, top right, bottom right
-                vertices = ((self.over_scale(self.x_screen) + off_x, y_screen_flip - off_y), 
-                            (self.over_scale(self.x_screen) + off_x, y_screen_flip - sy - off_y), 
-                            (self.over_scale(self.x_screen) + off_x + sx, y_screen_flip - sy - off_y),
-                            (self.over_scale(self.x_screen) + off_x + sx, y_screen_flip - off_y))
+                vertices = ((x_screen + off_x, y_screen - off_y), 
+                            (x_screen + off_x, y_screen - sy - off_y), 
+                            (x_screen + off_x + sx, y_screen - sy - off_y),
+                            (x_screen + off_x + sx, y_screen - off_y))
                 
                 self.shader_img = gpu.shader.from_builtin('2D_IMAGE')
                 self.batch_img = batch_for_shader(self.shader_img, 'TRI_FAN', 
@@ -930,7 +944,7 @@ class BL_UI_Widget():
             because the BGL was making some funny business with the rounded corners by not respecting
             the set of informed points, thus causing ugly assymetric results. The maps in here were
             manually created by me and they should always give a nice contour. 
-            May the GOD of I.T. forgive me!
+            May the god of I.T. forgive me!
         '''
         map = [( 0,),
                ( 1,0),

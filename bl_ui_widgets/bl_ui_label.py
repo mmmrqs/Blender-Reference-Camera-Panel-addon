@@ -35,8 +35,10 @@ bl_info = {
 #--- ### Change log
 
 #v0.6.5 (08.01.2021) - by Marcelo M. Marques 
-#Added: 'style' property that allows the text to take either a normal or a highlight color.
+#Added: Logic to scale the label's text according to both Blender's ui scale configuration and this addon 'preferences' setup
+#Added: 'style' property that allows the text to take different style colors per Blender's user themes.
 #Added: 'text_title' property that allows the highlight color to be overriden by code.
+#Added: 'text_kerning' property that allows the text kerning to be adjusted accordingly.
 #Added: 'text_rotation' property that allows the text to be painted in any direction (value must be in radians).
 #Added: Shadow and Kerning related properties that allow the text to be painted using these characteristics.
 #Added: Colors, Size, Shadow and Kerning attributes default to values retrieved from user theme (can be overriden).

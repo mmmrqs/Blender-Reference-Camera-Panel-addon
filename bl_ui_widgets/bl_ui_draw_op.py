@@ -35,13 +35,13 @@ bl_info = {
 #--- ### Change log
 
 #v0.6.5 (08.01.2021) - by Marcelo M. Marques 
-#Added: 'terminate_execution' function that can be overriden by programmer in a child class to command termination of the panel widget.
+#Added: 'terminate_execution' function that can be overriden by programmer in its subclass to command termination of the panel widget.
 #Added: A call to a new 'handle_event_finalize' function in the widgets so that after finishing processing of all the widgets primary 'handle_event' 
 #       function, a final pass is done one more time to wrap up any pending change of state for prior buttons already on the widgets list. Without 
 #       this additional pass it was not possible to make buttons that keep a 'pressed' state to work alright.
 #Added: New logic to finish execution of the widget whenever the user moves out of the 3D VIEW display mode (e.g. going into Sculpt editor).
 #Added: New logic to only allow paint onto the screen if the user is in the 3D VIEW display mode.
-#Added: New logic to detect when drawback handler gets lost (e.g. after opening a blender file) so that it can finish the operator without crashing.
+#Added: New logic to detect when drawback handler gets lost (e.g. after opening other blender file) so that it can finish the operator without crashing.
 #Chang: Disabled code that finished execution by pressing the ESC key, since the addon has control to finish it by a 'terminate_execution' function.
 #Chang: Renamed some local variables so that those become restricted to this class only.
 
@@ -65,12 +65,10 @@ class BL_UI_OT_draw_operator(Operator):
 
     @classmethod
     def validate(cls):
-        """ A draw callback belonging to the space is persistent when another file is opened, 
-            whereas a modal operator is not. Solution below removes the draw callback 
-            if the operator becomes invalid. The RNA is how Blender objects store their 
-            properties under the hood. When the instance of the Blender operator is no longer 
-            required its RNA is trashed. Using 'repr()' avoids using a try catch clause. 
-            Would be keen to find out if there is a nicer way to check for this though.
+        """ A draw callback belonging to the space is persistent when another file is opened, whereas a modal operator is not. 
+            Solution below removes the draw callback if the operator becomes invalid. The RNA is how Blender objects store their 
+            properties under the hood. When the instance of the Blender operator is no longer required its RNA is trashed. 
+            Using 'repr()' avoids using a try catch clause. Would be keen to find out if there is a nicer way to check for this.
         """
         invalids = [(type, op, context, handler) for type, op, context, handler in cls.handlers if repr(op).endswith("invalid>")]
         valid = not(invalids)

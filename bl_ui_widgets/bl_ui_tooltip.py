@@ -35,7 +35,8 @@ bl_info = {
 #--- ### Change log
 
 #v0.6.5 (08.01.2021) - by Marcelo M. Marques 
-
+#Added: This new class to display tooltips for each widget. If design properties are not overriden by programmer then those
+#       will be inherited from Blender's user themes.
 
 #--- ### Imports
 import bpy

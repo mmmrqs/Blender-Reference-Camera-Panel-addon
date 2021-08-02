@@ -35,20 +35,22 @@ bl_info = {
 #--- ### Change log
 
 #v0.6.5 (08.01.2021) - by Marcelo M. Marques 
+#Added: Logic to scale the button according to both Blender's ui scale configuration and this addon 'preferences' setup
 #Added: 'textwo' property and coding to allow a second line of text in the button's caption (value is string). 
 #        The 1 line or 2 lines are always centered both in horizontal and vertical dimensions.
 #Added: 'textwo_size' property to allow different size from the other text line (value is integer). 
 #Added: 'textwo_color' property to allow different color from the other text line (value is standard color tuple). 
 #Added: 'text_highlight' and 'textwo_highlight' properties to allow different text colors on the selected button.
 #Added: 'outline_color' property to allow different color on the button outline (value is standard color tuple). 
-#Added: 'shadow' property and coding to allow the button to be painted with a shadow (value is boolean).
+#Added: 'roundness' property to allow the button to be painted with rounded corners,
+#        same as that property available in Blender's user themes and it works together with 'rounded_corners' below.
+#Added: 'corner_radius' property to allow a limit for the roundness curvature, more useful when 'roundness' property 
+#        is not overriden by programmer and the one from Blender's user themes is used instead.
 #Added: 'rounded_corners' property and coding to allow the button to be painted with rounded corners (value is a 4 elements tuple).
-#        Each elements is a boolean value and indicates whether the corresponding corner is to be rounded or straight
-#        in the following sequence: bottomLeft, topLeft, topRight, bottomRight. 
-#Added: 'corner_radius' property 
-#Added: 'roundness' property 
-#Added: Logic to allow a button to be disabled (darked out) and turned off to user interaction.
-#Added: Logic to draw button outline per user theme (may be overriden by programmer).
+#        Each elements is a boolean value (0 or 1) which indicates whether the corresponding corner is to be rounded or straight
+#        in the following clockwise sequence: bottom left, top left, top right, bottom right. 
+#Added: 'shadow' property and coding to allow the button to be painted with a shadow (value is boolean).
+#Added: Logic to allow a button to be disabled (darkned out) and turned off to user interaction.
 #Added: An internal third state for the button to allow it to stay in a state of 'pressed' (similar to a radio button).
 #Added: 'mouse_up_over' internal function to control the button 'pressed' state. It is called by BL_UI_Widget class 
 #        and allows the wrap up of events when the user finishes clicking a button.
@@ -57,16 +59,13 @@ bl_info = {
 #Added: Shadow and Kerning related properties that allow the text to be painted using these characteristics.
 #Added: Size, Shadow and Kerning attributes default to values retrieved from user theme (may be overriden by programmer).
 #Fixed: New call to verify_screen_position() so that object behaves alright when viewport is resized.
+#Chang: Made it a subclass of 'BL_UI_Patch' instead of 'BL_UI_Widget' so that it can inherit the layout features from there.
 #Chang: Instead of hardcoded logic it is now leveraging 'BL_UI_Label' to paint the button text lines.
 #Fixed: The calculation of vertical text centering because it was varying depending on which letters presented in the text.
-
-#To-Do: Disabled color (overlay) to be configured and/or retrieved from user theme. Currently it is a 20% dark shade of black.
-#To-Do: Check if shadow override (for disabling button shadow is working)
 
 #--- ### Imports
 import bpy
 import blf
-#import time
 
 from . bl_ui_patch import BL_UI_Patch
 from . bl_ui_label import BL_UI_Label

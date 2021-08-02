@@ -36,6 +36,19 @@ bl_info = {
 
 #v0.6.5 (08.01.2021) - by Marcelo M. Marques 
 #Added: A control to check if the panel can be dragged by the user or must stay locked in position
+#Added: Logic to save/restore panel position from last session, or from last use (depending on addon 'preferences' setup)
+#Added: Logic to scale the panel according to both Blender's ui scale configuration and this addon 'preferences' setup
+#Added: 'style' property which automatically sets the visual according to Blender's user themes. 
+#Added: 'outline_color' property to allow different color on the panel outline (value is standard color tuple). 
+#Added: 'roundness' property to allow the panel to be painted with rounded corners,
+#        same as that property available in Blender's user themes and it works together with 'rounded_corners' below.
+#Added: 'corner_radius' property to allow a limit for the roundness curvature, more useful when 'roundness' property 
+#        is not overriden by programmer and the one from Blender's user themes is used instead.
+#Added: 'rounded_corners' property to allow the panel to be painted with rounded corners (value is a 4 elements tuple).
+#        Each elements is a boolean value (0 or 1) which indicates whether the corresponding corner is to be rounded or straight
+#        in the following clockwise sequence: bottom left, top left, top right, bottom right. 
+#Added: 'shadow' property to allow the panel to be painted with a shadow (value is boolean).
+#Chang: Made it a subclass of 'BL_UI_Patch' instead of 'BL_UI_Widget' so that it can inherit the layout features from there.
 #Chang: Renamed some local variables so that those become restricted to this class only.
 
 #--- ### Imports
@@ -70,7 +83,7 @@ class BL_UI_Drag_Panel(BL_UI_Patch):
         x = int(round((x / over_scale)))
         y = int(round(((y - height) / over_scale)))
 
-        super().__init__(x,y, width, height)
+        super().__init__(x, y, width, height)
 
         self.widgets = []
         
@@ -147,7 +160,7 @@ class BL_UI_Drag_Panel(BL_UI_Patch):
     
     # Overrides base class function
     def mouse_down(self, event, x, y):
-        if self.child_widget_focused(x, y):
+        if self.child_widget_focused(x,y):
             # Means the focus is on some sub-widget (e.g.: a button)
             return False
         if self.anchored:
