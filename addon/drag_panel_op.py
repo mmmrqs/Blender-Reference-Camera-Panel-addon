@@ -35,8 +35,8 @@ bl_info = {
 #--- ### Change log
 
 #v0.6.5 (08.01.2021) - by Marcelo M. Marques 
-#Added: Option to have a programmer designed function controlling termination/closing of the 'Remote Panel' widget.
-#Added: New properties and functions in the widgets (check their corresponding files for more information). 
+#Added: 'terminate_execution' function that can be overriden by programmer to command termination of the 'Remote Panel' widget.
+#Added: New properties and functions to all widgets (check their corresponding modules for more information). 
 
 #--- ### Imports
 
@@ -45,17 +45,17 @@ import os
 
 from bpy.types import Operator
 
-from ..bl_ui_widgets.bl_ui_label import BL_UI_Label 
-from ..bl_ui_widgets.bl_ui_patch import BL_UI_Patch
+#from ..bl_ui_widgets.bl_ui_label import BL_UI_Label        <-- not needed for now but left as example
+#from ..bl_ui_widgets.bl_ui_patch import BL_UI_Patch        <-- not needed for now but left as example
 from ..bl_ui_widgets.bl_ui_button import BL_UI_Button
 from ..bl_ui_widgets.bl_ui_tooltip import BL_UI_Tooltip
 from ..bl_ui_widgets.bl_ui_draw_op import BL_UI_OT_draw_operator
 from ..bl_ui_widgets.bl_ui_drag_panel import BL_UI_Drag_Panel
 
-from . reference_cameras import get_target, find_collection, RC_MESHES, RC_ACTION_REMO
+#from . reference_cameras import get_target, find_collection  <-- not needed anymore but left as example
 
 #----- Diagnostic flag 
-DEBUG = 0 # Set it to 0 in the production version, > 0 to see diagnostic messages, 2 to enable PyDev debugger
+DEBUG = 0 # Set it to 0 in the production version; 1 to see diagnostic messages; 2 to enable PyDev debugger
 
 class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
     
@@ -247,10 +247,13 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         panW = newX+btnW+2+marginX  # Panel desired width  (beware: this math is good for my setup only)
         panH = newY+btnH+0+marginY  # Panel desired height (ditto)
 
-        # From Preferences/Interface/"Display"
-        ui_scale = bpy.context.preferences.view.ui_scale  # Need this just because I want the panel to be centered
-
+        # Need this just because I want the panel to be centered
         package = __package__[0:__package__.find(".")]
+        if bpy.context.preferences.addons[package].preferences.RC_UI_BIND:
+            # From Preferences/Interface/"Display"
+            ui_scale = bpy.context.preferences.view.ui_scale  
+        else:
+            ui_scale = 1
         over_scale = bpy.context.preferences.addons[package].preferences.RC_SCALE
 
         # The panel X and Y coords are in relation to the bottom-left corner of the 3D viewport area

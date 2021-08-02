@@ -37,24 +37,28 @@ bl_info = {
 #--- ### Change log
 
 #v2.1.0 (08.01.2021) - by Marcelo M. Marques 
-#Added:
-#Added:
-#Added:
-#Added:
-#Added:
+#Added: Addon preferences with properties to customize most of the panel's features
+#Added: Group of buttons to set the transformation orientation and select the camera/target 
+#Added: Button to turn the active meshe(s) visibility on or off
+#Added: Button to open/close a floating 'Remote Control' panel
+#Added: Buttons to remove (hide) cameras from the N-Panel groups
+#Added: Buttons to add to the scene new camera/target set auto configured to work with this addon
+#Added: Function to add to the scene the needed collection set to work with this addon
+#Added: Logic to allow the many cameras to be automatically organized in distinct groups
+#Chang: Replaced constants by functions that retrieve the values from the addon preferences
 
 #--- ### Imports
 import math
 import bpy
 import os
 
-from bpy.props import StringProperty, FloatProperty
+from bpy.props import StringProperty, BoolProperty
 from bpy_extras.io_utils import ImportHelper
 
-#from . drag_panel_op import DP_OT_draw_operator
+#from . drag_panel_op import DP_OT_draw_operator  <-- not needed anymore but left as example
 
 #--- ### Diagnostic flag 
-DEBUG = 0 #set it to 0 in the production version, > 0 to see diagnostic messages, 2 to enable PyDev debugger
+DEBUG = 0 # Set it to 0 in the production version; 1 to see diagnostic messages; 2 to enable PyDev debugger
 
 #--- ### For direct debugging of this add-on (update the pydevd path!) ---------------------------
 if DEBUG >= 2:
@@ -77,6 +81,13 @@ def RC_CAMERAS():
     package = __package__[0:__package__.find(".")]
     return (bpy.context.preferences.addons[package].preferences.RC_CAMERAS)
 
+def RC_TARGETS():
+    """ Name for a collection where the target objects will be moved upon creation of new camera sets. 
+        If left blank targets will be placed in the main camera collection.
+    """     
+    package = __package__[0:__package__.find(".")]
+    return (bpy.context.preferences.addons[package].preferences.RC_TARGETS)
+
 def RC_TEMP():
     """ A "working" collection for convenient view adjustments of the current camera. (this is also the collection name suffix). 
         The script creates such a collection if it does not exists. Then it will automatically place there the links 
@@ -85,12 +96,10 @@ def RC_TEMP():
     package = __package__[0:__package__.find(".")]
     return (bpy.context.preferences.addons[package].preferences.RC_TEMP)
  
-def RC_TARGETS():
-    """ Name for a collection where the target objects will be moved upon creation of new camera sets. 
-        If left blank targets will be placed in the main camera collection.
-    """     
+def RC_SUBPANELS():
+    """ Maximum number of dynamic subpanels for grouping camera selection buttons (when children collections exist under the main camera collection) """ 
     package = __package__[0:__package__.find(".")]
-    return (bpy.context.preferences.addons[package].preferences.RC_TARGETS)
+    return (bpy.context.preferences.addons[package].preferences.RC_SUBPANELS)
 
 def RC_SUBP_MODE():
     """ N-Panel Layout option: {COMPACT, FULL, EXTENDED}
@@ -99,10 +108,22 @@ def RC_SUBP_MODE():
     package = __package__[0:__package__.find(".")]
     return (bpy.context.preferences.addons[package].preferences.RC_SUBP_MODE)
 
-def RC_SUBPANELS():
-    """ Maximum number of dynamic subpanels for grouping camera selection buttons (when children collections exist under the main camera collection) """ 
+def RC_ACTION_MAIN():
+    """ Camera Action mode. If (ON) camera action will start when mode button pressed; 
+        If (OFF) just set the adjustment mode but do not start camera action.
+    """
     package = __package__[0:__package__.find(".")]
-    return (bpy.context.preferences.addons[package].preferences.RC_SUBPANELS)
+    return (bpy.context.preferences.addons[package].preferences.RC_ACTION_MAIN)
+
+def RC_FOCUS():
+    """ Perspective Camera lens value in millimeters """
+    package = __package__[0:__package__.find(".")]
+    return (bpy.context.preferences.addons[package].preferences.RC_FOCUS)
+
+def RC_SENSOR():
+    """ Size of the image sensor area in millimeters """
+    package = __package__[0:__package__.find(".")]
+    return (bpy.context.preferences.addons[package].preferences.RC_SENSOR)
 
 def RC_TRGMODE():
     """ Target Objects Display mode: {TEXTURED, SOLID, WIRE, BOUNDS} """ 
@@ -119,6 +140,11 @@ def RC_OPACITY():
     package = __package__[0:__package__.find(".")]
     return (bpy.context.preferences.addons[package].preferences.RC_OPACITY)
 
+def RC_DEPTH():
+    """ Depth option for rendering the camera's backgroud image """
+    package = __package__[0:__package__.find(".")]
+    return (bpy.context.preferences.addons[package].preferences.RC_DEPTH)
+
 def RC_ACTION_REMO():
     """ Camera Action mode. If (ON) camera action will start when mode button pressed; 
         If (OFF) just set the adjustment mode but do not start camera action.
@@ -126,12 +152,6 @@ def RC_ACTION_REMO():
     package = __package__[0:__package__.find(".")]
     return (bpy.context.preferences.addons[package].preferences.RC_ACTION_REMO)
 
-def RC_ACTION_MAIN():
-    """ Camera Action mode. If (ON) camera action will start when mode button pressed; 
-        If (OFF) just set the adjustment mode but do not start camera action.
-    """
-    package = __package__[0:__package__.find(".")]
-    return (bpy.context.preferences.addons[package].preferences.RC_ACTION_MAIN)
 
 
 #--- ### Helper functions
@@ -946,7 +966,10 @@ class CreateNewCameraSet(bpy.types.Operator, ImportHelper):
             camera_data = bpy.data.cameras.new(name=camera_name)
             camera_object = bpy.data.objects.new(camera_name, camera_data)
             camera_object.location = (0,0,10)
-            camera_object.data.lens = 50
+            camera_object.data.sensor_width = RC_SENSOR()
+            camera_object.data.lens = RC_FOCUS()
+            camera_object.data.lens_unit = 'MILLIMETERS'
+            camera_object.data.clip_start = 1.0
             camera_object.data.clip_end = 3000
             camera_object.data.type = 'PERSP'
 
@@ -983,7 +1006,7 @@ class CreateNewCameraSet(bpy.types.Operator, ImportHelper):
             bg = camera_object.data.background_images.new()
             bg.image = image
             bg.alpha = RC_OPACITY()
-            bg.display_depth = 'BACK'
+            bg.display_depth = RC_DEPTH()
             bg.frame_method = 'CROP'
 
         except:
