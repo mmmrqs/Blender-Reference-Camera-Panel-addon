@@ -236,11 +236,13 @@ class BL_UI_Widget():
         
         self.shader = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
             
-        if self._radius > 10:  #was: self._radius == 0 or self._radius > 10 or self._rounded_corners == (0,0,0,0):
-            vertices = self.calc_corners_for_trifan(self.x_screen, y_screen_flip, self.width, self.height, self._radius, 'FULL')
+        scaled_radius = self.over_scale(self._radius)
+            
+        if scaled_radius > 10:  #was: scaled_radius == 0 or scaled_radius > 10 or self._rounded_corners == (0,0,0,0):
+            vertices = self.calc_corners_for_trifan(self.x_screen, y_screen_flip, self.width, self.height, scaled_radius, 'FULL')
             self.batch_panel = batch_for_shader(self.shader, 'TRI_FAN', {"pos" : vertices})
         else:
-            vertices = self.calc_corners_for_lines(self.x_screen, y_screen_flip, self.width, self.height, self._radius, 'FULL')
+            vertices = self.calc_corners_for_lines(self.x_screen, y_screen_flip, self.width, self.height, scaled_radius, 'FULL')
             self.batch_panel = batch_for_shader(self.shader, 'LINES', {"pos" : vertices})
 
         self.__update_shaders = True
@@ -320,14 +322,15 @@ class BL_UI_Widget():
 
         # The following statements make the contour nicer but causes the background to be translucid, 
         # so I've disabled them till I figure out a better work around 
-        # if self._radius > 10:  #was: self._radius == 0 or self._radius > 10 or self._rounded_corners == (0,0,0,0):
+        # scaled_radius = self.over_scale(self._radius)
+        # if scaled_radius > 10:  #was: scaled_radius == 0 or scaled_radius > 10 or self._rounded_corners == (0,0,0,0):
             # bgl.glEnable(bgl.GL_POLYGON_SMOOTH)
         # else:
             # bgl.glEnable(bgl.GL_LINE_SMOOTH)
 
         self.batch_panel.draw(self.shader) 
         
-        # if self._radius > 10:  #was: self._radius == 0 or self._radius > 10 or self._rounded_corners == (0,0,0,0):
+        # if scaled_radius > 10:  #was: scaled_radius == 0 or scaled_radius > 10 or self._rounded_corners == (0,0,0,0):
             # bgl.glDisable(bgl.GL_POLYGON_SMOOTH)
             # bgl.glEnable(bgl.GL_LINE_SMOOTH)
 
@@ -421,24 +424,26 @@ class BL_UI_Widget():
             
         self.shader_outline.uniform_float("color", color)
         
-        if self._radius > 10: #was: self._radius == 0 or self._radius > 10 or self._rounded_corners == (0,0,0,0):
+        scaled_radius = self.over_scale(self._radius)
+
+        if scaled_radius > 10: #was: scaled_radius == 0 or scaled_radius > 10 or self._rounded_corners == (0,0,0,0):
             bgl.glLineWidth(1)
             if self.__update_shaders:
-                vertices = self.calc_corners_for_trifan(int(self.x_screen), y_screen_flip, self.width, self.height, self._radius, 'FULL')
+                vertices = self.calc_corners_for_trifan(int(self.x_screen), y_screen_flip, self.width, self.height, scaled_radius, 'FULL')
                 self.batch_outline = batch_for_shader(self.shader_outline, 'LINE_LOOP', {"pos" : vertices})
             self.batch_outline.draw(self.shader_outline) 
         else:
             # bgl.glPointSize(1)
-            # vertices = self.calc_corners_for_lines(int(self.x_screen), y_screen_flip, self.width, self.height, self._radius, 'OUTLINE-A')
+            # vertices = self.calc_corners_for_lines(int(self.x_screen), y_screen_flip, self.width, self.height, scaled_radius, 'OUTLINE-A')
             # self.batch_outline = batch_for_shader(self.shader_outline, 'POINTS', {"pos" : vertices})
             # self.batch_outline.draw(self.shader_outline) 
             # bgl.glLineWidth(1)
-            # vertices = self.calc_corners_for_lines(int(self.x_screen), y_screen_flip, self.width, self.height, self._radius, 'OUTLINE-B')
+            # vertices = self.calc_corners_for_lines(int(self.x_screen), y_screen_flip, self.width, self.height, scaled_radius, 'OUTLINE-B')
             # self.batch_outline = batch_for_shader(self.shader_outline, 'LINES', {"pos" : vertices})
             # self.batch_outline.draw(self.shader_outline) 
             bgl.glLineWidth(1)
             if self.__update_shaders:
-                vertices = self.calc_corners_for_lines(int(self.x_screen), y_screen_flip, self.width, self.height, self._radius, 'OUTLINE-A')
+                vertices = self.calc_corners_for_lines(int(self.x_screen), y_screen_flip, self.width, self.height, scaled_radius, 'OUTLINE-A')
                 self.batch_outline = batch_for_shader(self.shader_outline, 'LINE_LOOP', {"pos" : vertices})
             self.batch_outline.draw(self.shader_outline) 
 
@@ -456,25 +461,27 @@ class BL_UI_Widget():
         self.shader_shadow1.uniform_float("color", (0,0,0,0.35))
         self.shader_shadow2.uniform_float("color", (0,0,0,0.35))
         
-        if self._radius > 10: #was: self._radius == 0 or self._radius > 10 or self._rounded_corners == (0,0,0,0):
+        scaled_radius = self.over_scale(self._radius)
+
+        if scaled_radius > 10: #was: scaled_radius == 0 or scaled_radius > 10 or self._rounded_corners == (0,0,0,0):
             bgl.glLineWidth(1)
             if self.__update_shaders:
-                vertices = self.calc_corners_for_trifan(int(self.x_screen), y_screen_flip, self.width, self.height, self._radius, 'SHADOW')
+                vertices = self.calc_corners_for_trifan(int(self.x_screen), y_screen_flip, self.width, self.height, scaled_radius, 'SHADOW')
                 self.batch_shadow1 = batch_for_shader(self.shader_shadow1, 'LINE_STRIP', {"pos" : vertices})
             self.batch_shadow1.draw(self.shader_shadow1) 
         else:
             bgl.glPointSize(1)
             if self.__update_shaders:
-                vertices = self.calc_corners_for_lines(int(self.x_screen), y_screen_flip, self.width, self.height, self._radius, 'SHADOW-A')
+                vertices = self.calc_corners_for_lines(int(self.x_screen), y_screen_flip, self.width, self.height, scaled_radius, 'SHADOW-A')
                 self.batch_shadow1 = batch_for_shader(self.shader_shadow1, 'POINTS', {"pos" : vertices})
             self.batch_shadow1.draw(self.shader_shadow1) 
             bgl.glLineWidth(1)
             if self.__update_shaders:
-                vertices = self.calc_corners_for_lines(int(self.x_screen), y_screen_flip, self.width, self.height, self._radius, 'SHADOW-B')
+                vertices = self.calc_corners_for_lines(int(self.x_screen), y_screen_flip, self.width, self.height, scaled_radius, 'SHADOW-B')
                 self.batch_shadow2 = batch_for_shader(self.shader_shadow2, 'LINES', {"pos" : vertices})
             self.batch_shadow2.draw(self.shader_shadow2) 
             # bgl.glLineWidth(1)
-            # vertices = self.calc_corners_for_lines(int(self.x_screen), y_screen_flip, self.width, self.height, self._radius, 'SHADOW')
+            # vertices = self.calc_corners_for_lines(int(self.x_screen), y_screen_flip, self.width, self.height, scaled_radius, 'SHADOW')
             # self.batch_shadow = batch_for_shader(self.shader_shadow, 'LINE_STRIP', {"pos" : vertices})
             # self.batch_shadow.draw(self.shader_shadow) 
 
