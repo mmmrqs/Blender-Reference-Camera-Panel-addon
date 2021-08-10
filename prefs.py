@@ -345,11 +345,11 @@ class ReferenceCameraPreferences(AddonPreferences):
                      "y: 0    "
         else:
             panH = 64 # <-- Panel height copied from 'drag_panel_op.py'
-            pos_x = bpy.context.scene.get("bl_ui_panel_saved_data")["panX"]
-            pos_y = bpy.context.scene.get("bl_ui_panel_saved_data")["panY"]
+            pos_x = int(round(bpy.context.scene.get("bl_ui_panel_saved_data")["panX"]))
+            pos_y = int(round(bpy.context.scene.get("bl_ui_panel_saved_data")["panY"]))
             # Note: Because of the scaling logic it was necessary to make this weird correction math below
             coords = "x: " + str(pos_x) + "    " +\
-                     "y: " + str(pos_y + int(panH * (self.over_scale(10000)/10000 - 1))) + "    "
+                     "y: " + str(pos_y + int(panH * (self.over_scale(1) - 1))) + "    "
         
         split = layout.split(factor=0.45, align=True)
         split.label(text="Current screen position:",icon='DECORATE')
