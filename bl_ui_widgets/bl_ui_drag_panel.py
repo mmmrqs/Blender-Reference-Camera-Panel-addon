@@ -79,17 +79,16 @@ class BL_UI_Drag_Panel(BL_UI_Patch):
                 y = bpy.context.scene.get("bl_ui_panel_saved_data")["panY"]
 
         # Need to apply scale to compensate for posterior calculations
-        over_scale = self.over_scale(10000)/10000 # This to get the raw factors without being rounded or integered
-        x = int(round((x / over_scale)))
-        y = int(round(((y - height) / over_scale)))
+        x = (x / self.over_scale(1))
+        y = (y / self.over_scale(1))
 
         super().__init__(x, y, width, height)
 
         self.widgets = []
         
-        # Note: bg_style value will always be ignored if the bg_color value is overriden after object initialization.
+        # Note: '_style' value will always be ignored if the bg_color value is overriden after object initialization.
 
-        self._bg_style = 'NONE'                 # Panel background color styles are: {HEADER,PANEL,SUBPANEL,TOOLTIP,NONE}
+        self._style = 'NONE'                    # Panel background color styles are: {HEADER,PANEL,SUBPANEL,TOOLTIP,NONE}
         self._bg_color = None                   # Panel background color (defaults to invisible)
         self._outline_color = None              # Panel outline color (defaults to invisible)
         self._roundness = 0                     # Panel corners roundness factor [0..1]
@@ -120,7 +119,7 @@ class BL_UI_Drag_Panel(BL_UI_Patch):
         
     def layout_widgets(self):
         for widget in self.widgets:
-            widget.update(self.x_screen + widget.x, self.y_screen + widget.y)   
+            widget.update(self.x_screen + widget.x, self.y_screen - widget.y)   
 
     def child_widget_focused(self, x, y):
         for widget in self.widgets:
@@ -131,10 +130,8 @@ class BL_UI_Drag_Panel(BL_UI_Patch):
     def save_panel_coords(self, x, y):
         # Update the new coord values in the session's saved data dictionary.
         # Note: Because of the scaling logic it was necessary to make this weird correction math below
-        area_height = self.get_area_height()
-        over_scale = self.over_scale(10000)/10000 # This to get the raw factors without being rounded or integered
         new_x = self.over_scale(x)
-        new_y = self.over_scale(area_height - y) - int(self.height * (over_scale - 1))
+        new_y = self.over_scale(y) 
         bpy.context.scene["bl_ui_panel_saved_data"] = {"panX" : new_x, "panY" : new_y}
         # Update values also in the add-on's preferences properties
         package = __package__[0:__package__.find(".")]
@@ -170,7 +167,7 @@ class BL_UI_Drag_Panel(BL_UI_Patch):
             height = self.get_area_height()
             self.__is_drag = True
             self.__drag_offset_x = x - self.x_screen
-            self.__drag_offset_y = y - (height - self.y_screen)
+            self.__drag_offset_y = y - self.y_screen
             return True
         else:
             return False
@@ -178,11 +175,9 @@ class BL_UI_Drag_Panel(BL_UI_Patch):
     # Overrides base class function
     def mouse_move(self, event, x, y):
         if self.__is_drag:
-            area_height = self.get_area_height()
-            y_screen_flip = area_height - y
             # Recalculate and update the new position on the viewport
             new_x = x - self.__drag_offset_x
-            new_y = y_screen_flip + self.__drag_offset_y
+            new_y = y - self.__drag_offset_y
             self.save_panel_coords(new_x, new_y)
             self.update(new_x, new_y)
             self.layout_widgets()

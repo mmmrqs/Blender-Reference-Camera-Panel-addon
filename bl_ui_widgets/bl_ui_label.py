@@ -42,6 +42,7 @@ bl_info = {
 #Added: 'text_rotation' property that allows the text to be painted in any direction (value must be in radians).
 #Added: Shadow and Kerning related properties that allow the text to be painted using these characteristics.
 #Added: Colors, Size, Shadow and Kerning attributes default to values retrieved from user theme (can be overriden).
+#Fixed: New call to verify_screen_position() so that object behaves alright when viewport is resized.
 
 #--- ### Imports
 import bpy
@@ -49,25 +50,25 @@ import blf
 
 from . bl_ui_widget import BL_UI_Widget
 
-class BL_UI_Label(BL_UI_Widget): ## in: bl_ui_widget.py ##
+class BL_UI_Label(BL_UI_Widget): 
     
     def __init__(self, x, y, width, height):
         super().__init__(x, y, width, height)
 
         self._text = "Label"
-        self._style = 'REGULAR'         # label color style options are: {REGULAR,TITLE,BUTTON,TOOLTIP}
-        self._text_color = None         # label normal color 
-        self._text_title = None         # label titles color 
+        self._style = 'REGULAR'                 # label color style options are: {REGULAR,TITLE,BUTTON,CHECKBOX,TOOLTIP}
+        self._text_color = None                 # label normal color 
+        self._text_title = None                 # label titles color 
         
-        self._text_size = None          # label size in points (pixels)
-        self._text_kerning = None       # label kerning (True/False)
-        self._text_rotation = 0.0       # Angle value in radians (90 is vertical)
+        self._text_size = None                  # label size in points (pixels)
+        self._text_kerning = None               # label kerning (True/False)
+        self._text_rotation = 0.0               # Angle value in radians (90 is vertical)
 
-        self._shadow_size = None        # label shadow size
-        self._shadow_offset_x = None    # label shadow offset x (potitive goes right)
-        self._shadow_offset_y = None    # label shadow offset y (negative goes down)
-        self._shadow_color = None       # label shadow color [0..1] = gray tone, from dark to clear
-        self._shadow_alpha = None       # label shadow alpha value [0..1]
+        self._shadow_size = None                # label shadow size
+        self._shadow_offset_x = None            # label shadow offset x (positive goes right)
+        self._shadow_offset_y = None            # label shadow offset y (negative goes down)
+        self._shadow_color = None               # label shadow color [0..1] = gray tone, from dark to clear
+        self._shadow_alpha = None               # label shadow alpha value [0..1]
         
     @property
     def text(self):
@@ -76,14 +77,6 @@ class BL_UI_Label(BL_UI_Widget): ## in: bl_ui_widget.py ##
     @text.setter
     def text(self, value):
         self._text = value
-
-    @property
-    def style(self):
-        return self._style
-
-    @style.setter
-    def style(self, value):
-        self._style = value
 
     @property
     def text_color(self):
@@ -166,21 +159,37 @@ class BL_UI_Label(BL_UI_Widget): ## in: bl_ui_widget.py ##
         self._shadow_alpha = value
             
     # Overrides base class function
+    def my_style(self):
+        if self._style == 'TITLE':
+            style = "panel_title"
+        elif self._style == 'REGULAR':
+            style = "widget_label"
+        elif self._style == 'BUTTON':
+            style = "widget"
+        elif self._style == 'CHECKBOX':
+            style = "widget"
+        elif self._style == 'TOOLTIP':
+            style = "widget"
+        else:    
+            style = "widget_label"
+        return style
+
+    # Overrides base class function
     def is_in_rect(self, x, y):
         # This type of object must not react to mouse events
         return False
         
     # Overrides base class function
     def update(self, x, y):        
-        self.x_screen = int(x)
-        self.y_screen = int(y)
+        self.x_screen = x
+        self.y_screen = y
         
     # Overrides base class function
     def draw(self):
         if not self.visible:
             return
 
-        if self._style == 'REGULAR' or self._style == 'BUTTON' or self._style == 'TOOLTIP':
+        if self._style == 'REGULAR' or self._style == 'TOOLTIP':
             if self._text_color is None:
                 theme = bpy.context.preferences.themes[0]
                 widget_style = getattr(theme.view_3d, "space")               
@@ -196,31 +205,23 @@ class BL_UI_Label(BL_UI_Widget): ## in: bl_ui_widget.py ##
             else:
                 text_color = self._text_title
         else:
-            # Warning error out color :-)
-            text_color = (1,0,0,1)
-
-        if self._style == 'TITLE':
-            style = "panel_title"
-        elif self._style == 'REGULAR':
-            style = "widget_label"
-        elif self._style == 'BUTTON':
-            style = "widget"
-        elif self._style == 'TOOLTIP':
-            style = "widget"
-        else:    
-            style = "widget_label"
+            if self._text_color is None:
+                # Warning error out color :-)
+                text_color = (1,0,0,1)
+            else:
+                text_color = self._text_color 
 
         theme = bpy.context.preferences.ui_styles[0]
-        widget_style = getattr(theme, style)     
+        widget_style = getattr(theme, self.my_style())
         if self._text_size is None:
             text_size = widget_style.points 
         else:
-            text_size = self.leverage_text_size(self._text_size, style)
+            text_size = self.leverage_text_size(self._text_size, self.my_style())
 
         if self._style == 'TOOLTIP':
-            text_size = self.ui_scale(text_size)
+            text_size = int(round(self.ui_scale(text_size)))
         else:
-            text_size = self.over_scale(text_size)
+            text_size = int(round(self.over_scale(text_size)))
             
         text_kerning = (widget_style.font_kerning_style == 'FITTED') if self._text_kerning is None else self._text_kerning
 
@@ -271,11 +272,9 @@ class BL_UI_Label(BL_UI_Widget): ## in: bl_ui_widget.py ##
         
         self.verify_screen_position(area_height)
 
-        y_screen_flip = area_height - self.y_screen
-
         blf.size(0, text_size, 72)
 
-        blf.position(0, self.over_scale(self.x_screen), self.over_scale(y_screen_flip), 0)
+        blf.position(0, self.over_scale(self.x_screen), self.over_scale(self.y_screen), 0)
             
         r, g, b, a = text_color
 

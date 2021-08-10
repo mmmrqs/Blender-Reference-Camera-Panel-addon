@@ -58,9 +58,9 @@ bl_info = {
 #Added: 'set_mouse_up' function to allow assignment of an external function to be called by internal 'mouse_up_func'.
 #Added: Shadow and Kerning related properties that allow the text to be painted using these characteristics.
 #Added: Size, Shadow and Kerning attributes default to values retrieved from user theme (may be overriden by programmer).
-#Fixed: New call to verify_screen_position() so that object behaves alright when viewport is resized.
 #Chang: Made it a subclass of 'BL_UI_Patch' instead of 'BL_UI_Widget' so that it can inherit the layout features from there.
 #Chang: Instead of hardcoded logic it is now leveraging 'BL_UI_Label' to paint the button text lines.
+#Fixed: New call to verify_screen_position() so that object behaves alright when viewport is resized.
 #Fixed: The calculation of vertical text centering because it was varying depending on which letters presented in the text.
 
 #--- ### Imports
@@ -75,21 +75,21 @@ class BL_UI_Button(BL_UI_Patch):
     def __init__(self, x, y, width, height):
         super().__init__(x, y, width, height)
 
-        # Note: bg_style value will always be ignored if the bg_color value is overriden after object initialization.
+        # Note: '_style' value will always be ignored if the bg_color value is overriden after object initialization.
 
         self._text = "Button"
         self._textwo = ""
-        self._text_color = None                 # Button text color (added missing alpha value) 
-        self._text_highlight = None             # Button high color (added missing alpha value) 
-        self._textwo_color = None               # Button text color (added missing alpha value) 
-        self._textwo_highlight = None           # Button high color (added missing alpha value) 
+        self._text_color = None                 # Button text color (first row) 
+        self._text_highlight = None             # Button high color (first row) 
+        self._textwo_color = None               # Button text color (second row)
+        self._textwo_highlight = None           # Button high color (second row)
 
-        self._bg_style = None                   # (Not used for this object type)
+        self._style = 'TOOL'                    # Button color styles are: {TOOL,RADIO,TOGGLE}
         self._bg_color = None                   # Button face color (when pressed state == 0)
         self._selected_color = None             # Button face color (when pressed state == 3)
         self._outline_color = None              # Button outline color
         self._roundness = None                  # Button corners roundness factor [0..1]
-        self._radius = 10                       # Button corners circular radius 
+        self._radius = 8.5                      # Button corners circular radius 
         self._rounded_corners = (1,1,1,1)       # 1=Round/0=Straight, coords:(bottomLeft,topLeft,topRight,bottomRight)
         self._has_shadow = True                 # Indicates whether a shadow must be drawn around the button 
 
@@ -98,14 +98,14 @@ class BL_UI_Button(BL_UI_Patch):
         
         self._text_kerning = None               # Button text kerning (True/False)
         self._text_shadow_size = None           # Button text shadow size
-        self._text_shadow_offset_x = None       # Button text shadow offset x (potitive goes right)
+        self._text_shadow_offset_x = None       # Button text shadow offset x (positive goes right)
         self._text_shadow_offset_y = None       # Button text shadow offset y (negative goes down)
         self._text_shadow_color = None          # Button text shadow color [0..1] = gray tone, from dark to clear
         self._text_shadow_alpha = None          # Button text shadow alpha value [0..1]
 
         self._textpos = (x, y)
 
-        self.__state = 0
+        self.__state = 0                        # 0 is UP; 1 is Down; 2 is Hover when not pressed or down; 3 is Pressed
 
     @property
     def state(self):
@@ -273,7 +273,7 @@ class BL_UI_Button(BL_UI_Patch):
         if not self.enabled:
             if self._bg_color is None:
                 theme = bpy.context.preferences.themes[0]
-                widget_style = getattr(theme.user_interface, "wcol_tool")
+                widget_style = getattr(theme.user_interface, self.my_style())
                 color = widget_style.inner
             else:
                 color = self._bg_color 
@@ -284,7 +284,7 @@ class BL_UI_Button(BL_UI_Patch):
             if self.__state == 0:
                 if self._bg_color is None:
                     theme = bpy.context.preferences.themes[0]
-                    widget_style = getattr(theme.user_interface, "wcol_tool")
+                    widget_style = getattr(theme.user_interface, self.my_style())
                     color = widget_style.inner
                 else:
                     color = self._bg_color 
@@ -292,7 +292,7 @@ class BL_UI_Button(BL_UI_Patch):
             elif self.__state == 1:
                 if self._selected_color is None:
                     theme = bpy.context.preferences.themes[0]
-                    widget_style = getattr(theme.user_interface, "wcol_tool")
+                    widget_style = getattr(theme.user_interface, self.my_style())
                     color = widget_style.inner_sel
                 else:
                     color = self._selected_color 
@@ -300,7 +300,7 @@ class BL_UI_Button(BL_UI_Patch):
             elif self.__state == 2:
                 if self._bg_color is None:
                     theme = bpy.context.preferences.themes[0]
-                    widget_style = getattr(theme.user_interface, "wcol_tool")
+                    widget_style = getattr(theme.user_interface, self.my_style())
                     color = widget_style.inner
                 else:
                     color = self._bg_color 
@@ -310,7 +310,7 @@ class BL_UI_Button(BL_UI_Patch):
             elif self.__state == 3:
                 if self._selected_color is None:
                     theme = bpy.context.preferences.themes[0]
-                    widget_style = getattr(theme.user_interface, "wcol_tool")
+                    widget_style = getattr(theme.user_interface, self.my_style())
                     color = widget_style.inner_sel
                 else:
                     color = self._selected_color 
@@ -323,7 +323,7 @@ class BL_UI_Button(BL_UI_Patch):
             return None
             
         theme = bpy.context.preferences.themes[0]
-        widget_style = getattr(theme.user_interface, "wcol_tool")
+        widget_style = getattr(theme.user_interface, self.my_style())
 
         if self.button_pressed_func(self):
             text_color = tuple(widget_style.text_sel) + (1.0,) if self._text_highlight is None else self._text_highlight
@@ -341,15 +341,18 @@ class BL_UI_Button(BL_UI_Patch):
         else:
             text_size = self._text_size
             leveraged_text_size = self.leverage_text_size(text_size,"widget")
-        scaled_size = self.over_scale(leveraged_text_size)
+        scaled_size = int(round(self.over_scale(leveraged_text_size)))
 
         text_kerning = (widget_style.font_kerning_style == 'FITTED') if self._text_kerning is None else self._text_kerning
         if text_kerning:
             blf.enable(0, blf.KERNING_DEFAULT)
             
+        blf.size(0, leveraged_text_size, 72)
+        normal1 = blf.dimensions(0, "W")[1]  # This is to keep a regular pattern since letters differ in height
+
         blf.size(0, scaled_size, 72)
         length1 = blf.dimensions(0, self._text)[0]
-        height1 = blf.dimensions(0, "W")[1]  # This is to keep a regular pattern since letters differ in height
+        height1 = blf.dimensions(0, "W")[1]  
 
         if self._textwo != "":
             if self._textwo_size is None:
@@ -358,11 +361,14 @@ class BL_UI_Button(BL_UI_Patch):
             else:
                 textwo_size = self._textwo_size
                 leveraged_text_size = self.leverage_text_size(textwo_size,"widget")
-            scaled_size = self.over_scale(leveraged_text_size)
+            scaled_size = int(round(self.over_scale(leveraged_text_size)))
+            blf.size(0, leveraged_text_size, 72)
+            normal2 = blf.dimensions(0, "W")[1]  # This is to keep a regular pattern since letters differ in height
             blf.size(0, scaled_size, 72)
             length2 = blf.dimensions(0, self._textwo)[0]
-            height2 = blf.dimensions(0, "W")[1]  # This is to keep a regular pattern since letters differ in height
+            height2 = blf.dimensions(0, "W")[1]  
         else:
+            normal2 = 0
             length2 = 0
             height2 = 0
 
@@ -374,12 +380,15 @@ class BL_UI_Button(BL_UI_Patch):
         else:
             middle_gap = 4
 
-        over_scale = self.over_scale(10000)/10000 # This to get the raw factors without being rounded or integered
+        over_scale = self.over_scale(1)
 
-        top_margin = int((self.height - round( (height1 + height2) / over_scale ) - middle_gap) / 2.0)
+        if self._style == 'NUMBER_CLICK' or self._style == 'NUMBER_SLIDE':
+            top_margin = int((self.height - normal1) / 2.0)
+        else:
+            top_margin = int((self.height - int(round(normal1+0.499)) - int(round(normal2+0.499)) - middle_gap) / 2.0)
 
-        textpos_y = self.y_screen + top_margin + round((height1+0.499) / over_scale ) - 1
-
+        textpos_y = self.y_screen - top_margin - int(round(normal1+0.499)) + 1
+        
         shadow_size  = widget_style.shadow if self._text_shadow_size is None else self._text_shadow_size 
         shadow_offset_x = widget_style.shadow_offset_x if self._text_shadow_offset_x is None else self._text_shadow_offset_x
         shadow_offset_y = widget_style.shadow_offset_y if self._text_shadow_offset_y is None else self._text_shadow_offset_y
@@ -387,7 +396,11 @@ class BL_UI_Button(BL_UI_Patch):
         shadow_alpha = widget_style.shadow_alpha if self._text_shadow_alpha is None else self._text_shadow_alpha
 
         if self._text != "":
-            textpos_x = self.x_screen + int((self.width - round(length1 / over_scale)) / 2.0) - 1
+            if self._style == 'NUMBER_CLICK' or self._style == 'NUMBER_SLIDE':
+                margin = 8 if self._style == 'NUMBER_SLIDE' else 2
+                textpos_x = self.x_screen + margin
+            else:
+                textpos_x = self.x_screen + int((self.width - (length1 / over_scale)) / 2.0)
 
             label = BL_UI_Label(textpos_x, textpos_y, length1, height1)
             label.style = 'BUTTON'
@@ -416,10 +429,17 @@ class BL_UI_Button(BL_UI_Patch):
             label.context_it(self.context)
             label.draw()
 
-            textpos_y = textpos_y + middle_gap + round((height2+0.499) / over_scale )
+            if self._style == 'NUMBER_CLICK' or self._style == 'NUMBER_SLIDE':
+                pass
+            else:    
+                textpos_y = textpos_y - middle_gap - int(round(normal1+0.499)) 
 
         if self._textwo != "":
-            textpos_x = self.x_screen + int((self.width - round(length2 / over_scale)) / 2.0) - 1
+            if self._text != "" and (self._style == 'NUMBER_CLICK' or self._style == 'NUMBER_SLIDE'):
+                margin = 8 if self._style == 'NUMBER_SLIDE' else 2
+                textpos_x = self.x_screen + int((self.width - (length2 / over_scale)) - margin)
+            else:
+                textpos_x = self.x_screen + int((self.width - (length2 / over_scale)) / 2.0)
 
             label = BL_UI_Label(textpos_x, textpos_y, length2, height2)
             label.style = 'BUTTON'
@@ -455,7 +475,7 @@ class BL_UI_Button(BL_UI_Patch):
         if self.is_in_rect(x,y):
             # When button is disabled, just ignore the click
             if not self.enabled: 
-                # Consume þhe mouse event to avoid the camera/target be unselected
+                # Consume the mouse event to avoid the camera/target be unselected
                 return True
             # Down state
             self.__state = 1
@@ -480,7 +500,7 @@ class BL_UI_Button(BL_UI_Patch):
             if self.__state == 2:
                 # Up state
                 self.__state = 0
-        return False 
+                return False
  
     # Overrides base class function
     def mouse_up(self, event, x, y):

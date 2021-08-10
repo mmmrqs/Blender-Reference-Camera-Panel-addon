@@ -64,6 +64,7 @@ from math import pi, cos, sin
 class BL_UI_Widget():
 
     g_tooltip_widget = None   # Widget object which mouse pointer is currently over (e.g. a given button)
+    g_sliding_widget = None   # Widget object of 'SLIDER' type which is undergoing a sliding user action
     
     def __init__(self, x, y, width, height):
 
@@ -75,6 +76,8 @@ class BL_UI_Widget():
         self.height = height
         self.context = None   
         
+        self._style = None             # widget color style option (vary per widget subclass type)
+
         self._tooltip_text = ""        # Text for the tooltip
         self._tooltip_shortcut = ""    # Shortcut for the tooltip
         self._tooltip_python = ""      # Python command for the tooltip
@@ -82,6 +85,7 @@ class BL_UI_Widget():
         self._is_visible = True        # Indicates whether the object's draw function must be executed or not
         self._is_enabled = True        # Indicates whether the object is enabled or not (useful for button states)
         self._is_tooltip = False       # Indicates whether the object instance is of 'Tooltip' type
+        self._is_mslider = False       # Indicates whether the object instance is for drawing the middle section of a 'Slider'
 
         self.__ui_scale = 0            # Saves the last ui_scale value used
         self.__area_height = 0         # Saves the last area height value
@@ -94,6 +98,14 @@ class BL_UI_Widget():
         self.__update_shaders = True   # Indicates whether all other shaders need to be updated for the next draw
         self.__mouse_down = False      # Indicates whether mouse button is currently pressed by user
         self.__inrect = False          # Indicates whether mouse pointer is currently over the widget area
+
+    @property
+    def style(self):
+        return self._style
+
+    @style.setter
+    def style(self, value):
+        self._style = value
 
     @property
     def visible(self):
@@ -166,13 +178,13 @@ class BL_UI_Widget():
     def ui_scale(self, value):
         if self.RC_UI_BIND():
             # From Preferences/Interface/"Display"
-            return int(round(value * bpy.context.preferences.view.ui_scale))
+            return value * bpy.context.preferences.view.ui_scale
         else:
             return value
         
     def over_scale(self, value):
         # Applies the over scale as configured in the addon preferences
-        return int(round(self.ui_scale(value) * self.RC_SCALE()))
+        return self.ui_scale(value) * self.RC_SCALE()
         
     def leverage_text_size(self, text_size, style):
         # Re-size the programmer's informed text size in relation to Blender's standard font types.
@@ -188,6 +200,33 @@ class BL_UI_Widget():
             factor = (style_size - 11) / 11  # Would be 10 for 'Minimal Dark' v2.93 theme
         return int(round(text_size*(1 + factor)))
 
+    def my_style(self):
+        if self._style == 'RADIO':
+            # From Preferences/User Interface/"Radio Buttons"
+            style = "wcol_radio"
+        elif self._style == 'CHECKBOX':
+            # From Preferences/User Interface/"Option"
+            style = "wcol_option"
+        elif self._style == 'TOGGLE':
+            # From Preferences/User Interface/"Radio Toggle"
+            style = "wcol_toggle"
+        elif self._style == 'NUMBER_CLICK':
+            # From Preferences/User Interface/"Number Field"
+            style = "wcol_num"
+        elif self._style == 'NUMBER_SLIDE':
+            # From Preferences/User Interface/"Value Slider"
+            style = "wcol_numslider"
+        elif self._style == 'TOOLTIP':
+            # From Preferences/User Interface/"Tooltip"
+            style = "wcol_tooltip"
+        elif self._style == 'TOOL':
+            # From Preferences/User Interface/"Tool"
+            style = "wcol_tool"
+        else:
+            # From Preferences/User Interface/"Regular"
+            style = "wcol_regular"
+        return style
+        
     def tooltip_start(self, x, y):
         base_class = super().__thisclass__.__mro__[-2]  # This stunt only to avoid hard coding the Base class name
         base_class.g_tooltip_widget = self    
@@ -197,6 +236,10 @@ class BL_UI_Widget():
     def tooltip_clear(self):
         self.__tooltip_gotimer = 0
         self.__tooltip_current = False
+
+    def slider_in_action(self, value):
+        base_class = super().__thisclass__.__mro__[-2]  # This stunt only to avoid hard coding the Base class name
+        base_class.g_sliding_widget = value
     
     def set_location(self, x, y):
         self.x = x
@@ -221,28 +264,32 @@ class BL_UI_Widget():
             not get their rounded corners adjusted in real time when user plays with the roundness 
             values under Preferences/Themes, but eventually it will catch up and get updated. 
         """
-        area_height = self.get_area_height()
-            
         if self._is_tooltip:
             base_class = super().__thisclass__.__mro__[-2]  
             widget = base_class.g_tooltip_widget
             if not self.prepare_tooltip_data(widget):  # This function in: bl_ui_tooltip.py 
                 return None
         else:
-            self.x_screen = int(x)
-            self.y_screen = int(y)
-        
-        y_screen_flip = area_height - self.y_screen
+            self.x_screen = x
+            self.y_screen = y
         
         self.shader = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
             
-        scaled_radius = self.over_scale(self._radius)
-            
+        if not (self._roundness is None):
+            roundness = self._roundness
+        else:
+            # From Preferences/User Interface/<style>
+            theme = bpy.context.preferences.themes[0]
+            widget_style = getattr(theme.user_interface, self.my_style())
+            roundness = widget_style.roundness        
+
+        scaled_radius = round(roundness * self.over_scale(self._radius))
+
         if scaled_radius > 10:  #was: scaled_radius == 0 or scaled_radius > 10 or self._rounded_corners == (0,0,0,0):
-            vertices = self.calc_corners_for_trifan(self.x_screen, y_screen_flip, self.width, self.height, scaled_radius, 'FULL')
+            vertices = self.calc_corners_for_trifan(self.x_screen, self.y_screen, self.width, self.height, scaled_radius, 'FULL')
             self.batch_panel = batch_for_shader(self.shader, 'TRI_FAN', {"pos" : vertices})
         else:
-            vertices = self.calc_corners_for_lines(self.x_screen, y_screen_flip, self.width, self.height, scaled_radius, 'FULL')
+            vertices = self.calc_corners_for_lines(self.x_screen, self.y_screen, self.width, self.height, scaled_radius, 'FULL')
             self.batch_panel = batch_for_shader(self.shader, 'LINES', {"pos" : vertices})
 
         self.__update_shaders = True
@@ -258,19 +305,19 @@ class BL_UI_Widget():
                 widget.__tooltip_current = True
         else:
             # Trying to save some runtime by not executing an update action if not necessary
-            if self.__area_height != area_height or self.__ui_scale != self.over_scale(10000):
+            if self.__area_height != area_height or self.__ui_scale != self.over_scale(1):
                 former_area_height = self.__area_height
                 self.__area_height = area_height 
-                self.__ui_scale = self.over_scale(10000)
-                if not self.RC_SLIDE():
-                    # This is to prevent the panel to slide when user resizes screen viewport
+                self.__ui_scale = self.over_scale(1)
+                if self.RC_SLIDE():
                     drag_offset_x = 0   # Want to keep same x_pos
                     drag_offset_y = 0   # Want to keep same y_pos
-                    self.update(self.x_screen - drag_offset_x, self.y_screen - drag_offset_y)
+                    self.update(self.x_screen - drag_offset_x, self.y_screen + drag_offset_y)
                 else:
+                    # This is to prevent the panel to slide when user resizes screen viewport
                     if former_area_height > 0:
                         drag_offset_x = 0   # Want to keep same x_pos (placeholder for future enhancements)
-                        drag_offset_y = former_area_height - area_height
+                        drag_offset_y = (former_area_height - area_height) / self.over_scale(1)
                         self.update(self.x_screen - drag_offset_x, self.y_screen - drag_offset_y)
         
     def halt_tooltip(self):
@@ -353,10 +400,10 @@ class BL_UI_Widget():
     def set_colors(self):
         if not (self._bg_color is None):
             bgColor = self._bg_color 
-        elif self._bg_style == 'NONE':
+        elif self._style == 'NONE':
             # Invisible (good as placeholder for icons and images)
             bgColor = (0,0,0,0) 
-        elif self._bg_style == 'TOOLTIP':
+        elif self._style == 'TOOLTIP':
             # From Preferences/User Interface/"Tooltip"
             theme = bpy.context.preferences.themes[0]
             widget_style = getattr(theme.user_interface, "wcol_tooltip")
@@ -365,11 +412,11 @@ class BL_UI_Widget():
             # From Preferences/3D Viewport/"Panel Colors"
             theme = bpy.context.preferences.themes[0]
             widget_style = getattr(theme.view_3d.space, "panelcolors")               
-            if self._bg_style == 'HEADER':
+            if self._style == 'HEADER':
                 bgColor = widget_style.header
-            elif self._bg_style == 'PANEL':
+            elif self._style == 'PANEL':
                 bgColor = widget_style.back
-            elif self._bg_style == 'SUBPANEL':
+            elif self._style == 'SUBPANEL':
                 bgColor = widget_style.sub_back
             else:
                 # Warning error out color :-)
@@ -405,47 +452,69 @@ class BL_UI_Widget():
     def draw_outline(self):
         if not (self._outline_color is None):
             color = self._outline_color 
-            if color[3] == 0:
-                # Means that the drawing will be invisible, so get out of here
-                return None
-        elif self._bg_style == 'TOOLTIP':
-            theme = bpy.context.preferences.themes[0]
-            widget_style = getattr(theme.user_interface, "wcol_tooltip")
-            color = tuple(widget_style.outline) + (1.0,)
         else:
+            # From Preferences/User Interface/<style>
             theme = bpy.context.preferences.themes[0]
-            widget_style = getattr(theme.user_interface, "wcol_tool")
+            widget_style = getattr(theme.user_interface, self.my_style())
             color = tuple(widget_style.outline) + (1.0,)
+
+        if color[3] == 0:
+            # Means that the drawing will be invisible, so get out of here
+            return None
 
         if self.__update_shaders:
-            area_height = self.get_area_height()
-            y_screen_flip = area_height - int(self.y_screen)
             self.shader_outline = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
-            
+
+        self.shader_outline.bind()
         self.shader_outline.uniform_float("color", color)
         
-        scaled_radius = self.over_scale(self._radius)
+        if not (self._roundness is None):
+            roundness = self._roundness
+        else:
+            # From Preferences/User Interface/<style>
+            theme = bpy.context.preferences.themes[0]
+            widget_style = getattr(theme.user_interface, self.my_style())
+            roundness = widget_style.roundness        
 
-        if scaled_radius > 10: #was: scaled_radius == 0 or scaled_radius > 10 or self._rounded_corners == (0,0,0,0):
+        scaled_radius = round(roundness * self.over_scale(self._radius))
+
+        if self._is_mslider:
+            # This is for the middle section of a 'SLIDER' object type 
             bgl.glLineWidth(1)
             if self.__update_shaders:
-                vertices = self.calc_corners_for_trifan(int(self.x_screen), y_screen_flip, self.width, self.height, scaled_radius, 'FULL')
-                self.batch_outline = batch_for_shader(self.shader_outline, 'LINE_LOOP', {"pos" : vertices})
+                # Applying UI Scale:
+                x_screen = self.over_scale(self.x_screen)
+                y_screen = self.over_scale(self.y_screen)
+                width = self.over_scale(self.width)
+                height = self.over_scale(self.height)
+                vertices = ((x_screen        , y_screen), 
+                            (x_screen + width, y_screen),
+                            (x_screen        , y_screen - height + 1), 
+                            (x_screen + width, y_screen - height + 1)
+                            )
+                self.batch_outline = batch_for_shader(self.shader_outline, 'LINES', {"pos" : vertices})
             self.batch_outline.draw(self.shader_outline) 
         else:
-            # bgl.glPointSize(1)
-            # vertices = self.calc_corners_for_lines(int(self.x_screen), y_screen_flip, self.width, self.height, scaled_radius, 'OUTLINE-A')
-            # self.batch_outline = batch_for_shader(self.shader_outline, 'POINTS', {"pos" : vertices})
-            # self.batch_outline.draw(self.shader_outline) 
-            # bgl.glLineWidth(1)
-            # vertices = self.calc_corners_for_lines(int(self.x_screen), y_screen_flip, self.width, self.height, scaled_radius, 'OUTLINE-B')
-            # self.batch_outline = batch_for_shader(self.shader_outline, 'LINES', {"pos" : vertices})
-            # self.batch_outline.draw(self.shader_outline) 
-            bgl.glLineWidth(1)
-            if self.__update_shaders:
-                vertices = self.calc_corners_for_lines(int(self.x_screen), y_screen_flip, self.width, self.height, scaled_radius, 'OUTLINE-A')
-                self.batch_outline = batch_for_shader(self.shader_outline, 'LINE_LOOP', {"pos" : vertices})
-            self.batch_outline.draw(self.shader_outline) 
+            if scaled_radius > 10: #was: scaled_radius == 0 or scaled_radius > 10 or self._rounded_corners == (0,0,0,0):
+                bgl.glLineWidth(1)
+                if self.__update_shaders:
+                    vertices = self.calc_corners_for_trifan(self.x_screen, self.y_screen, self.width, self.height, scaled_radius, 'FULL')
+                    self.batch_outline = batch_for_shader(self.shader_outline, 'LINE_LOOP', {"pos" : vertices})
+                self.batch_outline.draw(self.shader_outline) 
+            else:
+                # bgl.glPointSize(1)
+                # vertices = self.calc_corners_for_lines(self.x_screen, self.y_screen, self.width, self.height, scaled_radius, 'OUTLINE-A')
+                # self.batch_outline = batch_for_shader(self.shader_outline, 'POINTS', {"pos" : vertices})
+                # self.batch_outline.draw(self.shader_outline) 
+                # bgl.glLineWidth(1)
+                # vertices = self.calc_corners_for_lines(self.x_screen, self.y_screen, self.width, self.height, scaled_radius, 'OUTLINE-B')
+                # self.batch_outline = batch_for_shader(self.shader_outline, 'LINES', {"pos" : vertices})
+                # self.batch_outline.draw(self.shader_outline) 
+                bgl.glLineWidth(1)
+                if self.__update_shaders:
+                    vertices = self.calc_corners_for_lines(self.x_screen, self.y_screen, self.width, self.height, scaled_radius, 'OUTLINE-A')
+                    self.batch_outline = batch_for_shader(self.shader_outline, 'LINE_LOOP', {"pos" : vertices})
+                self.batch_outline.draw(self.shader_outline) 
 
     def draw_shadow(self):
         if not self.shadow:
@@ -453,37 +522,61 @@ class BL_UI_Widget():
 
         # Paint shadow
         if self.__update_shaders:
-            area_height = self.get_area_height()
-            y_screen_flip = area_height - int(self.y_screen)
             self.shader_shadow1 = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
             self.shader_shadow2 = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
-
-        self.shader_shadow1.uniform_float("color", (0,0,0,0.35))
-        self.shader_shadow2.uniform_float("color", (0,0,0,0.35))
         
-        scaled_radius = self.over_scale(self._radius)
+        self.shader_shadow1.bind()
+        self.shader_shadow1.uniform_float("color", (0,0,0,0.5))
+        
+        self.shader_shadow2.bind()
+        self.shader_shadow2.uniform_float("color", (0,0,0,0.5))
+        
+        if not (self._roundness is None):
+            roundness = self._roundness
+        else:
+            # From Preferences/User Interface/<style>
+            theme = bpy.context.preferences.themes[0]
+            widget_style = getattr(theme.user_interface, self.my_style())
+            roundness = widget_style.roundness        
 
-        if scaled_radius > 10: #was: scaled_radius == 0 or scaled_radius > 10 or self._rounded_corners == (0,0,0,0):
+        scaled_radius = round(roundness * self.over_scale(self._radius))
+
+        if self._is_mslider:
+            # This is for the middle section of a 'SLIDER' object type 
             bgl.glLineWidth(1)
             if self.__update_shaders:
-                vertices = self.calc_corners_for_trifan(int(self.x_screen), y_screen_flip, self.width, self.height, scaled_radius, 'SHADOW')
-                self.batch_shadow1 = batch_for_shader(self.shader_shadow1, 'LINE_STRIP', {"pos" : vertices})
+                # Applying UI Scale:
+                x_screen = self.over_scale(self.x_screen)
+                y_screen = self.over_scale(self.y_screen)
+                width = self.over_scale(self.width)
+                height = self.over_scale(self.height)
+                vertices = ((x_screen        , y_screen - height), 
+                            (x_screen + width, y_screen - height)
+                            )
+                self.batch_shadow1 = batch_for_shader(self.shader_shadow1, 'LINES', {"pos" : vertices})
             self.batch_shadow1.draw(self.shader_shadow1) 
         else:
-            bgl.glPointSize(1)
-            if self.__update_shaders:
-                vertices = self.calc_corners_for_lines(int(self.x_screen), y_screen_flip, self.width, self.height, scaled_radius, 'SHADOW-A')
-                self.batch_shadow1 = batch_for_shader(self.shader_shadow1, 'POINTS', {"pos" : vertices})
-            self.batch_shadow1.draw(self.shader_shadow1) 
-            bgl.glLineWidth(1)
-            if self.__update_shaders:
-                vertices = self.calc_corners_for_lines(int(self.x_screen), y_screen_flip, self.width, self.height, scaled_radius, 'SHADOW-B')
-                self.batch_shadow2 = batch_for_shader(self.shader_shadow2, 'LINES', {"pos" : vertices})
-            self.batch_shadow2.draw(self.shader_shadow2) 
-            # bgl.glLineWidth(1)
-            # vertices = self.calc_corners_for_lines(int(self.x_screen), y_screen_flip, self.width, self.height, scaled_radius, 'SHADOW')
-            # self.batch_shadow = batch_for_shader(self.shader_shadow, 'LINE_STRIP', {"pos" : vertices})
-            # self.batch_shadow.draw(self.shader_shadow) 
+            if scaled_radius > 10: #was: scaled_radius == 0 or scaled_radius > 10 or self._rounded_corners == (0,0,0,0):
+                bgl.glLineWidth(1)
+                if self.__update_shaders:
+                    vertices = self.calc_corners_for_trifan(self.x_screen, self.y_screen, self.width, self.height, scaled_radius, 'SHADOW')
+                    self.batch_shadow1 = batch_for_shader(self.shader_shadow1, 'LINE_STRIP', {"pos" : vertices})
+                self.batch_shadow1.draw(self.shader_shadow1) 
+            else:
+                bgl.glPointSize(1)
+                if self.__update_shaders:
+                    vertices = self.calc_corners_for_lines(self.x_screen, self.y_screen, self.width, self.height, scaled_radius, 'SHADOW-A')
+                    self.batch_shadow1 = batch_for_shader(self.shader_shadow1, 'POINTS', {"pos" : vertices})
+                self.batch_shadow1.draw(self.shader_shadow1) 
+                bgl.glLineWidth(1)
+                if self.__update_shaders:
+                    vertices = self.calc_corners_for_lines(self.x_screen, self.y_screen, self.width, self.height, scaled_radius, 'SHADOW-B')
+                    self.batch_shadow2 = batch_for_shader(self.shader_shadow2, 'LINES', {"pos" : vertices})
+                self.batch_shadow2.draw(self.shader_shadow2) 
+                # bgl.glLineWidth(1)
+                # vertices = self.calc_corners_for_lines(self.x_screen, self.y_screen, self.width, self.height, scaled_radius, 'SHADOW')
+                # self.batch_shadow = batch_for_shader(self.shader_shadow, 'LINE_STRIP', {"pos" : vertices})
+                # self.batch_shadow.draw(self.shader_shadow) 
 
     def draw_text(self):
         # This one applies only to objects of BL_UI_Button and BL_UI_Tooltip classes, 
@@ -493,10 +586,6 @@ class BL_UI_Widget():
     def draw_image(self):
         if self._image is not None:
             try:
-                area_height = self.get_area_height()
-
-                y_screen_flip = area_height - self.y_screen
-        
                 off_x = self.over_scale(self._image_position[0])
                 off_y = self.over_scale(self._image_position[1])
                 
@@ -504,7 +593,7 @@ class BL_UI_Widget():
                 sy = self.over_scale(self._image_size[1])
                 
                 x_screen = self.over_scale(self.x_screen)
-                y_screen = self.over_scale(y_screen_flip)
+                y_screen = self.over_scale(self.y_screen)
                 
                 # Bottom left, top left, top right, bottom right
                 vertices = ((x_screen + off_x, y_screen - off_y), 
@@ -543,6 +632,14 @@ class BL_UI_Widget():
             bpy.context.scene.var.RemoVisible = False
             return False
         ##-- end of the personalized criteria for the given addon --
+
+        base_class = super().__thisclass__.__mro__[-2]  # This stunt only to avoid hard coding the Base class name
+        sliding_widget = base_class.g_sliding_widget
+        if not sliding_widget is None:
+            if not sliding_widget is self:
+                # When there is a 'SLIDER' widget undergoing a draggin action by the user,
+                # we must skip passing events to any other widget but that particular one.
+                return False
 
         if(event.type == 'LEFTMOUSE'):
             if(event.value == 'PRESS'):
@@ -603,11 +700,11 @@ class BL_UI_Widget():
         return self.context.area.width
 
     def is_in_rect(self, x, y):
-        area_height = self.get_area_height()
-        widget_y = area_height - self.y_screen
+        widget_x = self.over_scale(self.x_screen)
+        widget_y = self.over_scale(self.y_screen)
         if (
-            (self.over_scale(self.x_screen) <= x <= self.over_scale(self.x_screen + self.width)) and 
-            (self.over_scale(widget_y) >= y >= self.over_scale(widget_y - self.height))
+            (widget_x <= x <= self.over_scale(self.x_screen + self.width)) and 
+            (widget_y >= y >= self.over_scale(self.y_screen - self.height))
             ):
             return True
           
@@ -681,21 +778,16 @@ class BL_UI_Widget():
         # Applying UI Scale:
         x_screen = self.over_scale(x_screen)
         y_screen = self.over_scale(y_screen)
+        
         width = self.ui_scale(width) if self._is_tooltip else self.over_scale(width)
         height = self.ui_scale(height) if self._is_tooltip else self.over_scale(height)
         
         if not (self._roundness is None):
             roundness = self._roundness
-            #
-        elif self._bg_style == 'TOOLTIP':
-            # From Preferences/User Interface/"Tooltip"
-            theme = bpy.context.preferences.themes[0]
-            widget_style = getattr(theme.user_interface, "wcol_tooltip")
-            roundness = widget_style.roundness        
         else:
-            # From Preferences/User Interface/"Tool"
+            # From Preferences/User Interface/<style>
             theme = bpy.context.preferences.themes[0]
-            widget_style = getattr(theme.user_interface, "wcol_tool")
+            widget_style = getattr(theme.user_interface, self.my_style())
             roundness = widget_style.roundness        
 
         r = round(roundness*radius) 
@@ -704,16 +796,16 @@ class BL_UI_Widget():
             
         if r <= 0:
             r = 0
-            use_rounded_corners = (0,0,0,0)
+            rounded_corners = (0,0,0,0)
         else:    
-            use_rounded_corners = self._rounded_corners
+            rounded_corners = self._rounded_corners
 
         w = width  - 1
         h = height - 1
         
         coords = []
         
-        if use_rounded_corners != (0,0,0,0):
+        if rounded_corners != (0,0,0,0):
             # Traditional Method 
             newco = []
             segments = r + 1
@@ -746,7 +838,7 @@ class BL_UI_Widget():
 
         if selection == 'FULL':
             # Top Left corners
-            if use_rounded_corners[1] == 0: 
+            if rounded_corners[1] == 0: 
                 coords.append((x_screen, y_screen))
             else:
                 corner_center = (x_screen + r, y_screen - r)
@@ -754,7 +846,7 @@ class BL_UI_Widget():
                     coords.append((corner_center[0] - c[0], corner_center[1] + c[1]))
 
             # Top Right corners
-            if use_rounded_corners[2] == 0: 
+            if rounded_corners[2] == 0: 
                 coords.append((x_screen + w, y_screen))
             else:
                 corner_center = (x_screen + w - r, y_screen - r)
@@ -766,7 +858,7 @@ class BL_UI_Widget():
             coords.append((x_screen + w + 1, y_screen - int(h/2)))
 
         # Bottom Right corners
-        if use_rounded_corners[3] == 0: 
+        if rounded_corners[3] == 0: 
             if selection == 'SHADOW':
                 # Apply an offset of some pixels
                 coords.append((x_screen + w + 1, y_screen - h - 1))
@@ -782,10 +874,10 @@ class BL_UI_Widget():
                     coords.append((corner_center[0] + c[0], corner_center[1] - c[1]))
 
         # Bottom Left corners
-        if use_rounded_corners[0] == 0 or selection == 'SHADOW':
+        if rounded_corners[0] == 0 or selection == 'SHADOW':
             if selection == 'SHADOW':
                 # Apply an offset of some pixels
-                k = 0 if use_rounded_corners[0] == 0 else r
+                k = 0 if rounded_corners[0] == 0 else r
                 coords.append((x_screen + k + 1, y_screen - h - 1))
             else:
                 coords.append((x_screen, y_screen - h))
@@ -815,16 +907,10 @@ class BL_UI_Widget():
 
         if not (self._roundness is None):
             roundness = self._roundness
-            #
-        elif self._bg_style == 'TOOLTIP':
-            # From Preferences/User Interface/"Tooltip"
-            theme = bpy.context.preferences.themes[0]
-            widget_style = getattr(theme.user_interface, "wcol_tooltip")
-            roundness = widget_style.roundness        
         else:
-            # From Preferences/User Interface/"Tool"
+            # From Preferences/User Interface/<style>
             theme = bpy.context.preferences.themes[0]
-            widget_style = getattr(theme.user_interface, "wcol_tool")
+            widget_style = getattr(theme.user_interface, self.my_style())
             roundness = widget_style.roundness        
 
         r = round(roundness*radius) 

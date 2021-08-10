@@ -42,14 +42,14 @@ import bpy
 
 from . bl_ui_widget import BL_UI_Widget
 
-class BL_UI_Patch(BL_UI_Widget): ## in: bl_ui_widget.py ##
+class BL_UI_Patch(BL_UI_Widget): 
 
     def __init__(self, x, y, width, height):
         super().__init__(x, y, width, height)
  
-        # Note: bg_style value will always be ignored if the bg_color value is overriden after object initialization.
+        # Note: '_style' value will always be ignored if the bg_color value is overriden after object initialization.
 
-        self._bg_style = 'NONE'                 # Patch background color styles are: {HEADER,PANEL,SUBPANEL,TOOLTIP,NONE}
+        self._style = 'NONE'                    # Patch background color styles are: {HEADER,PANEL,SUBPANEL,TOOLTIP,NONE}
         self._bg_color = None                   # Patch background color (defaults to invisible)
         self._outline_color = None              # Panel outline color (defaults to invisible)
         self._roundness = 0                     # Patch corners roundness factor [0..1]
@@ -60,14 +60,6 @@ class BL_UI_Patch(BL_UI_Widget): ## in: bl_ui_widget.py ##
         self._image = None
         self._image_size = (24, 24)
         self._image_position = (4, 2)
-
-    @property
-    def bg_style(self):
-        return self._bg_style
-
-    @bg_style.setter
-    def bg_style(self, value):
-        self._bg_style = value
 
     @property
     def bg_color(self):
@@ -91,9 +83,11 @@ class BL_UI_Patch(BL_UI_Widget): ## in: bl_ui_widget.py ##
 
     @roundness.setter
     def roundness(self, value):
-        if value < 0:
+        if value is None:
+            self._roundness = None
+        elif value < 0:
             self._roundness = 0.0
-        if value > 1:
+        elif value > 1:
             self._roundness = 1.0
         else:
             self._roundness = value
