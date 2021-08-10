@@ -45,8 +45,10 @@ import os
 
 from bpy.types import Operator
 
-#from ..bl_ui_widgets.bl_ui_label import BL_UI_Label        <-- not needed for now but left as example
-#from ..bl_ui_widgets.bl_ui_patch import BL_UI_Patch        <-- not needed for now but left as example
+from ..bl_ui_widgets.bl_ui_label import BL_UI_Label        # <-- not needed for now but left as example
+from ..bl_ui_widgets.bl_ui_patch import BL_UI_Patch        # <-- not needed for now but left as example
+from ..bl_ui_widgets.bl_ui_checkbox import BL_UI_Checkbox  # <-- not needed for now but left as example
+from ..bl_ui_widgets.bl_ui_slider import BL_UI_Slider      # <-- not needed for now but left as example
 from ..bl_ui_widgets.bl_ui_button import BL_UI_Button
 from ..bl_ui_widgets.bl_ui_tooltip import BL_UI_Tooltip
 from ..bl_ui_widgets.bl_ui_draw_op import BL_UI_OT_draw_operator
@@ -119,6 +121,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         # Camera Modes:
         # Zoom: Dolly moves only back and forth on camera's axis (G + ZZ + move mouse)
         self.button1 = BL_UI_Button(btnX, btnY, btnW, btnH)
+        self.button1.style = 'RADIO'
         self.button1.text = "ZOOM"
         self.button1.textwo = "(GZ)"
         self.button1.text_size = 13
@@ -131,6 +134,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         btnC += 1 
         # Horizontal Orbit: Camera rotates around the target which stays in place (R + Z + move mouse)
         self.button2 = BL_UI_Button((btnX+((btnW-1+btnG)*btnC)), btnY, btnW, btnH)
+        self.button2.style = 'RADIO'
         self.button2.text = "H ORB"
         self.button2.textwo = "(RZ)"
         self.button2.text_size = 13
@@ -143,6 +147,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         btnC += 1
         # Vertical Orbit: Camera rotates around the target which stays in place (R + XX + move mouse)
         self.button3 = BL_UI_Button((btnX+((btnW-1+btnG)*btnC)), btnY, btnW, btnH)
+        self.button3.style = 'RADIO'
         self.button3.text = "V ORB"
         self.button3.textwo = "(RX)"
         self.button3.text_size = 13
@@ -155,6 +160,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         btnC += 1
         # Tilt: Camera stays still, moves from up and down (R + XX + move mouse)
         self.button4 = BL_UI_Button((btnX+((btnW-1+btnG)*btnC)), btnY, btnW, btnH)
+        self.button4.style = 'RADIO'
         self.button4.text = "TILT"
         self.button4.textwo = "(RY)"
         self.button4.text_size = 13
@@ -168,6 +174,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         btnC += 1
         # Translation: Truck/Pedestal moves only from left to right on camera's axis (G + XX/YY/ZZ + move mouse)
         self.button5 = BL_UI_Button((btnX+((btnW-1+btnG)*btnC)), btnY, btnW, btnH)
+        self.button5.style = 'RADIO'
         self.button5.text = "MOVE"
         self.button5.textwo = "(GXYZ) "
         self.button5.text_size = 13
@@ -181,6 +188,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         btnC += 1
         # Roll: Camera stays still, lean from left to right (R + XX/YY + move mouse)
         self.button6 = BL_UI_Button((btnX+((btnW-1+btnG)*btnC)), btnY, btnW, btnH)
+        self.button6.style = 'RADIO'
         self.button6.text = "ROLL"
         self.button6.textwo = "(RXY)"
         self.button6.text_size = 13
@@ -194,6 +202,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         btnC += 1
         # Perspective: combination of Camera's Translation with Elevation/Rotation
         self.button7 = BL_UI_Button((btnX+((btnW-1+btnG)*btnC)), btnY, btnW, btnH)
+        self.button7.style = 'RADIO'
         self.button7.text = "POV"
         self.button7.textwo = "(GXYZ)"
         self.button7.text_size = 13
@@ -209,6 +218,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         btnH = 20
         # Reset Target: Sets Target Location and Rotation to (0,0,0) and removes related locks
         self.buttonR = BL_UI_Button(newX, btnY, btnW, btnH)
+        self.buttonR.style = 'TOOL'
         self.buttonR.text = "Reset Target"
         self.buttonR.set_mouse_up(self.buttonR_click)
         self.buttonR.description = "Sets Target Location and Rotation to (0,0,0) and removes related locks"
@@ -216,6 +226,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         newY = btnY + btnH +btnS
         # Display Mesh: Turns mesh visibility on/off
         self.buttonA = BL_UI_Button(newX, newY, btnW, btnH)
+        self.buttonA.style = 'TOOL'
         self.buttonA.text = "Display Mesh"
         self.buttonA.set_mouse_up(self.buttonA_click)
         self.buttonA.description = "Sets the mesh(es) visibility on/off"        
@@ -225,6 +236,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         newX = newX + btnW-1 + btnS
         # Lock Position: Locks Target Position fields and disables impacted buttons
         self.button8 = BL_UI_Button(newX, btnY, btnW, btnH)
+        self.button8.style = 'TOGGLE'
         #self.button8.selected_color = status_color
         self.button8.text = "Lock Position"
         self.button8.set_mouse_up(self.button8_click)
@@ -235,6 +247,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         newY = btnY + btnH +btnS
         # Lock Rotation: Locks Target Rotation fields and disables impacted buttons
         self.button9 = BL_UI_Button(newX, newY, btnW, btnH)
+        self.button9.style = 'TOGGLE'
         #self.button9.selected_color = status_color
         self.button9.text = "Lock Rotation"
         self.button9.set_mouse_up(self.button9_click)
@@ -243,6 +256,33 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         self.button9.python_cmd = "bpy.ops.object.ref_camera_panelbutton_lrot()"
         if self.button9_pressed(self.button9): self.button9.state = 3
         #-----------
+
+        self.check1 = BL_UI_Checkbox(newX, newY+60, btnW, btnH)
+        self.check1.text = "Testing"
+#        self.check1.set_state_changed(self.check1.changed)
+        self.check1.description = "This is my checkbox tooltip"        
+        self.check1.python_cmd = "bpy.ops.object.checkbox()"
+        self.check1.is_checked = True
+
+        preX = newX - (btnW-1 + btnS)
+        self.number = BL_UI_Slider(preX, newY+35, btnW, btnH)
+        self.number.style = 'NUMBER_CLICK'
+        self.number.value = 500
+        self.number.step = 100
+        self.number.unit = "m"
+        self.number.precision = 0
+        self.number.description = "This is my click slider tooltip"        
+        self.number.set_slider_updated(self.slider_update)
+
+        newX = preX + btnW-1 + btnS
+        self.slider = BL_UI_Slider(newX, newY+35, btnW, btnH)
+        self.slider.style = 'NUMBER_SLIDE'
+        self.slider.text = "Lens"
+        self.slider.value = 50
+        self.slider.min = 0
+        self.slider.max = 100
+        self.slider.unit = "m"
+        self.slider.description = "This is my standard slider tooltip"        
 
         panW = newX+btnW+2+marginX  # Panel desired width  (beware: this math is good for my setup only)
         panH = newY+btnH+0+marginY  # Panel desired height (ditto)
@@ -261,22 +301,22 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         panY = panH + 40 - 1  # The '40' is just a spacing                         # Panel Y coordinate, for panel's top-left corner 
 
         self.panel = BL_UI_Drag_Panel(panX, panY, panW, panH)  
-        self.panel.bg_style = 'PANEL'      # Options are: {HEADER,PANEL,SUBPANEL,TOOLTIP,NONE}
+        self.panel.style = 'PANEL'         # Options are: {HEADER,PANEL,SUBPANEL,TOOLTIP,NONE}
 
         self.tooltip = BL_UI_Tooltip()     # This is for displaying any tooltips
 
-        # self.patch = BL_UI_Patch(0,0,panW,17)
-        # self.patch.bg_style = 'HEADER'
+        #self.patch = BL_UI_Patch(0,0,panW,17)
+        #self.patch.style = 'HEADER'
         
-        # self.label = BL_UI_Label(0,10,panW,17)
-        # self.label.style = "TITLE"
-        # self.label.text = "Panel Title For Example"
-        # self.label.size = 12
+        #self.label = BL_UI_Label(0,0,panW,17)
+        #self.label.style = "TITLE"
+        #self.label.text = "Panel Title For Example"
+        #self.label.size = 12
         
-        # script_file = os.path.realpath(__file__)
-        # directory = os.path.dirname(script_file)
-        # imagePath = directory + "\\img\\scale_24.png" 
-        # self.patch.set_image(imagePath)
+        #script_file = os.path.realpath(__file__)
+        #directory = os.path.dirname(script_file)
+        #imagePath = directory + "\\..\\img\\scale_24.png" 
+        #self.patch.set_image(imagePath)
 
         #-----------
         if DEBUG:
@@ -285,6 +325,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
             newY = marginY + 1
             btnH = 40+btnS   
             self.buttonU = BL_UI_Button(newX, newY, btnH, btnH)
+            self.buttonU.style = 'TOOL'
             self.buttonU.text = "UNR"
             self.buttonU.text_size = 12
             self.buttonU.bg_color = (0.5,0,0,1)
@@ -304,6 +345,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         widgets_items = [
                          self.button1, self.button2, self.button3, self.button4, self.button5, self.button6, 
                          self.button7, self.button8, self.button9, self.buttonA, self.buttonR, 
+                         self.slider, self.number, self.check1,
                          self.tooltip, # <-- If there is a tooltip object, it must be the last in this list
                         ]
 
@@ -316,7 +358,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         
         self.panel.add_widgets(widgets_items)
 
-        self.panel.set_location(self.panel.x, (context.area.height - self.panel.height - self.panel.y))
+        self.panel.set_location(self.panel.x, self.panel.y)
 
 
     #-- Helper function
@@ -446,7 +488,53 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
             pass
         return (bpy.context.scene.var.MeshVisible)
 
+    def slider_update(self, widget, value):
+        # Example of a dynamic unit conversion with dynamic min/max limits
+        converted = False
+        if widget.unit == "mm" and value >= 1000:
+            # Upscale to meters
+            value = value / 1000
+            widget.unit = "m" 
+            widget.step = 10
+            widget.precision = 0
+            converted = True
+        if widget.unit == "m" and value >= 1000:
+            # Upscale to kilometers
+            value = value / 1000
+            widget.unit = "km" 
+            widget.step = 0.1
+            widget.precision = 1
+            converted = True
+        if widget.unit == "km" and value >= 10:
+            # I want my hardcoded max limit to be 10 km
+            value = 10
+            converted = True
+        if widget.unit == "km" and value < 1:
+            # Downscale to meters
+            value = value * 1000
+            widget.unit = "m"
+            widget.step = 10
+            widget.precision = 0
+            converted = True
+        if widget.unit == "m" and value < 1:
+            # Downscale to millimeters
+            value = value * 1000
+            widget.unit = "mm"
+            widget.step = 10
+            widget.precision = 0
+            converted = True
+        if widget.unit == "mm" and value < 1:
+            # I want my hardcoded min limit to be 1 mm
+            value = 1
+            converted = True
 
+        if converted:
+            widget.value = round(value, widget.precision)
+            return False
+        else:
+            # By returning True the 'value' argument will be commited to the widget.value property
+            return True
+    
         
 ##-Register/unregister processes 
 def register():

@@ -547,7 +547,7 @@ class RefCameraPanelbutton_LPOS(bpy.types.Operator):
     @classmethod
     def poll(cls,context):
         return is_object_mode(context)
-    
+
     def execute(self,context):
         scn = bpy.context.scene
         camera = scn.camera
@@ -558,7 +558,7 @@ class RefCameraPanelbutton_LPOS(bpy.types.Operator):
             scn.var.OpState5 = False
             SetAdjustmentMode("ZOOM")
         return {'FINISHED'}
-        
+    
 class RefCameraPanelbutton_LROT(bpy.types.Operator):
     bl_idname = "object.ref_camera_panelbutton_lrot"
     bl_label = "Lock Rotation"
@@ -1137,6 +1137,7 @@ class OBJECT_PT_CameraLens(bpy.types.Panel):
                 layout.separator()
                 
             elif RC_SUBP_MODE() == 'EXTENDED':
+                scn_var = bpy.context.scene.var
                 flow = layout.grid_flow(row_major=True, columns=4, even_columns=True, even_rows=True, align=True)
                 flow.scale_y = 1.75
                 op = flow.operator(RefCameraPanelbutton_MOVE.bl_idname, text="Move", depress=context.scene.var.OpState5)
