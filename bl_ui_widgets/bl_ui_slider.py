@@ -171,6 +171,7 @@ class BL_UI_Slider(BL_UI_Patch):
 
         self.slider.text_size = self._text_size             
         self.slider.textwo_size = self._text_size             
+        self.slider.text_margin = 2 if self._style == 'NUMBER_CLICK' else 8
         self.slider.text_kerning = self._text_kerning          
         self.slider.text_shadow_size = self._text_shadow_size      
         self.slider.text_shadow_offset_x = self._text_shadow_offset_x  
@@ -416,7 +417,7 @@ class BL_UI_Slider(BL_UI_Patch):
                 if not (self._roundness is None):
                     roundness = self._roundness
                 else:
-                    # From Preferences/User Interface/<style>
+                    # From Preferences/Themes/User Interface/<style>
                     theme = bpy.context.preferences.themes[0]
                     widget_style = getattr(theme.user_interface, self.my_style())
                     roundness = widget_style.roundness        

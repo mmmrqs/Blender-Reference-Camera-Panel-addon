@@ -84,7 +84,7 @@ class BL_UI_Button(BL_UI_Patch):
         self._textwo_color = None               # Button text color (second row)
         self._textwo_highlight = None           # Button high color (second row)
 
-        self._style = 'TOOL'                    # Button color styles are: {TOOL,RADIO,TOGGLE}
+        self._style = 'TOOL'                    # Button color styles are: {TOOL,RADIO,TOGGLE,NUMBER_CLICK,NUMBER_SLIDE,TEXTBOX}
         self._bg_color = None                   # Button face color (when pressed state == 0)
         self._selected_color = None             # Button face color (when pressed state == 3)
         self._outline_color = None              # Button outline color
@@ -95,6 +95,7 @@ class BL_UI_Button(BL_UI_Patch):
 
         self._text_size = None                  # Button text line 1 size
         self._textwo_size = None                # Button text line 2 size
+        self._text_margin = 0                   # Margin for left aligned text (used by slider and textbox objects)
         
         self._text_kerning = None               # Button text kerning (True/False)
         self._text_shadow_size = None           # Button text shadow size
@@ -186,6 +187,14 @@ class BL_UI_Button(BL_UI_Patch):
     @textwo_highlight.setter
     def textwo_highlight(self, value):
         self._textwo_highlight = value
+
+    @property
+    def text_margin(self):
+        return self._text_margin
+
+    @text_margin.setter
+    def text_margin(self, value):
+        self._text_margin = value
 
     @property
     def text_kerning(self):
@@ -305,7 +314,10 @@ class BL_UI_Button(BL_UI_Patch):
                 else:
                     color = self._bg_color 
                 # Light the "state 0" background color by scaling it down 10%
-                color = self.tint_color(color,0.1)
+                if self._style == 'TEXTBOX':
+                    color = self.tint_color(color,0.025)
+                else:
+                    color = self.tint_color(color,0.1)
             # Pressed
             elif self.__state == 3:
                 if self._selected_color is None:
@@ -382,7 +394,7 @@ class BL_UI_Button(BL_UI_Patch):
 
         over_scale = self.over_scale(1)
 
-        if self._style == 'NUMBER_CLICK' or self._style == 'NUMBER_SLIDE':
+        if self._style == 'NUMBER_CLICK' or self._style == 'NUMBER_SLIDE' or self._style == 'TEXTBOX':
             top_margin = int((self.height - normal1) / 2.0)
         else:
             top_margin = int((self.height - int(round(normal1+0.499)) - int(round(normal2+0.499)) - middle_gap) / 2.0)
@@ -396,9 +408,8 @@ class BL_UI_Button(BL_UI_Patch):
         shadow_alpha = widget_style.shadow_alpha if self._text_shadow_alpha is None else self._text_shadow_alpha
 
         if self._text != "":
-            if self._style == 'NUMBER_CLICK' or self._style == 'NUMBER_SLIDE':
-                margin = 8 if self._style == 'NUMBER_SLIDE' else 2
-                textpos_x = self.x_screen + margin
+            if self._style == 'NUMBER_CLICK' or self._style == 'NUMBER_SLIDE' or self._style == 'TEXTBOX':
+                textpos_x = self.x_screen + self._text_margin
             else:
                 textpos_x = self.x_screen + int((self.width - (length1 / over_scale)) / 2.0)
 
@@ -436,8 +447,7 @@ class BL_UI_Button(BL_UI_Patch):
 
         if self._textwo != "":
             if self._text != "" and (self._style == 'NUMBER_CLICK' or self._style == 'NUMBER_SLIDE'):
-                margin = 8 if self._style == 'NUMBER_SLIDE' else 2
-                textpos_x = self.x_screen + int((self.width - (length2 / over_scale)) - margin)
+                textpos_x = self.x_screen + int((self.width - (length2 / over_scale)) - self._text_margin)
             else:
                 textpos_x = self.x_screen + int((self.width - (length2 / over_scale)) / 2.0)
 
@@ -495,12 +505,11 @@ class BL_UI_Button(BL_UI_Patch):
             if self.__state != 1:
                 # Hover state
                 self.__state = 2
-                return False 
         else:
             if self.__state == 2:
                 # Up state
                 self.__state = 0
-                return False
+        return False
  
     # Overrides base class function
     def mouse_up(self, event, x, y):

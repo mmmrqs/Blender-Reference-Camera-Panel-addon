@@ -201,29 +201,32 @@ class BL_UI_Widget():
         return int(round(text_size*(1 + factor)))
 
     def my_style(self):
-        if self._style == 'RADIO':
-            # From Preferences/User Interface/"Radio Buttons"
+        if self._style == 'TOOL':
+            # From Preferences/Themes/User Interface/"Tool"
+            style = "wcol_tool"
+        elif self._style == 'RADIO':
+            # From Preferences/Themes/User Interface/"Radio Buttons"
             style = "wcol_radio"
+        elif self._style == 'TEXTBOX':
+            # From Preferences/Themes/User Interface/"Text"
+            style = "wcol_text"
         elif self._style == 'CHECKBOX':
-            # From Preferences/User Interface/"Option"
+            # From Preferences/Themes/User Interface/"Option"
             style = "wcol_option"
         elif self._style == 'TOGGLE':
-            # From Preferences/User Interface/"Radio Toggle"
+            # From Preferences/Themes/User Interface/"Radio Toggle"
             style = "wcol_toggle"
         elif self._style == 'NUMBER_CLICK':
-            # From Preferences/User Interface/"Number Field"
+            # From Preferences/Themes/User Interface/"Number Field"
             style = "wcol_num"
         elif self._style == 'NUMBER_SLIDE':
-            # From Preferences/User Interface/"Value Slider"
+            # From Preferences/Themes/User Interface/"Value Slider"
             style = "wcol_numslider"
         elif self._style == 'TOOLTIP':
-            # From Preferences/User Interface/"Tooltip"
+            # From Preferences/Themes/User Interface/"Tooltip"
             style = "wcol_tooltip"
-        elif self._style == 'TOOL':
-            # From Preferences/User Interface/"Tool"
-            style = "wcol_tool"
         else:
-            # From Preferences/User Interface/"Regular"
+            # From Preferences/Themes/User Interface/"Regular"
             style = "wcol_regular"
         return style
         
@@ -278,7 +281,7 @@ class BL_UI_Widget():
         if not (self._roundness is None):
             roundness = self._roundness
         else:
-            # From Preferences/User Interface/<style>
+            # From Preferences/Themes/User Interface/<style>
             theme = bpy.context.preferences.themes[0]
             widget_style = getattr(theme.user_interface, self.my_style())
             roundness = widget_style.roundness        
@@ -391,9 +394,9 @@ class BL_UI_Widget():
 
         self.draw_image()
 
-        self.draw_text()  
-        
         bgl.glDisable(bgl.GL_BLEND)
+        
+        self.draw_text()  
         
         self.__update_shaders = False
 
@@ -404,12 +407,12 @@ class BL_UI_Widget():
             # Invisible (good as placeholder for icons and images)
             bgColor = (0,0,0,0) 
         elif self._style == 'TOOLTIP':
-            # From Preferences/User Interface/"Tooltip"
+            # From Preferences/Themes/User Interface/"Tooltip"
             theme = bpy.context.preferences.themes[0]
             widget_style = getattr(theme.user_interface, "wcol_tooltip")
             bgColor = widget_style.inner
         else:
-            # From Preferences/3D Viewport/"Panel Colors"
+            # From Preferences/Themes/3D Viewport/"Panel Colors"
             theme = bpy.context.preferences.themes[0]
             widget_style = getattr(theme.view_3d.space, "panelcolors")               
             if self._style == 'HEADER':
@@ -453,7 +456,7 @@ class BL_UI_Widget():
         if not (self._outline_color is None):
             color = self._outline_color 
         else:
-            # From Preferences/User Interface/<style>
+            # From Preferences/Themes/User Interface/<style>
             theme = bpy.context.preferences.themes[0]
             widget_style = getattr(theme.user_interface, self.my_style())
             color = tuple(widget_style.outline) + (1.0,)
@@ -471,7 +474,7 @@ class BL_UI_Widget():
         if not (self._roundness is None):
             roundness = self._roundness
         else:
-            # From Preferences/User Interface/<style>
+            # From Preferences/Themes/User Interface/<style>
             theme = bpy.context.preferences.themes[0]
             widget_style = getattr(theme.user_interface, self.my_style())
             roundness = widget_style.roundness        
@@ -534,7 +537,7 @@ class BL_UI_Widget():
         if not (self._roundness is None):
             roundness = self._roundness
         else:
-            # From Preferences/User Interface/<style>
+            # From Preferences/Themes/User Interface/<style>
             theme = bpy.context.preferences.themes[0]
             widget_style = getattr(theme.user_interface, self.my_style())
             roundness = widget_style.roundness        
@@ -785,7 +788,7 @@ class BL_UI_Widget():
         if not (self._roundness is None):
             roundness = self._roundness
         else:
-            # From Preferences/User Interface/<style>
+            # From Preferences/Themes/User Interface/<style>
             theme = bpy.context.preferences.themes[0]
             widget_style = getattr(theme.user_interface, self.my_style())
             roundness = widget_style.roundness        
@@ -908,7 +911,7 @@ class BL_UI_Widget():
         if not (self._roundness is None):
             roundness = self._roundness
         else:
-            # From Preferences/User Interface/<style>
+            # From Preferences/Themes/User Interface/<style>
             theme = bpy.context.preferences.themes[0]
             widget_style = getattr(theme.user_interface, self.my_style())
             roundness = widget_style.roundness        
