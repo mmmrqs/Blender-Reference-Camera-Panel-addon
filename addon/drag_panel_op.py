@@ -49,6 +49,7 @@ from ..bl_ui_widgets.bl_ui_label import BL_UI_Label        # <-- not needed for 
 from ..bl_ui_widgets.bl_ui_patch import BL_UI_Patch        # <-- not needed for now but left as example
 from ..bl_ui_widgets.bl_ui_checkbox import BL_UI_Checkbox  # <-- not needed for now but left as example
 from ..bl_ui_widgets.bl_ui_slider import BL_UI_Slider      # <-- not needed for now but left as example
+from ..bl_ui_widgets.bl_ui_textbox import BL_UI_Textbox    # <-- not needed for now but left as example
 from ..bl_ui_widgets.bl_ui_button import BL_UI_Button
 from ..bl_ui_widgets.bl_ui_tooltip import BL_UI_Tooltip
 from ..bl_ui_widgets.bl_ui_draw_op import BL_UI_OT_draw_operator
@@ -284,6 +285,13 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         self.slider.unit = "m"
         self.slider.description = "This is my standard slider tooltip"        
 
+        self.textbox = BL_UI_Textbox(marginX, newY+35, 200, btnH)
+        self.textbox.text = "My editing text"
+        self.textbox.max_input_chars = 5
+        self.textbox.text = "100"
+        self.textbox.is_numeric = True
+        self.textbox.description = "Textbox editing entry field"
+
         panW = newX+btnW+2+marginX  # Panel desired width  (beware: this math is good for my setup only)
         panH = newY+btnH+0+marginY  # Panel desired height (ditto)
 
@@ -345,7 +353,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         widgets_items = [
                          self.button1, self.button2, self.button3, self.button4, self.button5, self.button6, 
                          self.button7, self.button8, self.button9, self.buttonA, self.buttonR, 
-                         self.slider, self.number, self.check1,
+                         self.slider, self.number, self.check1, self.textbox,
                          self.tooltip, # <-- If there is a tooltip object, it must be the last in this list
                         ]
 
