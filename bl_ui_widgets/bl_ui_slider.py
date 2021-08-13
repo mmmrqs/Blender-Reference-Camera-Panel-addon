@@ -64,6 +64,7 @@ from gpu_extras.batch import batch_for_shader
 from . bl_ui_patch import BL_UI_Patch
 from . bl_ui_label import BL_UI_Label
 from . bl_ui_button import BL_UI_Button
+from . bl_ui_textbox import BL_UI_Textbox
 
 class BL_UI_Slider(BL_UI_Patch): 
     
@@ -74,11 +75,13 @@ class BL_UI_Slider(BL_UI_Patch):
 
         self._text = ""
         self._text_color = None                 # Slider text color
+        self._text_highlight = None             # Slider text editing color 
                                           
         self._style = 'NUMBER_SLIDE'            # Slider style options are: {'NUMBER_SLIDE','NUMBER_CLICK'}
         self._bg_color = None                   # Slider background color
         self._selected_color = None             # Slider selection percentage color
         self._outline_color = None              # Slider outline color
+        self._carret_color = None               # Textbox carret color (when in edit mode)
         self._roundness = None                  # Slider corners roundness factor [0..1]
         self._radius = 8.5                      # Slider corners circular radius 
         self._rounded_corners = (1,1,1,1)       # 1=Round/0=Straight, coords:(bottomLeft,topLeft,topRight,bottomRight)
@@ -100,14 +103,10 @@ class BL_UI_Slider(BL_UI_Patch):
         self._unit = "mm"                       # Unit indicator for the displayed value
 
         self.__is_drag = False
+        self.__is_edit = False
+        self.__mouse_moved = False
         self.__drag_start_x = 0
         
-        self.__slider_pos = 0
-        self.__slider_value = 0 
-        self.__slider_width = 5
-        self.__slider_height = 13
-        self.__slider_offset_y = 3
-
     # Overrides base class function
     def init(self, context):
         self.context = context
@@ -117,10 +116,12 @@ class BL_UI_Slider(BL_UI_Patch):
         if self._style == 'NUMBER_CLICK':
             side_width = int(round(16*self.height / 20))   # Proportionally dimensioned
             self.decrease = BL_UI_Button(self.x, self.y, side_width, self.height)
-            self.slider = BL_UI_Button((self.x + side_width - 2), self.y, (self.width + 4 - 2*side_width), self.height)
             self.increase = BL_UI_Button((self.x + self.width - side_width), self.y, side_width, self.height)
+            self.slider = BL_UI_Button((self.x + side_width - 2), self.y, (self.width + 4 - 2*side_width), self.height)
         else:
             self.slider = BL_UI_Button(self.x, self.y, self.width, self.height)
+ 
+        self.textbox = BL_UI_Textbox(self.x, self.y, self.width, self.height)
 
         #-- Left side small button piece --
 
@@ -148,7 +149,7 @@ class BL_UI_Slider(BL_UI_Patch):
             self.decrease.text_shadow_color = self._text_shadow_color     
             self.decrease.text_shadow_alpha = self._text_shadow_alpha     
                  
-            self.decrease.set_mouse_up(self.decrease_mouse_up)
+            self.decrease.set_mouse_up(self.decrease_mouse_up_func)
 
         #-- Middle section button piece --
         
@@ -156,7 +157,7 @@ class BL_UI_Slider(BL_UI_Patch):
         self.slider._is_mslider = (self._style == 'NUMBER_CLICK') # Indicates this is the middle section of the slider 
 
         self.slider.text = self._text
-        self.slider.textwo = self.update_slider_value(self._value)
+        self.slider.textwo = self.update_self_value(self._value)
         self.slider.text_color = self._text_color
         self.slider.textwo_color = self._text_color
 
@@ -208,7 +209,39 @@ class BL_UI_Slider(BL_UI_Patch):
             self.increase.text_shadow_color = self._text_shadow_color     
             self.increase.text_shadow_alpha = self._text_shadow_alpha     
                  
-            self.increase.set_mouse_up(self.increase_mouse_up)
+            self.increase.set_mouse_up(self.increase_mouse_up_func)
+
+        #-- Textbox editing overlay object --
+        
+        self.textbox.context = context
+
+        self.textbox.text = str(self._value)
+        self.textbox.text_color = self._text_color
+        self.textbox.text_highlight = self._text_highlight
+        self.textbox.style = self._style             
+        self.textbox.bg_color = self._bg_color              
+        self.textbox.selected_color = self._selected_color        
+        self.textbox.outline_color = self._outline_color
+        self.textbox.carret_color = self._carret_color 
+        self.textbox.roundness = 0 if self._style == 'NUMBER_CLICK' else self._roundness               
+        self.textbox.radius = 0 if self._style == 'NUMBER_CLICK' else self._radius               
+        self.textbox.rounded_corners = (0,0,0,0) if self._style == 'NUMBER_CLICK' else self._rounded_corners
+        self.textbox.has_shadow = self._has_shadow                        
+
+        self.textbox.max_input_chars = 20
+        self.textbox.is_numeric = True
+
+        self.textbox.text_size = self._text_size             
+        self.textbox.text_margin = 8
+        self.textbox.text_kerning = self._text_kerning          
+        self.textbox.text_shadow_size = self._text_shadow_size      
+        self.textbox.text_shadow_offset_x = self._text_shadow_offset_x  
+        self.textbox.text_shadow_offset_y = self._text_shadow_offset_y  
+        self.textbox.text_shadow_color = self._text_shadow_color     
+        self.textbox.text_shadow_alpha = self._text_shadow_alpha     
+
+        self.textbox.set_mouse_down(self.textbox_mouse_down_func)
+        self.textbox.set_mouse_up(self.textbox_mouse_up_func)
 
     @property
     def state(self):
@@ -226,6 +259,14 @@ class BL_UI_Slider(BL_UI_Patch):
     def selected_color(self, value):
         self._selected_color = value 
         
+    @property
+    def carret_color(self):
+        return self._carret_color
+
+    @carret_color.setter
+    def carret_color(self, value):
+        self._carret_color = value
+
     @property
     def value(self):
         return self._value
@@ -287,7 +328,7 @@ class BL_UI_Slider(BL_UI_Patch):
 
     @text.setter
     def text(self, value):
-        self._text = value.strip()
+        self._text = value
         
     @property
     def text_size(self):
@@ -304,6 +345,14 @@ class BL_UI_Slider(BL_UI_Patch):
     @text_color.setter
     def text_color(self, value):
         self._text_color = value
+
+    @property
+    def text_highlight(self):
+        return self._text_highlight
+
+    @text_highlight.setter
+    def text_highlight(self, value):
+        self._text_highlight = value
 
     @property
     def text_kerning(self):
@@ -358,10 +407,10 @@ class BL_UI_Slider(BL_UI_Patch):
 
     def slider_updated_func(self, widget, value):
         # This must return True when function is not overriden, 
-        # so that the value updated by the slider is actually commited. 
+        # so that the value updated by the slider is actually committed. 
         return True
                  
-    def update_slider_value(self, value):
+    def update_self_value(self, value):
         update_value = value
         if not self._min_value is None:
             update_value = self._min_value if update_value < self._min_value else update_value
@@ -372,6 +421,7 @@ class BL_UI_Slider(BL_UI_Patch):
         str_value = str(round(self._value, self._precision))
         str_value = str_value[:len(str_value)-2] if str_value[-2:] == ".0" else str_value
         self.slider.textwo = str_value + " " + self._unit
+        self.textbox.text = str_value
         return self.slider.textwo
  
     # Overrides base class function
@@ -387,16 +437,25 @@ class BL_UI_Slider(BL_UI_Patch):
             self.increase.update(self.increase.x_screen + widget_x, y)   
 
         self.slider.update(self.slider.x_screen + widget_x, y)   
+        self.textbox.update(self.textbox.x_screen + widget_x, y)   
         
     # Overrides base class function
     def draw(self):      
+        if not self._is_visible:
+            return
+            
+        # Enter edit mode and skip drawing the regular slider object pieces
+        if self.__is_edit:
+            self.textbox.draw()
+            return
+
         # Draw slider's left and right click corners
         if self._style == 'NUMBER_CLICK':
             self.decrease.draw()
             self.increase.draw()
         
         self.slider.draw()
-        
+
         # Draw slider's percentage overlay bar
         if self._style == 'NUMBER_SLIDE' and (not self._min_value is None) and (not self._max_value is None):
             if self._value < self._min_value or self._value > self._max_value:
@@ -474,7 +533,7 @@ class BL_UI_Slider(BL_UI_Patch):
                 bgl.glDisable(bgl.GL_BLEND)      
 
     def set_slide_color(self):
-        if not self.enabled:
+        if not self._is_enabled:
             if self._bg_color is None:
                 theme = bpy.context.preferences.themes[0]
                 widget_style = getattr(theme.user_interface, self.my_style())
@@ -493,53 +552,98 @@ class BL_UI_Slider(BL_UI_Patch):
 
         self.shader_slider.uniform_float("color", color)
 
+    def equalize_states(self, widget):
+        if self._style == 'NUMBER_CLICK': 
+            self.decrease.state = widget.state
+            self.increase.state = widget.state
+        self.slider.state = widget.state
+        
+    def stop_editing(self):
+        self.update_self_value(float(self.textbox.text))
+#        self.set_editing_widget(None)  # Indicates that textbox editing mode has finished
+        self.__is_edit = False
+
     # Overrides base class function
-    def mouse_down_func(self, widget, event, x, y):    
+    def get_input_keys(self):
+        return self.textbox.get_input_keys()
+
+    # Overrides base class function
+    def keyboard_press(self, event):
+        if self.__is_edit:
+            self.textbox.keyboard_press(event)
+            if event.type in ['RET','ESC']:
+                # Note: the keyboard_press() function above would have executed also 
+                # the textbox's stop_editing() function for the 'RET' and 'ESC' events.
+                self.stop_editing()
+        return True
+        
+    # Overrides base class function
+    def mouse_down(self, event, x, y):    
         if self.is_in_rect(x,y):
+            # When slider is disabled, just ignore the click
+            if not self._is_enabled: 
+                # Consume the mouse event to avoid the camera/target be unselected
+                return True
             self.__is_drag = True
             self.__drag_start_x = x
-        if self._style == 'NUMBER_CLICK':
-            if self.decrease.mouse_down(event, x, y):
+            self.__mouse_moved = False
+            if self._style == 'NUMBER_CLICK':
+                if self.decrease.mouse_down(event, x, y):
+                    self.equalize_states(self.decrease)
+                    return True
+                if self.increase.mouse_down(event, x, y):
+                    self.equalize_states(self.increase)
+                    return True
+            if self.slider.mouse_down(event, x, y):
+                self.equalize_states(self.slider)
                 return True
-        if self.slider.mouse_down(event, x, y):
-            return True
-        if self._style == 'NUMBER_CLICK':
-            if self.increase.mouse_down(event, x, y):
-                return True
+        else:
+            self.__is_edit = False
         return False
     
     # Overrides base class function
-    def mouse_up_func(self, widget, event, x, y):    
+    def mouse_up(self, event, x, y):    
+        # When slider is disabled, just ignore the click
+        if not self._is_enabled: 
+            # Consume the mouse event to avoid the camera/target be unselected
+            return True
         self.__is_drag = False
-        self.slider_in_action(None)
-        if self._style == 'NUMBER_CLICK':
+        self.set_editing_widget(None)       # Indicates that sliding mode has finished
+        if self._style == 'NUMBER_CLICK': 
             if self.decrease.mouse_up(event, x, y):
+                self.equalize_states(self.decrease)
+                return True
+            if self.increase.mouse_up(event, x, y):
+                self.equalize_states(self.increase)
                 return True
         if self.slider.mouse_up(event, x, y):
+            self.equalize_states(self.slider)
             return True
-        if self._style == 'NUMBER_CLICK':
-            if self.increase.mouse_up(event, x, y):
-                return True
         return False
-        
+
     # Overrides base class function
-    def mouse_move_func(self, widget, event, x, y):    
+    def mouse_move(self, event, x, y):    
         # When slider is disabled, just ignore the hover
-        if not self.enabled: 
-            return True
+        if not self._is_enabled: 
+            return False
+
+        if self.__is_edit:
+            return False
 
         if self.__is_drag:
             # Update the value according to direction of x_drag
             drag_offset_x = x - self.__drag_start_x
-            if self._style == 'NUMBER_CLICK':
-                # Proportionally change to the step coeficient
-                new_value = self._value + (drag_offset_x * self._step)
-            else:    
-                # Proportionally change to the size-range coeficient
-                new_value = self._value + ((drag_offset_x / self.width) * (self._max_value - self._min_value)) 
-            #--    
-            self.update_slider_value(new_value)
-            self.__drag_start_x = x
+            if drag_offset_x != 0:
+                if self._style == 'NUMBER_CLICK':
+                    # Proportionally change to the step coeficient
+                    new_value = self._value + (drag_offset_x * self._step)
+                else:    
+                    # Proportionally change to the size-range coeficient
+                    new_value = self._value + ((drag_offset_x / self.width) * (self._max_value - self._min_value)) 
+                #--    
+                self.update_self_value(new_value)
+                self.__drag_start_x = x
+                self.__mouse_moved = True
             return True
 
         if self._style == 'NUMBER_CLICK':
@@ -556,6 +660,10 @@ class BL_UI_Slider(BL_UI_Patch):
         self.button_mouse_move(self.slider, event, x, y)
         return False
 
+    # Overrides base class function
+    def mouse_up_over(self):
+        pass
+
     # Emulates the mouse_move function of 'BL_UI_Button' class
     def button_mouse_move(self, widget, event, x, y):
         if widget.is_in_rect(x,y):
@@ -567,21 +675,44 @@ class BL_UI_Slider(BL_UI_Patch):
                 # Up state
                 widget.state = 0
  
-    def decrease_mouse_up(self, widget, event, x, y):    
-        self.update_slider_value(self._value - self._step)
+    def decrease_mouse_up_func(self, widget, event, x, y):    
+        if not self.__mouse_moved:
+            self.update_self_value(self._value - self._step)
         return True
 
-    def increase_mouse_up(self, widget, event, x, y):    
-        self.update_slider_value(self._value + self._step)
+    def increase_mouse_up_func(self, widget, event, x, y):  
+        if not self.__mouse_moved:
+            self.update_self_value(self._value + self._step)
         return True
 
     def slider_mouse_down_func(self, widget, event, x, y):    
-        self.__is_drag = True
-        self.__drag_start_x = x
-        self.slider_in_action(self)
+        if self.__is_edit:
+            if not self.textbox.is_in_rect(x,y):
+                self.textbox.stop_editing()
+                self.stop_editing()
+        else:
+            # Indicates that sliding mode has started
+            self.set_editing_widget(self)
         return True
     
-    def slider_mouse_up_func(self, widget, event, x, y):    
-        self.__is_drag = False
-        self.slider_in_action(None)
+    def slider_mouse_up_func(self, widget, event, x, y):
+        if self.__mouse_moved:
+            # Indicates that sliding mode has finished
+            self.set_editing_widget(None)
+        else:
+            if self.__is_edit:
+                if not self.textbox.mouse_up(event, x, y):
+                    # Note: this mouse_up() function will execute also the textbox's stop_editing() function
+                    self.stop_editing()
+            else:
+                if self.textbox.mouse_down(event, x, y):
+                    # Indicates that textbox editing mode has started
+                    self.set_editing_widget(self)
+                    self.__is_edit = True
+        return True
+
+    def textbox_mouse_down_func(self, widget, event, x, y):    
+        return True
+
+    def textbox_mouse_up_func(self, widget, event, x, y):    
         return True

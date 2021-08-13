@@ -120,20 +120,6 @@ class BL_UI_OT_draw_operator(Operator):
         #self.__draw_handle = None
         #self.__draw_events = None
         
-    def handle_widget_events(self, event):
-        result = False
-        for widget in self.widgets:
-            if widget.handle_event(event):
-                result = True
-        for widget in self.widgets:
-            # Need to pass one more time to wrap up any pending change of state for buttons on the widgets list
-            widget.handle_event_finalize(event)
-        return result
-          
-    def terminate_execution(self):
-        # This may be overriden by one same named function on the child class
-        return False
-    
     def modal(self, context, event):
         if self.__finished:
             return {'FINISHED'}
@@ -165,6 +151,21 @@ class BL_UI_OT_draw_operator(Operator):
                     
         return {'PASS_THROUGH'}
                                 
+    def handle_widget_events(self, event):
+        result = False
+        for widget in self.widgets:
+            if widget.handle_event(event):
+                result = True
+                break
+        for widget in self.widgets:
+            # Need to pass one more time to wrap up any pending change of state for buttons on the widgets list
+            widget.handle_event_finalize(event)
+        return result
+          
+    def terminate_execution(self):
+        # This may be overriden by one same named function on the child class
+        return False
+    
     def finish(self):
         ##-- personalized criteria for the Reference Cameras addon --
         # This is an ugly workaround till I figure out how to signal to the N-panel coding that this remote control panel has been finished.

@@ -130,7 +130,7 @@ class BL_UI_Button(BL_UI_Patch):
 
     @text.setter
     def text(self, value):
-        self._text = value.strip()
+        self._text = value
                 
     @property
     def text_size(self):
@@ -162,7 +162,7 @@ class BL_UI_Button(BL_UI_Patch):
 
     @textwo.setter
     def textwo(self, value):
-        self._textwo = value.strip()
+        self._textwo = value
                 
     @property
     def textwo_size(self):
@@ -253,19 +253,11 @@ class BL_UI_Button(BL_UI_Patch):
         return False
                  
     # Overrides base class function
-    def set_mouse_down(self, mouse_down_func):
-        self.mouse_down_func = mouse_down_func   
-                 
-    # Overrides base class function
     def mouse_down_func(self, widget, event, x, y):
         # This must return True when function is not overriden, so that button action 
         # only works while mouse is over the button (that is while it is_in_rect(x,y)).
         return True
 
-    # Overrides base class function
-    def set_mouse_up(self, mouse_up_func):
-        self.mouse_up_func = mouse_up_func   
-                 
     # Overrides base class function
     def mouse_up_func(self, widget, event, x, y):
         # This must return True when function is not overriden, so that button action 
@@ -279,7 +271,7 @@ class BL_UI_Button(BL_UI_Patch):
         
     # Overrides base class function
     def set_colors(self):
-        if not self.enabled:
+        if not self._is_enabled:
             if self._bg_color is None:
                 theme = bpy.context.preferences.themes[0]
                 widget_style = getattr(theme.user_interface, self.my_style())
@@ -331,8 +323,11 @@ class BL_UI_Button(BL_UI_Patch):
 
     # Overrides base class function
     def draw_text(self):
+        if not self._is_visible:
+            return
+            
         if self._text == "" and self._textwo == "":
-            return None
+            return
             
         theme = bpy.context.preferences.themes[0]
         widget_style = getattr(theme.user_interface, self.my_style())
@@ -431,7 +426,7 @@ class BL_UI_Button(BL_UI_Patch):
             label.shadow_color = shadow_color
             label.shadow_alpha = shadow_alpha
 
-            if self.enabled:
+            if self._is_enabled:
                 label.text_color = text_color
             else:
                 # When button is disabled dark the text color by scaling it up 40%
@@ -471,7 +466,7 @@ class BL_UI_Button(BL_UI_Patch):
             label.shadow_color = shadow_color
             label.shadow_alpha = shadow_alpha
 
-            if self.enabled:
+            if self._is_enabled:
                 label.text_color = textwo_color
             else:
                 # When button is disabled dark the textwo color by scaling it up 40%
@@ -484,7 +479,7 @@ class BL_UI_Button(BL_UI_Patch):
     def mouse_down(self, event, x, y):
         if self.is_in_rect(x,y):
             # When button is disabled, just ignore the click
-            if not self.enabled: 
+            if not self._is_enabled: 
                 # Consume the mouse event to avoid the camera/target be unselected
                 return True
             # Down state
@@ -497,11 +492,11 @@ class BL_UI_Button(BL_UI_Patch):
     def mouse_move(self, event, x, y):
         if self.is_in_rect(x,y):
             # When button is disabled, just ignore the hover
-            if not self.enabled: 
-                return True
+            if not self._is_enabled: 
+                return False
             # When button is pressed, just ignore the hover
             if self.__state == 3: 
-                return True
+                return False
             if self.__state != 1:
                 # Hover state
                 self.__state = 2
@@ -516,7 +511,8 @@ class BL_UI_Button(BL_UI_Patch):
         result = False
         if self.is_in_rect(x,y): 
             # When button is disabled, just ignore the click
-            if not self.enabled: 
+            if not self._is_enabled: 
+                # Consume the mouse event to avoid the camera/target be unselected
                 return True
             if self.__state == 1:
                 result = self.mouse_up_func(self, event, x, y) 

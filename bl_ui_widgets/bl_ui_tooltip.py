@@ -363,6 +363,7 @@ class BL_UI_Tooltip(BL_UI_Patch):
         line_array = []
 
         cr = len(line_break)
+        lstrip_it = False
         text_lenght = len(text)
         text_line = ""
         char_pos = 0
@@ -370,9 +371,11 @@ class BL_UI_Tooltip(BL_UI_Patch):
         while char_pos < text_lenght:
             next_chars = text[char_pos:(char_pos+cr)]
             if next_chars == line_break:
+                text_line = text_line.lstrip() if lstrip_it else text_line
                 dimensions = blf.dimensions(0,text_line)
                 line_array.append((text_line, dimensions))
                 char_pos += len(line_break)
+                lstrip_it = False
                 text_line = ""
             else:
                 text_line += next_chars[0]
@@ -387,10 +390,14 @@ class BL_UI_Tooltip(BL_UI_Patch):
                         # Cut the sentence at its closest space character
                         sub_line = text_line[0:last_space]
                         text_line = text_line[(last_space+1):]
+                    sub_line = sub_line.lstrip() if lstrip_it else sub_line
                     dimensions = blf.dimensions(0,sub_line)
                     line_array.append((sub_line, dimensions))
+                    lstrip_it = True
                 char_pos += 1
                 if char_pos == text_lenght:
+                    text_line = text_line.lstrip() if lstrip_it else text_line
+                    dimensions = blf.dimensions(0,text_line)
                     line_array.append((text_line, dimensions))
                     break
         if text_kerning:
@@ -399,9 +406,12 @@ class BL_UI_Tooltip(BL_UI_Patch):
 
     # Overrides base class function
     def draw_text(self):
+        if not self._is_visible:
+            return
+            
         if len(self.__tooltip_text_lines) == 0:
             if len(self.__tooltip_shortcut_lines) == 0 and len(self.__tooltip_python_lines) == 0:
-                return None
+                return 
         else:    
             if self._text_color is None:     
                 theme = bpy.context.preferences.themes[0]
@@ -473,7 +483,7 @@ class BL_UI_Tooltip(BL_UI_Patch):
                     label.text = line[0]
                 else:
                     abbreviate = line[0][0:(limit_chars-10)] 
-                    label.text = abbreviate + " ... " + self.__tooltip_text_lines[-1][0][-(limit_chars-len(abbreviate)-3):].lstrip()
+                    label.text = abbreviate.rstrip() + " ... " + self.__tooltip_text_lines[-1][0][-(limit_chars-len(abbreviate)-3):].lstrip()
                 label.draw()
                 line_count += 1
                 # Need to unapply the over scale to compensate for posterior calculations
@@ -496,7 +506,7 @@ class BL_UI_Tooltip(BL_UI_Patch):
                     label.text = line[0]
                 else:
                     abbreviate = line[0][0:(limit_chars-10)] 
-                    label.text = abbreviate + " ... " + self.__tooltip_tshortcut_lines[-1][0][-(limit_chars-len(abbreviate)-3):].lstrip()
+                    label.text = abbreviate.rstrip() + " ... " + self.__tooltip_tshortcut_lines[-1][0][-(limit_chars-len(abbreviate)-3):].lstrip()
                 label.draw()
                 line_count += 1
                 # Need to unapply the over scale to compensate for posterior calculations
@@ -519,7 +529,7 @@ class BL_UI_Tooltip(BL_UI_Patch):
                     label.text = line[0]
                 else:
                     abbreviate = line[0][0:(limit_chars-10)] 
-                    label.text = abbreviate + " ... " + self.__tooltip_python_lines[-1][0][-(limit_chars-len(abbreviate)-3):].lstrip()
+                    label.text = abbreviate.rstrip() + " ... " + self.__tooltip_python_lines[-1][0][-(limit_chars-len(abbreviate)-3):].lstrip()
                 label.draw()
                 line_count += 1
                 # Need to unapply the over scale to compensate for posterior calculations

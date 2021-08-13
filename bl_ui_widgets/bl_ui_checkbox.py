@@ -77,7 +77,7 @@ class BL_UI_Checkbox(BL_UI_Patch):
     
         super().__init__(x, y, width, height)
         
-        self._text = "Checkbox"                 # Text for checkbox label
+        self._text = "Checkbox"                 # Checkbox text
         self._text_color = None                 # Checkbox text color
         self._text_highlight = None             # Checkbox high color
         self._mark_color = None                 # Checkmark color
@@ -91,7 +91,7 @@ class BL_UI_Checkbox(BL_UI_Patch):
         self._rounded_corners = (1,1,1,1)       # 1=Round/0=Straight, coords:(bottomLeft,topLeft,topRight,bottomRight)
         self._has_shadow = True                 # Indicates whether a shadow must be drawn around the Checkbox 
 
-        self._text_size = None                  # Button text line 1 size
+        self._text_size = None                  # Checkbox text size
         self._text_kerning = None               # Checkbox text kerning (True/False)
         self._text_shadow_size = None           # Checkbox text shadow size
         self._text_shadow_offset_x = None       # Checkbox text shadow offset x (positive goes right)
@@ -108,7 +108,7 @@ class BL_UI_Checkbox(BL_UI_Patch):
 
     @text.setter
     def text(self, value):
-        self._text = value.strip()
+        self._text = value
                 
     @property
     def text_color(self):
@@ -229,14 +229,14 @@ class BL_UI_Checkbox(BL_UI_Patch):
 
     # Overrides base class function
     def set_colors(self):
-        if not self.enabled:
+        if not self._is_enabled:
             if self._bg_color is None:
                 theme = bpy.context.preferences.themes[0]
                 widget_style = getattr(theme.user_interface, "wcol_option")
                 color = widget_style.inner
             else:
                 color = self._bg_color 
-            # When button is disabled dark the "state 0" background color by scaling it up 20%
+            # When checkbox is disabled dark the "state 0" background color by scaling it up 20%
             color = self.shade_color(color,0.2)
         else:    
             # Up
@@ -270,7 +270,7 @@ class BL_UI_Checkbox(BL_UI_Patch):
 
     # Overrides base class function
     def draw(self):
-        if not self.visible:
+        if not self._is_visible:
             return
 
         super().draw()
@@ -285,8 +285,8 @@ class BL_UI_Checkbox(BL_UI_Patch):
         else:
             color = self._mark_color
 
-        if not self.enabled:
-            # When button is disabled dark the "state 0" background color by scaling it up 20%
+        if not self._is_enabled:
+            # When checkbox is disabled dark the "state 0" background color by scaling it up 20%
             color = self.shade_color(color,0.2)
 
         self.shader_mark = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
@@ -317,13 +317,13 @@ class BL_UI_Checkbox(BL_UI_Patch):
 
     # Overrides base class function
     def draw_text(self):
-        if self._text == "":
-            return None
+        if not (self._is_visible and self._text != ""):
+            return
             
         theme = bpy.context.preferences.themes[0]
         widget_style = getattr(theme.user_interface, "wcol_option")
 
-        if self.__state > 0 and self.enabled:
+        if self.__state > 0 and self._is_enabled:
             text_color = tuple(widget_style.text_sel) + (1.0,) if self._text_highlight is None else self._text_highlight
         else:
             text_color = tuple(widget_style.text) + (1.0,) if self._text_color is None else self._text_color
@@ -378,7 +378,7 @@ class BL_UI_Checkbox(BL_UI_Patch):
         label.shadow_color = widget_style.shadow_value if self._text_shadow_color is None else self._text_shadow_color
         label.shadow_alpha = widget_style.shadow_alpha if self._text_shadow_alpha is None else self._text_shadow_alpha
 
-        if self.enabled:
+        if self._is_enabled:
             label.text_color = text_color
         else:
             # When checkbox is disabled dark the text color by scaling it up 40%
@@ -390,12 +390,17 @@ class BL_UI_Checkbox(BL_UI_Patch):
     # Overrides base class function
     def mouse_down(self, event, x, y):
         if self.is_in_rect(x,y):
-            # When button is disabled, just ignore the click
-            if not self.enabled: 
+            # When checkbox is disabled, just ignore the click
+            if not self._is_enabled: 
                 # Consume the mouse event to avoid the camera/target be unselected
                 return True
             # Invert state
-            self.__state = 1 if self.__state != 1 else 2
+            if self.__state != 1:
+                # Marked state
+                self.__state = 1
+            else:    
+                # Hover state
+                self.__state = 2
             return self.state_changed_func(self, event, x, y) 
         else:    
             return False
@@ -403,14 +408,13 @@ class BL_UI_Checkbox(BL_UI_Patch):
     # Overrides base class function
     def mouse_move(self, event, x, y):
         if self.is_in_rect(x,y):
-            # When button is disabled, just ignore the hover
-            if not self.enabled: 
-                return True
-            # When button is pressed, just ignore the hover
+            # When checkbox is disabled, just ignore the hover
+            if not self._is_enabled: 
+                return False 
+            # When checkbox is marked, just ignore the hover
             if self.__state != 1:
                 # Hover state
                 self.__state = 2
-                return False 
         else:
             if self.__state != 1:
                 # Up state
@@ -420,8 +424,8 @@ class BL_UI_Checkbox(BL_UI_Patch):
     # Overrides base class function
     def mouse_up(self, event, x, y):
         if self.is_in_rect(x,y): 
-            # When button is disabled, just ignore the click
-            if not self.enabled: 
+            # When checkbox is disabled, just ignore the click
+            if not self._is_enabled: 
                 return True
             else:    
                 if self.__state != 1:

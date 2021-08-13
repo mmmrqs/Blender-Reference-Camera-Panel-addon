@@ -164,10 +164,12 @@ class BL_UI_Drag_Panel(BL_UI_Patch):
             # Means the panel is not draggable
             return False
         if self.is_in_rect(x,y):
-            height = self.get_area_height()
-            self.__is_drag = True
-            self.__drag_offset_x = x - self.x_screen
-            self.__drag_offset_y = y - self.y_screen
+            # When panel is disabled, just ignore the click
+            if self._is_enabled: 
+                height = self.get_area_height()
+                self.__is_drag = True
+                self.__drag_offset_x = x - self.x_screen
+                self.__drag_offset_y = y - self.y_screen
             return True
         else:
             return False

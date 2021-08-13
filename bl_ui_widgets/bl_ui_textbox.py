@@ -35,6 +35,7 @@ bl_info = {
 #--- ### Change log
 
 #v0.6.5 (08.01.2021) - by Marcelo M. Marques 
+#Chang: Renamed function 'text_input' to 'keyboard_press'.
 
 
 #--- ### Imports
@@ -82,6 +83,7 @@ class BL_UI_Textbox(BL_UI_Button):
         self._text_shadow_alpha = None          # Textbox text shadow alpha value [0..1]
 
         self.__ui_scale = 0
+        # self.__carret_pos = [0,0]
         self.__carret_pos = 0
         self.__cached_text = ""
         self.__edit_mode = False
@@ -111,10 +113,10 @@ class BL_UI_Textbox(BL_UI_Button):
     def is_numeric(self, value):
         self._is_numeric = value   
 
-    def set_text_changed(self, text_changed_func):
-        self.text_changed_func = text_changed_func
+    def set_text_updated(self, text_updated_func):
+        self.text_updated_func = text_updated_func
 
-    def text_changed_func(self, widget, context, event, former_text, updated_text):
+    def text_updated_func(self, widget, context, event, former_text, updated_text):
         # This must return True when function is not overriden, so that text editing is accepted
         return True            
 
@@ -123,25 +125,33 @@ class BL_UI_Textbox(BL_UI_Button):
         return self.__edit_mode
                  
     def start_editing(self):
-        # Edit state
-        self.state = 3
-        self.__cached_text = self._text
-        self.__carret_pos = len(self._text)
-        self.__edit_mode = True
-        self.update_carret()
+        if not self.__edit_mode:
+            # Edit state
+            self.state = 3
+            self.__edit_mode = True
+            self.__cached_text = self._text
+            self.__carret_pos = len(self._text)
+            # self.__carret_pos = [0, len(self._text)]
+            self.__ui_scale = self.over_scale(1)
+            self.update_carret()
+            self.set_editing_widget(self)
 
     def stop_editing(self):
-        if self.clean_text():
-            # Up state
-            self.state = 0
-            self.__edit_mode = False
-        else:    
-            # Up state                      # Left this redundancy here just to show that we could have taken
-            self.state = 0                  # a different action in the case of failing to clean up the text.
-            self.__edit_mode = False
+        if self.__edit_mode:
+            if self.clean_up_text():
+                # Up state
+                self.state = 0
+                self.__edit_mode = False
+                self.set_editing_widget(None)
+            else:    
+                # Up state                      # Left this redundancy here just to show that we could have taken
+                self.state = 0                  # a different action in the case of failing to clean up the text.
+                self.__edit_mode = False        # Even when failing we are exiting the edit mode, but in that case 
+                self.set_editing_widget(None)   # the clean_up_text() function will have restored the original text.
 
-    def clean_text(self):
+    def clean_up_text(self):
         if self._text != self.__cached_text:
+            # Logic to clean up numeric strings
             if self._is_numeric:
                 clean_text = self._text
                 negative = (clean_text.find('-') == 0)
@@ -192,15 +202,22 @@ class BL_UI_Textbox(BL_UI_Button):
         text_kerning = (widget_style.font_kerning_style == 'FITTED') if self._text_kerning is None else self._text_kerning
         if text_kerning:
             blf.enable(0, blf.KERNING_DEFAULT)
-            
-        text_to_carret = self._text[:self.__carret_pos]    
-            
         blf.size(0, scaled_size, 72)
+
+        # if self.__carret_pos[0] == 0:
+            # start = 0
+        # else:    
+            # text_to_carret = self._text[:self.__carret_pos[0]]
+            # start = blf.dimensions(0, text_to_carret)[0]  
+        text_to_carret = self._text[:self.__carret_pos]    
+
+        # text_to_carret = self._text[self.__carret_pos[0] : self.__carret_pos[1]]
         length = blf.dimensions(0, text_to_carret)[0]  
 
         if text_kerning:
             blf.disable(0, blf.KERNING_DEFAULT)
 
+        # return [start, length]
         return length
 
     def update_carret(self):
@@ -220,7 +237,7 @@ class BL_UI_Textbox(BL_UI_Button):
         
     # Overrides base class function
     def draw(self):
-        if not self.visible:
+        if not self._is_visible:
             return
             
         super().draw()
@@ -256,7 +273,10 @@ class BL_UI_Textbox(BL_UI_Button):
         return self.__input_keys
 
     # Overrides base class function
-    def text_input(self, event):
+    def keyboard_press(self, event):
+        if not (self._is_enabled and self.__edit_mode):
+            return True
+
         index = self.__carret_pos
         former_text = self._text
         former_pos  = self.__carret_pos
@@ -265,15 +285,15 @@ class BL_UI_Textbox(BL_UI_Button):
             digits = ['0','1','2','3','4','5','6','7','8','9']              # <-- This to avoid any funny business 
             value = self._text[:index] + event.ascii + self._text[index:]
             if (not self._is_numeric) \
-            or (event.ascii == '-' and not ('-' in self._text or self.__carret_pos > 0)) \
+            or (event.ascii == '-' and not ('-' in self._text or index > 0)) \
             or (event.ascii == '.' and not ('.' in self._text or ',' in self._text)) \
             or (event.ascii == ',' and not (',' in self._text or '.' in self._text)) \
-            or (event.ascii in digits and not (self.__carret_pos == 0 and '-' in self._text)):
+            or (event.ascii in digits and not (index == 0 and '-' in self._text)):
                 self._text = value
                 self.__carret_pos += 1
 
         elif event.type == 'BACK_SPACE':
-            if self.__carret_pos > 0:
+            if index > 0:
                 if event.ctrl:
                     self._text = ""
                     self.__carret_pos = 0
@@ -282,21 +302,21 @@ class BL_UI_Textbox(BL_UI_Button):
                     self.__carret_pos -= 1
 
         elif event.type == 'DEL':
-            if self.__carret_pos < len(self._text):
+            if index < len(self._text):
                 if event.ctrl:
                     self._text = self._text[:index]
                 else:    
                     self._text = self._text[:index] + self._text[index+1:]
 
         elif event.type == 'LEFT_ARROW':
-            if self.__carret_pos > 0:
+            if index > 0:
                 if event.ctrl:
                     self.__carret_pos = 0
                 else:
                     self.__carret_pos -= 1
 
         elif event.type == 'RIGHT_ARROW':
-            if self.__carret_pos < len(self._text):
+            if index < len(self._text):
                 if event.ctrl:
                     self.__carret_pos = len(self._text)
                 else:
@@ -316,7 +336,7 @@ class BL_UI_Textbox(BL_UI_Button):
             self.stop_editing()
 
         if self._text != former_text and event.type != 'ESC':
-            if not self.text_changed_func(self, self.context, event, former_text, self._text):
+            if not self.text_updated_func(self, self.context, event, former_text, self._text):
                 self._text = former_text
                 self.__carret_pos = former_pos
                 
@@ -326,8 +346,8 @@ class BL_UI_Textbox(BL_UI_Button):
     # Overrides base class function
     def mouse_down(self, event, x, y):
         if self.is_in_rect(x,y):
-            # When button is disabled, just ignore the click
-            if not self.enabled: 
+            # When textbox is disabled, just ignore the click
+            if not self._is_enabled: 
                 # Consume the mouse event to avoid the camera/target be unselected
                 return True
             if self.mouse_down_func(self, event, x, y):
@@ -342,15 +362,17 @@ class BL_UI_Textbox(BL_UI_Button):
     # Overrides base class function
     def mouse_up(self, event, x, y):
         if self.is_in_rect(x,y): 
-            # When button is disabled, just ignore the click
-            if not self.enabled: 
+            # When textbox is disabled, just ignore the click
+            if not self._is_enabled: 
+                # Consume the mouse event to avoid the camera/target be unselected
                 return True
-            if self.state == 1:
-                return self.mouse_up_func(self, event, x, y) 
-            else:
-                return True 
-        self.stop_editing()
-        return False
+            if self.mouse_up_func(self, event, x, y):
+                return True
+            else:    
+                return False
+        else:    
+            self.stop_editing()
+            return False
 
     # Overrides base class function
     def mouse_up_over(self):

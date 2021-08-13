@@ -48,6 +48,7 @@ bl_info = {
 #Added: 'calc_corners_for_lines' internal function to calculate the vertices coordinates for a rounded corner widget. 
 #Added: 'handle_event_finalize' function to call the new 'mouse_up_over' function when the widget is in a enabled state and after polling through the
 #        regular handle_event function of all widgets. The complementary function is called in the BL_UI_OT_draw_operator class (bl_ui_draw_op.py).
+#Chang: Renamed function 'text_input' to 'keyboard_press'.
 #Chang: Modified the 'update' function to use 'TRI_FAN' instead of 'TRIS' when painting the widgets on screen with batch_for_shader function.
 
 
@@ -63,8 +64,8 @@ from math import pi, cos, sin
 
 class BL_UI_Widget():
 
-    g_tooltip_widget = None   # Widget object which mouse pointer is currently over (e.g. a given button)
-    g_sliding_widget = None   # Widget object of 'SLIDER' type which is undergoing a sliding user action
+    g_tooltip_widget = None   # Widget object which mouse pointer is currently over (e.g. some button)
+    g_editing_widget = None   # Widget object which is undergoing an user editing action (e.g. some textbox)
     
     def __init__(self, x, y, width, height):
 
@@ -129,7 +130,7 @@ class BL_UI_Widget():
 
     @description.setter
     def description(self, value):
-        self._tooltip_text = value.rstrip()
+        self._tooltip_text = value
 
     @property
     def shortcut(self):
@@ -137,7 +138,7 @@ class BL_UI_Widget():
 
     @shortcut.setter
     def shortcut(self, value):
-        self._tooltip_shortcut = value.rstrip()
+        self._tooltip_shortcut = value
 
     @property
     def python_cmd(self):
@@ -145,7 +146,7 @@ class BL_UI_Widget():
 
     @python_cmd.setter
     def python_cmd(self, value):
-        self._tooltip_python = value.rstrip()
+        self._tooltip_python = value
 
     @property
     def tooltip_moved(self):
@@ -240,9 +241,9 @@ class BL_UI_Widget():
         self.__tooltip_gotimer = 0
         self.__tooltip_current = False
 
-    def slider_in_action(self, value):
+    def set_editing_widget(self, value):
         base_class = super().__thisclass__.__mro__[-2]  # This stunt only to avoid hard coding the Base class name
-        base_class.g_sliding_widget = value
+        base_class.g_editing_widget = value
     
     def set_location(self, x, y):
         self.x = x
@@ -256,6 +257,8 @@ class BL_UI_Widget():
 
     def init(self, context):
         self.context = context
+        self.tooltip_clear()
+        self.set_editing_widget(None)
         self.update(self.x, self.y)
     
     def context_it(self, context):
@@ -353,7 +356,7 @@ class BL_UI_Widget():
             This function is used by BL_UI_Drag_Panel, BL_UI_Patch, BL_UI_Button and BL_UI_Tooltip classes.
             All other classes do have an overriding draw function in their own module coding.  
         '''
-        if not self.visible:
+        if not self._is_visible:
             return
             
         if self._is_tooltip:
@@ -453,6 +456,9 @@ class BL_UI_Widget():
         return output_color    
 
     def draw_outline(self):
+        if not self._is_visible:
+            return
+            
         if not (self._outline_color is None):
             color = self._outline_color 
         else:
@@ -520,7 +526,7 @@ class BL_UI_Widget():
                 self.batch_outline.draw(self.shader_outline) 
 
     def draw_shadow(self):
-        if not self.shadow:
+        if not (self._is_visible and self.shadow):
             return None
 
         # Paint shadow
@@ -584,9 +590,13 @@ class BL_UI_Widget():
     def draw_text(self):
         # This one applies only to objects of BL_UI_Button and BL_UI_Tooltip classes, 
         # so the full overriding functions are in their py module
-        pass
+        if not self._is_visible:
+            return
 
     def draw_image(self):
+        if not self._is_visible:
+            return
+            
         if self._image is not None:
             try:
                 off_x = self.over_scale(self._image_position[0])
@@ -637,10 +647,10 @@ class BL_UI_Widget():
         ##-- end of the personalized criteria for the given addon --
 
         base_class = super().__thisclass__.__mro__[-2]  # This stunt only to avoid hard coding the Base class name
-        sliding_widget = base_class.g_sliding_widget
-        if not sliding_widget is None:
-            if not sliding_widget is self:
-                # When there is a 'SLIDER' widget undergoing a draggin action by the user,
+        editing_widget = base_class.g_editing_widget
+        if not editing_widget is None:
+            if not editing_widget is self:
+                # While there is a widget undergoing an user editing action (e.g: Slider/Textbox),
                 # we must skip passing events to any other widget but that particular one.
                 return False
 
@@ -651,7 +661,7 @@ class BL_UI_Widget():
                 return self.mouse_down(event, x, y)
             else:
                 self.tooltip_clear()
-                if self.enabled:
+                if self._is_enabled:
                     self.__mouse_down = False
                     return self.mouse_up(event, x, y)
                 else:
@@ -678,7 +688,7 @@ class BL_UI_Widget():
 
         elif(event.value == 'PRESS' and (event.ascii != '' or event.type in self.get_input_keys() )):
             self.tooltip_clear()
-            return self.text_input(event)
+            return self.keyboard_press(event)
 
         elif('MOUSE' in event.type):
             self.tooltip_clear()
@@ -686,7 +696,7 @@ class BL_UI_Widget():
         return False    
 
     def handle_event_finalize(self, event):
-        if self.enabled:
+        if self._is_enabled:
             # Want to run it just for the mouse_up event
             if(event.type == 'LEFTMOUSE'):
                 if(event.value != 'PRESS'):

@@ -56,19 +56,19 @@ class BL_UI_Label(BL_UI_Widget):
         super().__init__(x, y, width, height)
 
         self._text = "Label"
-        self._style = 'REGULAR'                 # label color style options are: {REGULAR,TITLE,BUTTON,CHECKBOX,TOOLTIP}
-        self._text_color = None                 # label normal color 
-        self._text_title = None                 # label titles color 
+        self._style = 'REGULAR'                 # Label color style options are: {REGULAR,TITLE,BUTTON,CHECKBOX,TOOLTIP}
+        self._text_color = None                 # Label normal color 
+        self._text_title = None                 # Label titles color 
         
-        self._text_size = None                  # label size in points (pixels)
-        self._text_kerning = None               # label kerning (True/False)
+        self._text_size = None                  # Label size in points (pixels)
+        self._text_kerning = None               # Label kerning (True/False)
         self._text_rotation = 0.0               # Angle value in radians (90 is vertical)
 
-        self._shadow_size = None                # label shadow size
-        self._shadow_offset_x = None            # label shadow offset x (positive goes right)
-        self._shadow_offset_y = None            # label shadow offset y (negative goes down)
-        self._shadow_color = None               # label shadow color [0..1] = gray tone, from dark to clear
-        self._shadow_alpha = None               # label shadow alpha value [0..1]
+        self._shadow_size = None                # Label shadow size
+        self._shadow_offset_x = None            # Label shadow offset x (positive goes right)
+        self._shadow_offset_y = None            # Label shadow offset y (negative goes down)
+        self._shadow_color = None               # Label shadow color [0..1] = gray tone, from dark to clear
+        self._shadow_alpha = None               # Label shadow alpha value [0..1]
         
     @property
     def text(self):
@@ -186,7 +186,7 @@ class BL_UI_Label(BL_UI_Widget):
         
     # Overrides base class function
     def draw(self):
-        if not self.visible:
+        if not self._is_visible:
             return
 
         if self._style == 'REGULAR' or self._style == 'TOOLTIP':
