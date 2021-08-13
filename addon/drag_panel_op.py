@@ -266,31 +266,31 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         self.check1.is_checked = True
 
         preX = newX - (btnW-1 + btnS)
-        self.number = BL_UI_Slider(preX, newY+35, btnW, btnH)
-        self.number.style = 'NUMBER_CLICK'
-        self.number.value = 500
-        self.number.step = 100
-        self.number.unit = "m"
-        self.number.precision = 0
-        self.number.description = "This is my click slider tooltip"        
-        self.number.set_slider_updated(self.slider_update)
+        self.number1 = BL_UI_Slider(preX, newY+35, btnW, btnH)
+        self.number1.style = 'NUMBER_CLICK'
+        self.number1.value = 500
+        self.number1.step = 100
+        self.number1.unit = "m"
+        self.number1.precision = 0
+        self.number1.description = "This is my click slider tooltip"        
+        self.number1.set_slider_updated(self.slider_update)
 
         newX = preX + btnW-1 + btnS
-        self.slider = BL_UI_Slider(newX, newY+35, btnW, btnH)
-        self.slider.style = 'NUMBER_SLIDE'
-        self.slider.text = "Lens"
-        self.slider.value = 50
-        self.slider.min = 0
-        self.slider.max = 100
-        self.slider.unit = "m"
-        self.slider.description = "This is my standard slider tooltip"        
+        self.slider1 = BL_UI_Slider(newX, newY+35, btnW, btnH)
+        self.slider1.style = 'NUMBER_SLIDE'
+        self.slider1.text = "Lens"
+        self.slider1.value = 50
+        self.slider1.min = 0
+        self.slider1.max = 100
+        self.slider1.unit = "m"
+        self.slider1.description = "This is my standard slider tooltip"        
 
-        self.textbox = BL_UI_Textbox(marginX, newY+35, 200, btnH)
-        self.textbox.text = "My editing text"
-        self.textbox.max_input_chars = 5
-        self.textbox.text = "100"
-        self.textbox.is_numeric = True
-        self.textbox.description = "Textbox editing entry field"
+        self.textbox1 = BL_UI_Textbox(marginX, newY+35, 200, btnH)
+        self.textbox1.text = "My editing text"
+        self.textbox1.max_input_chars = 5
+        self.textbox1.text = "100"
+        self.textbox1.is_numeric = True
+        self.textbox1.description = "Textbox editing entry field"
 
         panW = newX+btnW+2+marginX  # Panel desired width  (beware: this math is good for my setup only)
         panH = newY+btnH+0+marginY  # Panel desired height (ditto)
@@ -353,7 +353,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         widgets_items = [
                          self.button1, self.button2, self.button3, self.button4, self.button5, self.button6, 
                          self.button7, self.button8, self.button9, self.buttonA, self.buttonR, 
-                         self.slider, self.number, self.check1, self.textbox,
+                         self.slider1, self.number1, self.check1, self.textbox1,
                          self.tooltip, # <-- If there is a tooltip object, it must be the last in this list
                         ]
 
@@ -540,7 +540,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
             widget.value = round(value, widget.precision)
             return False
         else:
-            # By returning True the 'value' argument will be commited to the widget.value property
+            # By returning True the 'value' argument will be committed to the widget.value property
             return True
     
         
