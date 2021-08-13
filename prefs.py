@@ -277,6 +277,9 @@ class ReferenceCameraPreferences(AddonPreferences):
         #-- Defaults for creating new camera/target sets
 
         layout.separator()
+        box = layout.box()
+        box.ui_units_y = 1
+        
         layout.label(text=" Defaults for creating new camera/target sets")
 
         split = layout.split(factor=0.45, align=True)
@@ -313,6 +316,9 @@ class ReferenceCameraPreferences(AddonPreferences):
         #-- Remote Control Panel configuration
 
         layout.separator()
+        box = layout.box()
+        box.ui_units_y = 1
+
         layout.label(text=" Remote Control Panel configuration")
 
         split = layout.split(factor=0.45, align=True)
@@ -362,15 +368,19 @@ class ReferenceCameraPreferences(AddonPreferences):
         box = layout.box()
         row = box.row(align=True)
         box.scale_y = 0.5
-        box.label(text="Additional information and Acknowledge:")
-        box.label(text="This addon prepared and packaged by Marcelo M Marques (mmmrqs@gmail.com)")
-        box.label(text="-(upgrades at https://github.com/mmmrqs/Blender-Reference-Camera-Panel-addon)")
-        box.label(text="Object Reference Cameras original project by Witold Jaworski (wjaworski@airplanes3d.net)")
-        box.label(text="-(download it from http://airplanes3d.net/scripts-257_e.xml)")
-        box.label(text="BL UI Widgets original project by Jayanam (jayanam.games@gmail.com)")
-        box.label(text="-(download it from https://github.com/jayanam/bl_ui_widgets)")
-        box.label(text="Special thanks to: @batFINGER, Shane Ambler (sambler), vananders, and many others,")
-        box.label(text="for their posts on the community forums which were crucial for making this addon.")
+        box.label(text=" Additional information and Acknowledge:")
+        box.label(text="")
+        box.label(text=" - This addon prepared and packaged by Marcelo M Marques (mmmrqs@gmail.com)")
+        box.label(text="   (upgrades at https://github.com/mmmrqs/Blender-Reference-Camera-Panel-addon)")
+        box.label(text=" - Object Reference Cameras original project by Witold Jaworski (wjaworski@airplanes3d.net)")
+        box.label(text="   (download it from http://airplanes3d.net/scripts-257_e.xml)")
+        box.label(text=" - BL UI Widgets original project by Jayanam (jayanam.games@gmail.com)")
+        box.label(text="   (download it from https://github.com/jayanam/bl_ui_widgets)")
+        box.label(text="")
+        box.label(text=" Special thanks to: @batFINGER, Shane Ambler (sambler), vananders, and many others,")
+        box.label(text=" for their posts on the community forums, which have been crucial for making this addon.")
+        box.label(text="")
+        layout.separator()
 
 class Reset_Coords(bpy.types.Operator):
     bl_idname = "object.reset_coords" 
