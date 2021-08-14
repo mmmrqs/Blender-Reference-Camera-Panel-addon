@@ -30,7 +30,7 @@ bl_info = {
     "support": "COMMUNITY",
     "category": "3D View",
     "warning": "mmmrqs@gmail.com",
-    "wiki_url": "http://airplanes3d.net/scripts-257_e.xml",
+    "doc_url": "http://airplanes3d.net/scripts-257_e.xml",
     "tracker_url": "http://airplanes3d.net/track-257_e.xml"
     }
 
@@ -208,15 +208,21 @@ class ReferenceCameraPreferences(AddonPreferences):
     )
 
     RC_POS_X: IntProperty(
-        name="",
         description="Remote Control panel position X from latest opened scene",
         default=-10000
     )
 
     RC_POS_Y: IntProperty(
-        name="",
         description="Remote Control panel position Y from latest opened scene",
         default=-10000
+    )
+
+    RC_PAN_W: IntProperty(
+        description="Panel width saved on 'drag_panel_op.py'"
+    )
+
+    RC_PAN_H: IntProperty(
+        description="Panel height on 'drag_panel_op.py'"
     )
 
     def ui_scale(self, value):
@@ -350,7 +356,7 @@ class ReferenceCameraPreferences(AddonPreferences):
             coords = "x: 0    " +\
                      "y: 0    "
         else:
-            panH = 64 # <-- Panel height copied from 'drag_panel_op.py'
+            panH = bpy.context.preferences.addons[__package__].preferences.RC_PAN_H     # Panel height
             pos_x = int(round(bpy.context.scene.get("bl_ui_panel_saved_data")["panX"]))
             pos_y = int(round(bpy.context.scene.get("bl_ui_panel_saved_data")["panY"]))
             # Note: Because of the scaling logic it was necessary to make this weird correction math below
@@ -396,10 +402,9 @@ class Reset_Coords(bpy.types.Operator):
         return self.execute(context)
         
     def execute(self,context):
-        # These numbers copied from 'drag_panel_op.py':
-        panW = 631             # Panel width
-        panH = 64              # Panel height
-        panX = 100             # Panel X coordinate, for top-left corner
+        panW = bpy.context.preferences.addons[__package__].preferences.RC_PAN_W  # Panel width
+        panH = bpy.context.preferences.addons[__package__].preferences.RC_PAN_H  # Panel height
+        panX = 100             # Panel X coordinate, for top-left corner (some default, case it fails below)
         panY = panH + 40 - 1   # Panel Y coordinate, for top-left corner 
         
         for area in bpy.data.screens['Layout'].areas:

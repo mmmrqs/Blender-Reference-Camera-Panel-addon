@@ -26,7 +26,7 @@ bl_info = {
     "support": "COMMUNITY",
     "category": "3D View",
     "warning": "",
-    "wiki_url": "http://airplanes3d.net/scripts-257_e.xml",
+    "doc_url": "http://airplanes3d.net/scripts-257_e.xml",
     "tracker_url": "http://airplanes3d.net/track-257_e.xml"
     }
 
