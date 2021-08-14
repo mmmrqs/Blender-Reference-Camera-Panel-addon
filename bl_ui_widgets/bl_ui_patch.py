@@ -126,6 +126,7 @@ class BL_UI_Patch(BL_UI_Widget):
         try:
             self._image = bpy.data.images.load(rel_filepath, check_existing=True)   
             self._image.gl_load()
+            self._image.pack(as_png=True)
         except:
             pass
 

@@ -37,8 +37,8 @@ bl_info = {
 #v0.6.5 (08.01.2021) - by Marcelo M. Marques 
 #Added: 'terminate_execution' function that can be overriden by programmer in its subclass to command termination of the panel widget.
 #Added: A call to a new 'handle_event_finalize' function in the widgets so that after finishing processing of all the widgets primary 'handle_event' 
-#       function, a final pass is done one more time to wrap up any pending change of state for prior buttons already on the widgets list. Without 
-#       this additional pass it was not possible to make buttons that keep a 'pressed' state to work alright.
+#       function, a final pass is done one more time to wrap up any pending change of state for prior widgets already on the widgets list. Without 
+#       this additional pass it was not possible to make widgets that keep a 'pressed' state in relation to others, to work alright.
 #Added: New logic to finish execution of the widget whenever the user moves out of the 3D VIEW display mode (e.g. going into Sculpt editor).
 #Added: New logic to only allow paint onto the screen if the user is in the 3D VIEW display mode.
 #Added: New logic to detect when drawback handler gets lost (e.g. after opening other blender file) so that it can finish the operator without crashing.
@@ -141,7 +141,7 @@ class BL_UI_OT_draw_operator(Operator):
 
         if context.area:
             context.area.tag_redraw()
-        
+
         if self.handle_widget_events(event):
             return {'RUNNING_MODAL'}   
         
@@ -157,9 +157,10 @@ class BL_UI_OT_draw_operator(Operator):
             if widget.handle_event(event):
                 result = True
                 break
-        for widget in self.widgets:
-            # Need to pass one more time to wrap up any pending change of state for buttons on the widgets list
-            widget.handle_event_finalize(event)
+        if event.type != 'TIMER':
+            for widget in self.widgets:
+                # Need to pass one more time to wrap up any pending change of state for widgets on the widgets list
+                widget.handle_event_finalize(event)
         return result
           
     def terminate_execution(self):

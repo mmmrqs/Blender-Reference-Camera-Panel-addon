@@ -64,7 +64,7 @@ class BL_UI_Textbox(BL_UI_Button):
         self._bg_color = None                   # Textbox background color 
         self._selected_color = None             # Textbox background color (when in edit mode)
         self._outline_color = None              # Textbox outline color 
-        self._carret_color = None               # Textbox carret color (when in edit mode)
+        self._cursor_color = None               # Textbox cursor color (when in edit mode)
         self._roundness = None                  # Textbox corners roundness factor [0..1]
         self._radius = 8.5                      # Textbox corners circular radius
         self._rounded_corners = (1,1,1,1)       # 1=Round/0=Straight, coords:(bottomLeft,topLeft,topRight,bottomRight)
@@ -83,19 +83,19 @@ class BL_UI_Textbox(BL_UI_Button):
         self._text_shadow_alpha = None          # Textbox text shadow alpha value [0..1]
 
         self.__ui_scale = 0
-        # self.__carret_pos = [0,0]
-        self.__carret_pos = 0
+        # self.__cursor_pos = [0,0]
+        self.__cursor_pos = 0
         self.__cached_text = ""
-        self.__edit_mode = False
-        self.__input_keys = ['ESC','RET','BACK_SPACE','HOME','END','LEFT_ARROW','RIGHT_ARROW','DEL']
+        self.__is_editing = False
+        self.__input_keys = ['ESC','RET','NUMPAD_ENTER','BACK_SPACE','HOME','END','LEFT_ARROW','RIGHT_ARROW','DEL']
 
     @property
-    def carret_color(self):
-        return self._carret_color
+    def cursor_color(self):
+        return self._cursor_color
 
-    @carret_color.setter
-    def carret_color(self, value):
-        self._carret_color = value
+    @cursor_color.setter
+    def cursor_color(self, value):
+        self._cursor_color = value
 
     @property
     def max_input_chars(self):
@@ -122,32 +122,32 @@ class BL_UI_Textbox(BL_UI_Button):
 
     # Overrides base class function
     def button_pressed_func(self, widget):
-        return self.__edit_mode
+        return self.__is_editing
                  
     def start_editing(self):
-        if not self.__edit_mode:
+        if not self.__is_editing:
             # Edit state
             self.state = 3
-            self.__edit_mode = True
+            self.__is_editing = True
             self.__cached_text = self._text
-            self.__carret_pos = len(self._text)
-            # self.__carret_pos = [0, len(self._text)]
+            self.__cursor_pos = len(self._text)
+            # self.__cursor_pos = [0, len(self._text)]
             self.__ui_scale = self.over_scale(1)
-            self.update_carret()
-            self.set_editing_widget(self)
+            self.update_cursor()
+            self.set_exclusive_mode(self)
 
     def stop_editing(self):
-        if self.__edit_mode:
+        if self.__is_editing:
             if self.clean_up_text():
                 # Up state
                 self.state = 0
-                self.__edit_mode = False
-                self.set_editing_widget(None)
+                self.__is_editing = False
+                self.set_exclusive_mode(None)
             else:    
                 # Up state                      # Left this redundancy here just to show that we could have taken
                 self.state = 0                  # a different action in the case of failing to clean up the text.
-                self.__edit_mode = False        # Even when failing we are exiting the edit mode, but in that case 
-                self.set_editing_widget(None)   # the clean_up_text() function will have restored the original text.
+                self.__is_editing = False       # Even when failing we are exiting the edit mode, but in that case 
+                self.set_exclusive_mode(None)   # the clean_up_text() function will have restored the original text.
 
     def clean_up_text(self):
         if self._text != self.__cached_text:
@@ -187,7 +187,7 @@ class BL_UI_Textbox(BL_UI_Button):
                 
         return True
 
-    def get_carret_pos_px(self):
+    def get_cursor_pos_px(self):
         theme = bpy.context.preferences.ui_styles[0]
         widget_style = getattr(theme, "widget")
         
@@ -204,15 +204,15 @@ class BL_UI_Textbox(BL_UI_Button):
             blf.enable(0, blf.KERNING_DEFAULT)
         blf.size(0, scaled_size, 72)
 
-        # if self.__carret_pos[0] == 0:
+        # if self.__cursor_pos[0] == 0:
             # start = 0
         # else:    
-            # text_to_carret = self._text[:self.__carret_pos[0]]
-            # start = blf.dimensions(0, text_to_carret)[0]  
-        text_to_carret = self._text[:self.__carret_pos]    
+            # text_to_cursor = self._text[:self.__cursor_pos[0]]
+            # start = blf.dimensions(0, text_to_cursor)[0]  
+        text_to_cursor = self._text[:self.__cursor_pos]    
 
-        # text_to_carret = self._text[self.__carret_pos[0] : self.__carret_pos[1]]
-        length = blf.dimensions(0, text_to_carret)[0]  
+        # text_to_cursor = self._text[self.__cursor_pos[0] : self.__cursor_pos[1]]
+        length = blf.dimensions(0, text_to_cursor)[0]  
 
         if text_kerning:
             blf.disable(0, blf.KERNING_DEFAULT)
@@ -220,20 +220,20 @@ class BL_UI_Textbox(BL_UI_Button):
         # return [start, length]
         return length
 
-    def update_carret(self):
-        x_screen = self.over_scale(self.x_screen + self._text_margin) + self.get_carret_pos_px()
+    def update_cursor(self):
+        x_screen = self.over_scale(self.x_screen + self._text_margin) + self.get_cursor_pos_px()
         vertices = ((x_screen, self.over_scale(self.y_screen - 1)),
                     (x_screen, self.over_scale(self.y_screen - self.height + 2))
                     )
-        self.batch_carret = batch_for_shader(self.shader_carret, 'LINES', {"pos": vertices})
+        self.batch_cursor = batch_for_shader(self.shader_cursor, 'LINES', {"pos": vertices})
 
     # Overrides base class function
     def update(self, x, y):        
         super().update(x, y)
 
-        self.shader_carret = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
+        self.shader_cursor = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
             
-        self.update_carret()
+        self.update_cursor()
         
     # Overrides base class function
     def draw(self):
@@ -242,29 +242,30 @@ class BL_UI_Textbox(BL_UI_Button):
             
         super().draw()
 
+        # Get out of edit mode if user has changed the ui_scaling in the meantime
         if self.__ui_scale != self.over_scale(1):
             self.__ui_scale = self.over_scale(1)
-            self.__edit_mode = False
+            self.__is_editing = False
 
-        if self.__edit_mode:
-            # Draw carret
-            if self._carret_color is None:
+        # Draw cursor
+        if self.__is_editing:
+            if self._cursor_color is None:
                 # From Preferences/Themes/User Interface/"Styles"
                 theme = bpy.context.preferences.themes[0]
                 widget_style = theme.user_interface              
                 color = tuple(widget_style.widget_text_cursor) + (1.0,) 
             else:
-                color = self._carret_color
+                color = self._cursor_color
 
-            self.shader_carret.bind()
+            self.shader_cursor.bind()
             
-            self.shader_carret.uniform_float("color", color)
+            self.shader_cursor.uniform_float("color", color)
             
             bgl.glEnable(bgl.GL_LINE_SMOOTH)
             
             bgl.glLineWidth(self.over_scale(1))
             
-            self.batch_carret.draw(self.shader_carret)
+            self.batch_cursor.draw(self.shader_cursor)
 
             bgl.glDisable(bgl.GL_LINE_SMOOTH)
 
@@ -274,12 +275,12 @@ class BL_UI_Textbox(BL_UI_Button):
 
     # Overrides base class function
     def keyboard_press(self, event):
-        if not (self._is_enabled and self.__edit_mode):
-            return True
+        if not (self._is_enabled and self.__is_editing):
+            return False
 
-        index = self.__carret_pos
+        index = self.__cursor_pos
         former_text = self._text
-        former_pos  = self.__carret_pos
+        former_pos  = self.__cursor_pos
         
         if event.ascii != '' and len(self._text) < self._max_input_chars:
             digits = ['0','1','2','3','4','5','6','7','8','9']              # <-- This to avoid any funny business 
@@ -290,16 +291,16 @@ class BL_UI_Textbox(BL_UI_Button):
             or (event.ascii == ',' and not (',' in self._text or '.' in self._text)) \
             or (event.ascii in digits and not (index == 0 and '-' in self._text)):
                 self._text = value
-                self.__carret_pos += 1
+                self.__cursor_pos += 1
 
         elif event.type == 'BACK_SPACE':
             if index > 0:
                 if event.ctrl:
                     self._text = ""
-                    self.__carret_pos = 0
+                    self.__cursor_pos = 0
                 else:    
                     self._text = self._text[:index-1] + self._text[index:]
-                    self.__carret_pos -= 1
+                    self.__cursor_pos -= 1
 
         elif event.type == 'DEL':
             if index < len(self._text):
@@ -311,24 +312,24 @@ class BL_UI_Textbox(BL_UI_Button):
         elif event.type == 'LEFT_ARROW':
             if index > 0:
                 if event.ctrl:
-                    self.__carret_pos = 0
+                    self.__cursor_pos = 0
                 else:
-                    self.__carret_pos -= 1
+                    self.__cursor_pos -= 1
 
         elif event.type == 'RIGHT_ARROW':
             if index < len(self._text):
                 if event.ctrl:
-                    self.__carret_pos = len(self._text)
+                    self.__cursor_pos = len(self._text)
                 else:
-                    self.__carret_pos += 1
+                    self.__cursor_pos += 1
 
         elif event.type == 'HOME':
-            self.__carret_pos = 0
+            self.__cursor_pos = 0
 
         elif event.type == 'END':
-            self.__carret_pos = len(self._text)
+            self.__cursor_pos = len(self._text)
 
-        elif event.type == 'RET':
+        elif event.type == 'RET' or event.type == 'NUMPAD_ENTER':
             self.stop_editing()
 
         elif event.type == 'ESC':
@@ -338,9 +339,9 @@ class BL_UI_Textbox(BL_UI_Button):
         if self._text != former_text and event.type != 'ESC':
             if not self.text_updated_func(self, self.context, event, former_text, self._text):
                 self._text = former_text
-                self.__carret_pos = former_pos
+                self.__cursor_pos = former_pos
                 
-        self.update_carret()
+        self.update_cursor()
         return True
 
     # Overrides base class function
@@ -351,7 +352,11 @@ class BL_UI_Textbox(BL_UI_Button):
                 # Consume the mouse event to avoid the camera/target be unselected
                 return True
             if self.mouse_down_func(self, event, x, y):
-                self.start_editing()
+                if self.__is_editing:
+                    # Here new logic to start highlight text
+                    pass
+                else:
+                    self.start_editing()
                 return True
             else:    
                 return False
@@ -367,6 +372,11 @@ class BL_UI_Textbox(BL_UI_Button):
                 # Consume the mouse event to avoid the camera/target be unselected
                 return True
             if self.mouse_up_func(self, event, x, y):
+                if self.__is_editing:
+                    # Here new logic to finish highlight text
+                    pass
+                else:
+                    pass
                 return True
             else:    
                 return False

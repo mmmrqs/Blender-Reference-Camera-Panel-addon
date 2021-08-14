@@ -81,12 +81,13 @@ class BL_UI_Slider(BL_UI_Patch):
         self._bg_color = None                   # Slider background color
         self._selected_color = None             # Slider selection percentage color
         self._outline_color = None              # Slider outline color
-        self._carret_color = None               # Textbox carret color (when in edit mode)
+        self._cursor_color = None               # Slider cursor color (when in Textbox edit mode)
         self._roundness = None                  # Slider corners roundness factor [0..1]
         self._radius = 8.5                      # Slider corners circular radius 
         self._rounded_corners = (1,1,1,1)       # 1=Round/0=Straight, coords:(bottomLeft,topLeft,topRight,bottomRight)
         self._has_shadow = True                 # Indicates whether a shadow must be drawn around the slider 
                                           
+        self._text_margin = 8                   # Slider text left margin (when in Textbox edit mode)
         self._text_size = None                  # Slider text size
         self._text_kerning = None               # Slider text kerning (True/False)
         self._text_shadow_size = None           # Slider text shadow size
@@ -102,8 +103,8 @@ class BL_UI_Slider(BL_UI_Patch):
         self._step = 1                          # Step size to increase/decrease the displayed value (in precision units)
         self._unit = "mm"                       # Unit indicator for the displayed value
 
-        self.__is_drag = False
-        self.__is_edit = False
+        self.__is_draging = False
+        self.__is_editing = False
         self.__mouse_moved = False
         self.__drag_start_x = 0
         
@@ -222,17 +223,17 @@ class BL_UI_Slider(BL_UI_Patch):
         self.textbox.bg_color = self._bg_color              
         self.textbox.selected_color = self._selected_color        
         self.textbox.outline_color = self._outline_color
-        self.textbox.carret_color = self._carret_color 
-        self.textbox.roundness = 0 if self._style == 'NUMBER_CLICK' else self._roundness               
-        self.textbox.radius = 0 if self._style == 'NUMBER_CLICK' else self._radius               
-        self.textbox.rounded_corners = (0,0,0,0) if self._style == 'NUMBER_CLICK' else self._rounded_corners
+        self.textbox.cursor_color = self._cursor_color 
+        self.textbox.roundness = self._roundness               
+        self.textbox.radius = self._radius               
+        self.textbox.rounded_corners = self._rounded_corners
         self.textbox.has_shadow = self._has_shadow                        
 
         self.textbox.max_input_chars = 20
         self.textbox.is_numeric = True
 
-        self.textbox.text_size = self._text_size             
-        self.textbox.text_margin = 8
+        self.textbox.text_size = self._text_size
+        self.textbox.text_margin = self._text_margin
         self.textbox.text_kerning = self._text_kerning          
         self.textbox.text_shadow_size = self._text_shadow_size      
         self.textbox.text_shadow_offset_x = self._text_shadow_offset_x  
@@ -260,12 +261,12 @@ class BL_UI_Slider(BL_UI_Patch):
         self._selected_color = value 
         
     @property
-    def carret_color(self):
-        return self._carret_color
+    def cursor_color(self):
+        return self._cursor_color
 
-    @carret_color.setter
-    def carret_color(self, value):
-        self._carret_color = value
+    @cursor_color.setter
+    def cursor_color(self, value):
+        self._cursor_color = value
 
     @property
     def value(self):
@@ -445,19 +446,20 @@ class BL_UI_Slider(BL_UI_Patch):
             return
             
         # Enter edit mode and skip drawing the regular slider object pieces
-        if self.__is_edit:
+        if self.__is_editing:
             self.textbox.draw()
             return
 
-        # Draw slider's left and right click corners
+        # Draw slider's left and right sections
         if self._style == 'NUMBER_CLICK':
             self.decrease.draw()
             self.increase.draw()
         
+        # Draw slider's middle section
         self.slider.draw()
 
         # Draw slider's percentage overlay bar
-        if self._style == 'NUMBER_SLIDE' and (not self._min_value is None) and (not self._max_value is None):
+        if self._style == 'NUMBER_SLIDE' and not (self._min_value is None or self._max_value is None):
             if self._value < self._min_value or self._value > self._max_value:
                 percentage = 0  # wrong values, get out and do not display bar
             elif self._min_value == self._max_value:    
@@ -485,8 +487,8 @@ class BL_UI_Slider(BL_UI_Patch):
                 
                 self.shader_slider = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
 
-                if True: #scaled_radius > 10:  #was: scaled_radius == 0 or scaled_radius > 10 or self._rounded_corners == (0,0,0,0):
-                    vertices = self.calc_corners_for_trifan(int(self.slider.x_screen), self.slider.y_screen, self.slider.width, self.slider.height, scaled_radius, 'FULL')
+                if scaled_radius > 10:  #was: scaled_radius == 0 or scaled_radius > 10 or self._rounded_corners == (0,0,0,0):
+                    vertices = self.calc_corners_for_trifan(self.slider.x_screen, self.slider.y_screen, self.slider.width, self.slider.height, scaled_radius, 'FULL')
                     if capped_width < self.slider.width:
                         # Cap the vertices x coord at percentage of width size (that is, at capped_pos_x)
                         to_be_capped = vertices
@@ -498,7 +500,7 @@ class BL_UI_Slider(BL_UI_Patch):
                                 vertices.append((capped_pos_x, coord[1]))
                     self.batch_slider = batch_for_shader(self.shader_slider, 'TRI_FAN', {"pos" : vertices})
                 else:
-                    vertices = self.calc_corners_for_lines(int(self.slider.x_screen), self.slider.y_screen, self.slider.width, self.slider.height, scaled_radius, 'FULL')
+                    vertices = self.calc_corners_for_lines(self.slider.x_screen, self.slider.y_screen, self.slider.width, self.slider.height, scaled_radius, 'FULL')
                     if capped_width < self.slider.width:
                         # Cap the vertices x coord at percentage of width size (that is, at capped_pos_x)
                         to_be_capped = vertices
@@ -560,8 +562,7 @@ class BL_UI_Slider(BL_UI_Patch):
         
     def stop_editing(self):
         self.update_self_value(float(self.textbox.text))
-#        self.set_editing_widget(None)  # Indicates that textbox editing mode has finished
-        self.__is_edit = False
+        self.__is_editing = False
 
     # Overrides base class function
     def get_input_keys(self):
@@ -569,36 +570,45 @@ class BL_UI_Slider(BL_UI_Patch):
 
     # Overrides base class function
     def keyboard_press(self, event):
-        if self.__is_edit:
+        if self.__is_editing:
             self.textbox.keyboard_press(event)
-            if event.type in ['RET','ESC']:
+            if event.type in ['RET','NUMPAD_ENTER','ESC']:
                 # Note: the keyboard_press() function above would have executed also 
-                # the textbox's stop_editing() function for the 'RET' and 'ESC' events.
+                # the textbox's stop_editing() function for Enter or Escape events.
                 self.stop_editing()
-        return True
+            return True
+            
+        return False
         
     # Overrides base class function
     def mouse_down(self, event, x, y):    
+        # When slider is disabled, just ignore the click
+        if not self._is_enabled: 
+            # Consume the mouse event to avoid the camera/target be unselected
+            return True
         if self.is_in_rect(x,y):
-            # When slider is disabled, just ignore the click
-            if not self._is_enabled: 
-                # Consume the mouse event to avoid the camera/target be unselected
-                return True
-            self.__is_drag = True
-            self.__drag_start_x = x
-            self.__mouse_moved = False
-            if self._style == 'NUMBER_CLICK':
-                if self.decrease.mouse_down(event, x, y):
-                    self.equalize_states(self.decrease)
+            if self.__is_editing:
+                if self.textbox.mouse_down(event, x, y):
                     return True
-                if self.increase.mouse_down(event, x, y):
-                    self.equalize_states(self.increase)
+            else:
+                self.__is_draging = True
+                self.__drag_start_x = x
+                self.__mouse_moved = False
+                if self._style == 'NUMBER_CLICK':
+                    if self.decrease.mouse_down(event, x, y):
+                        self.equalize_states(self.decrease)
+                        return True
+                    if self.increase.mouse_down(event, x, y):
+                        self.equalize_states(self.increase)
+                        return True
+                if self.slider.mouse_down(event, x, y):
+                    self.equalize_states(self.slider)
                     return True
-            if self.slider.mouse_down(event, x, y):
-                self.equalize_states(self.slider)
-                return True
         else:
-            self.__is_edit = False
+            if self.__is_editing:
+                self.textbox_mouse_down_func(self, event, x, y)
+            else:
+                pass  # Nothing to do
         return False
     
     # Overrides base class function
@@ -607,18 +617,36 @@ class BL_UI_Slider(BL_UI_Patch):
         if not self._is_enabled: 
             # Consume the mouse event to avoid the camera/target be unselected
             return True
-        self.__is_drag = False
-        self.set_editing_widget(None)       # Indicates that sliding mode has finished
-        if self._style == 'NUMBER_CLICK': 
-            if self.decrease.mouse_up(event, x, y):
-                self.equalize_states(self.decrease)
-                return True
-            if self.increase.mouse_up(event, x, y):
-                self.equalize_states(self.increase)
-                return True
-        if self.slider.mouse_up(event, x, y):
-            self.equalize_states(self.slider)
-            return True
+        if self.is_in_rect(x,y):
+            if self.__is_editing:
+                if self.textbox.mouse_up(event, x, y):
+                    return True
+            else:
+                self.__is_draging = False
+                if self._style == 'NUMBER_CLICK':
+                    if self.decrease.mouse_up(event, x, y):
+                        self.equalize_states(self.decrease)
+                        return True
+                    if self.increase.mouse_up(event, x, y):
+                        self.equalize_states(self.increase)
+                        return True
+                if self.slider.mouse_up(event, x, y):
+                    self.equalize_states(self.slider)
+                    return True
+        else:
+            if self.__is_editing:
+                self.textbox_mouse_up_func(self, event, x, y)
+            else:
+                if self.__is_draging:
+                    self.__is_draging = False
+                    self.slider.mouse_up(event, x, y)
+                    # As we are in the 'self.is_in_rect(x,y)=False' section the following function has not been 
+                    # called by self.slider.mouse_up() so I need to manually call it now in the statement below.
+                    self.slider.mouse_up_func(self, event, x, y)
+                    self.equalize_states(self.slider)
+                    return True
+                else:    
+                    return self.slider.mouse_up(event, x, y)
         return False
 
     # Overrides base class function
@@ -627,10 +655,10 @@ class BL_UI_Slider(BL_UI_Patch):
         if not self._is_enabled: 
             return False
 
-        if self.__is_edit:
+        if self.__is_editing:
             return False
-
-        if self.__is_drag:
+        #---------------------
+        if self.__is_draging:
             # Update the value according to direction of x_drag
             drag_offset_x = x - self.__drag_start_x
             if drag_offset_x != 0:
@@ -686,33 +714,35 @@ class BL_UI_Slider(BL_UI_Patch):
         return True
 
     def slider_mouse_down_func(self, widget, event, x, y):    
-        if self.__is_edit:
-            if not self.textbox.is_in_rect(x,y):
-                self.textbox.stop_editing()
-                self.stop_editing()
-        else:
-            # Indicates that sliding mode has started
-            self.set_editing_widget(self)
+        # Indicates that sliding mode has started
+        self.set_exclusive_mode(self)
         return True
     
     def slider_mouse_up_func(self, widget, event, x, y):
         if self.__mouse_moved:
             # Indicates that sliding mode has finished
-            self.set_editing_widget(None)
+            self.set_exclusive_mode(None)
         else:
-            if self.__is_edit:
-                if not self.textbox.mouse_up(event, x, y):
-                    # Note: this mouse_up() function will execute also the textbox's stop_editing() function
-                    self.stop_editing()
-            else:
-                if self.textbox.mouse_down(event, x, y):
-                    # Indicates that textbox editing mode has started
-                    self.set_editing_widget(self)
-                    self.__is_edit = True
+            if self.textbox.mouse_down(event, x, y):
+                # Indicates that textbox editing mode has started. Redundant because this value
+                # would have already been populated by the 'slider_mouse_down_func()' but let's 
+                # do it anyway (again) here to make our intent very clear.
+                self.set_exclusive_mode(self)
+                self.__is_editing = True
+            else:    
+                # Indicates that sliding mode has finished
+                self.set_exclusive_mode(None)
         return True
 
     def textbox_mouse_down_func(self, widget, event, x, y):    
+        if not self.textbox.is_in_rect(x,y):
+            self.textbox.stop_editing()
+            self.stop_editing()
         return True
 
     def textbox_mouse_up_func(self, widget, event, x, y):    
+        if not self.textbox.is_in_rect(x,y):
+            self.textbox.stop_editing()
+            self.stop_editing()
         return True
+

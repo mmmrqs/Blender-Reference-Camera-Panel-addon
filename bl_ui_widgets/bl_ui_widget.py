@@ -65,7 +65,7 @@ from math import pi, cos, sin
 class BL_UI_Widget():
 
     g_tooltip_widget = None   # Widget object which mouse pointer is currently over (e.g. some button)
-    g_editing_widget = None   # Widget object which is undergoing an user editing action (e.g. some textbox)
+    g_exclusive_mode = None   # Widget object which is undergoing an exclusive action (e.g. some textbox)
     
     def __init__(self, x, y, width, height):
 
@@ -241,9 +241,9 @@ class BL_UI_Widget():
         self.__tooltip_gotimer = 0
         self.__tooltip_current = False
 
-    def set_editing_widget(self, value):
+    def set_exclusive_mode(self, value):
         base_class = super().__thisclass__.__mro__[-2]  # This stunt only to avoid hard coding the Base class name
-        base_class.g_editing_widget = value
+        base_class.g_exclusive_mode = value
     
     def set_location(self, x, y):
         self.x = x
@@ -258,7 +258,7 @@ class BL_UI_Widget():
     def init(self, context):
         self.context = context
         self.tooltip_clear()
-        self.set_editing_widget(None)
+        self.set_exclusive_mode(None)
         self.update(self.x, self.y)
     
     def context_it(self, context):
@@ -358,7 +358,7 @@ class BL_UI_Widget():
         '''
         if not self._is_visible:
             return
-            
+
         if self._is_tooltip:
             if self.halt_tooltip():
                 return
@@ -647,14 +647,17 @@ class BL_UI_Widget():
         ##-- end of the personalized criteria for the given addon --
 
         base_class = super().__thisclass__.__mro__[-2]  # This stunt only to avoid hard coding the Base class name
-        editing_widget = base_class.g_editing_widget
-        if not editing_widget is None:
-            if not editing_widget is self:
-                # While there is a widget undergoing an user editing action (e.g: Slider/Textbox),
-                # we must skip passing events to any other widget but that particular one.
+        exclusive_widget = base_class.g_exclusive_mode
+        if not exclusive_widget is None:
+            if not exclusive_widget is self:
+                # While there is a widget undergoing an exclusive action (e.g: Slider/Textbox under edit action ),
+                # we must skip passing events to any other widget but 'exclusively' to that particular one.
                 return False
 
-        if(event.type == 'LEFTMOUSE'):
+        if(event.type == 'TIMER'):
+            return self.timer_event(event, x, y)
+
+        elif(event.type == 'LEFTMOUSE'):
             if(event.value == 'PRESS'):
                 self.tooltip_clear()
                 self.__mouse_down = True
@@ -723,8 +726,18 @@ class BL_UI_Widget():
           
         return False      
 
-    def text_input(self, event):       
+    def keyboard_press(self, event):       
         return False
+
+    # Timer handler functions
+    def set_timer_event(self, timer_event_func):
+        self.timer_event_func = timer_event_func
+
+    def timer_event_func(self, widget, event, x, y):
+        return False
+
+    def timer_event(self, event, x, y):
+        return self.timer_event_func(self, event, x, y)
 
     # Mouse down handler functions
     def set_mouse_down(self, mouse_down_func):
