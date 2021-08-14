@@ -225,15 +225,16 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         self.buttonR.description = "Sets Target Location and Rotation to (0,0,0) and removes related locks"
         self.buttonR.python_cmd = "bpy.ops.object.ref_camera_panelbutton_rset()"
         newY = btnY + btnH +btnS
-        # Display Mesh: Turns mesh visibility on/off
+        # Blink Mesh: Turns mesh visibility on/off
         self.buttonA = BL_UI_Button(newX, newY, btnW, btnH)
         self.buttonA.style = 'TOOL'
-        self.buttonA.text = "Display Mesh"
+        self.buttonA.text = "Blink Mesh"
         self.buttonA.set_mouse_up(self.buttonA_click)
-        self.buttonA.description = "Sets the mesh(es) visibility on/off"        
+        self.buttonA.description = "Turns the mesh(es) visibility on/off"        
         self.buttonA.python_cmd = "bpy.ops.object.set_mesh_visibility()"
-        #self.buttonA.set_button_pressed(self.buttonA_pressed)
-        #if self.buttonA_pressed(self.buttonA): self.buttonA.state = 3
+        self.buttonA.set_timer_event(self.buttonA_timer)
+        self.buttonA.set_button_pressed(self.buttonA_pressed)
+        if self.buttonA_pressed(self.buttonA): self.buttonA.state = 3
         newX = newX + btnW-1 + btnS
         # Lock Position: Locks Target Position fields and disables impacted buttons
         self.button8 = BL_UI_Button(newX, btnY, btnW, btnH)
@@ -295,8 +296,12 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         panW = newX+btnW+2+marginX  # Panel desired width  (beware: this math is good for my setup only)
         panH = newY+btnH+0+marginY  # Panel desired height (ditto)
 
-        # Need this just because I want the panel to be centered
+        # Save the panel's size to preferences properties to be used in there
         package = __package__[0:__package__.find(".")]
+        bpy.context.preferences.addons[package].preferences.RC_PAN_W = panW
+        bpy.context.preferences.addons[package].preferences.RC_PAN_H = panH
+
+        # Need this just because I want the panel to be centered
         if bpy.context.preferences.addons[package].preferences.RC_UI_BIND:
             # From Preferences/Interface/"Display"
             ui_scale = bpy.context.preferences.view.ui_scale  
@@ -308,23 +313,23 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         panX = int((bpy.context.area.width - panW*ui_scale*over_scale) / 2.0) + 1  # Panel X coordinate, for panel's top-left corner 
         panY = panH + 40 - 1  # The '40' is just a spacing                         # Panel Y coordinate, for panel's top-left corner 
 
-        self.panel = BL_UI_Drag_Panel(panX, panY, panW, panH)  
+        self.panel = BL_UI_Drag_Panel(panX, panY, panW, panH) 
         self.panel.style = 'PANEL'         # Options are: {HEADER,PANEL,SUBPANEL,TOOLTIP,NONE}
 
         self.tooltip = BL_UI_Tooltip()     # This is for displaying any tooltips
 
-        #self.patch = BL_UI_Patch(0,0,panW,17)
-        #self.patch.style = 'HEADER'
+        # self.patch = BL_UI_Patch(0,0,panW,17)
+        # self.patch.style = 'HEADER'
         
         #self.label = BL_UI_Label(0,0,panW,17)
         #self.label.style = "TITLE"
         #self.label.text = "Panel Title For Example"
         #self.label.size = 12
         
-        #script_file = os.path.realpath(__file__)
-        #directory = os.path.dirname(script_file)
-        #imagePath = directory + "\\..\\img\\scale_24.png" 
-        #self.patch.set_image(imagePath)
+        # script_file = os.path.realpath(__file__)
+        # directory = os.path.dirname(script_file)
+        # imagePath = directory + "\\..\\img\\scale_24.png" 
+        # self.patch.set_image(imagePath)
 
         #-----------
         if DEBUG:
@@ -353,7 +358,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         widgets_items = [
                          self.button1, self.button2, self.button3, self.button4, self.button5, self.button6, 
                          self.button7, self.button8, self.button9, self.buttonA, self.buttonR, 
-                         self.slider1, self.number1, self.check1, self.textbox1,
+                         self.slider1, self.number1, self.check1, self.textbox1, 
                          self.tooltip, # <-- If there is a tooltip object, it must be the last in this list
                         ]
 
@@ -441,13 +446,45 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         self.button6.enabled = (not bpy.context.scene.var.OpState9)
 
     def buttonA_click(self, widget, event, x, y):
-        # Display Mesh: Turns mesh visibility on/off
-        # Good to quickly "flash" image on the screen allowing to better eyeball superposition of details
-        bpy.ops.object.set_mesh_visibility()
-        if bpy.context.scene.var.btnMeshIcon == "ERROR":
-            widget.text = "Mesh Hidden"
+        # Blink Mesh: Turns mesh visibility on/off
+        # Good to precisely eyeball superposition of fine mesh details against the image background
+        if not bpy.context.scene.var.OpStateA:
+            if bpy.types.OBJECT_OT_set_mesh_visibility.poll(bpy.context):
+                bpy.ops.object.set_mesh_visibility()
+                if len(bpy.context.scene.lastObjectSet.items()) > 0:
+                    # Indicates that blinking mode has been started
+                    widget.set_exclusive_mode(widget)
+                    bpy.context.scene.var.OpStateA = True
+                else:    
+                    package = __package__[0:__package__.find(".")]
+                    collect = bpy.context.preferences.addons[package].preferences.RC_MESHES
+                    self.report({'ERROR'}, "All Meshes in '" + collect + "' collection are Hidden")
+            else:
+                package = __package__[0:__package__.find(".")]
+                collect = bpy.context.preferences.addons[package].preferences.RC_MESHES
+                if not bpy.types.OBJECT_OT_set_mesh_visibility.wip_mesh_found():
+                    self.report({'ERROR'}, "Collection '" + collect + "' not found or Hidden")
         else:
-            widget.text = "Display Mesh"
+            # Indicates that blinking mode has been stopped
+            widget.set_exclusive_mode(None)
+            bpy.context.scene.var.OpStateA = False
+            if not bpy.context.scene.var.MeshVisible:
+                if bpy.types.OBJECT_OT_set_mesh_visibility.poll(bpy.context):
+                    bpy.ops.object.set_mesh_visibility()
+
+    def buttonA_timer(self, widget, event, x, y):
+        if self.buttonA_pressed(widget):
+            stop_it = True
+            if len(bpy.context.scene.lastObjectSet.items()) > 0:
+                if bpy.types.OBJECT_OT_set_mesh_visibility.poll(bpy.context):
+                    stop_it = False
+                    bpy.ops.object.set_mesh_visibility()
+            if stop_it:    
+                # Indicates that blinking mode has been stopped
+                widget.set_exclusive_mode(None)
+                bpy.context.scene.var.OpStateA = False
+                widget.state = 0
+        return False
 
     def buttonR_click(self, widget, event, x, y):
         # Reset Target: Sets Target Location and Rotation to (0,0,0) and removes related locks
@@ -487,14 +524,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         return (bpy.context.scene.var.OpState9)
 
     def buttonA_pressed(self, widget):
-        try:
-            if len(bpy.context.scene.lastObjectSet.items()) > 0:
-                widget.text = "Display Mesh"
-            else:    
-                widget.text = "Mesh Hidden"
-        except:
-            pass
-        return (bpy.context.scene.var.MeshVisible)
+        return (bpy.context.scene.var.OpStateA)
 
     def slider_update(self, widget, value):
         # Example of a dynamic unit conversion with dynamic min/max limits

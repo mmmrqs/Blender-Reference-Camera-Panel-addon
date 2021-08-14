@@ -30,7 +30,7 @@ bl_info = {
     "support": "COMMUNITY",
     "category": "3D View",
     "warning": "",
-    "wiki_url": "http://airplanes3d.net/scripts-257_e.xml",
+    "doc_url": "http://airplanes3d.net/scripts-257_e.xml",
     "tracker_url": "http://airplanes3d.net/track-257_e.xml"
     }
 
@@ -370,6 +370,7 @@ class Variables(bpy.types.PropertyGroup):
     OpState7: bpy.props.BoolProperty(default=False)
     OpState8: bpy.props.BoolProperty(default=False)
     OpState9: bpy.props.BoolProperty(default=False)
+    OpStateA: bpy.props.BoolProperty(default=False)
     MeshVisible: bpy.props.BoolProperty(default=True)
     RemoVisible: bpy.props.BoolProperty(default=False)
     btnMeshText: bpy.props.StringProperty(default="Switch Mesh Visibility")
@@ -705,18 +706,23 @@ class SetMeshVisibility(bpy.types.Operator):
         if not is_object_mode(context):
             return False
         else:
-            meshFound = False
-            rc = find_collection(bpy.context.scene.collection, RC_MESHES())
-            if rc:
+            return cls.wip_mesh_found()
+            
+    @classmethod
+    def description(cls, context, event):
+        return ("Sets visibility on/off for mesh(es) in collection '" + RC_MESHES() + "'")
+
+    @staticmethod
+    def wip_mesh_found():
+        meshFound = False
+        rc = find_collection(bpy.context.scene.collection, RC_MESHES())
+        if rc:
+            if not bpy.context.view_layer.layer_collection.children[RC_MESHES()].hide_viewport:
                 for obj in rc.objects:
                     if obj.type == 'MESH':
                         meshFound = True
                         break
-            return meshFound
-            
-    @classmethod
-    def description(cls, context, event):
-        return ("Sets visibility on/off for mesh(es) in category '" + RC_MESHES() + "'")
+        return meshFound
 
     def invoke(self, context, event):
         #input validation: 
@@ -735,13 +741,13 @@ class SetMeshVisibility(bpy.types.Operator):
                         break
                 if thisObjFound == False and thisObjWasMadeHidden == False:
                     #-this is a workaround to add to the list those meshes that
-                    # the user has manually unhidden directly on the outline collection 
+                    # the user has manually unhidden directly on the outliner's collection 
                     obj.hide_set(context.scene.var.MeshVisible)
                     newItem = bpy.context.scene.lastObjectSet.add()
                     newItem.name = obj.name
                 if thisObjFound == True and thisObjWasMadeHidden == True and context.scene.var.MeshVisible == True:
                     #-this is a workaround to remove from the list those meshes that
-                    # the user has manually hidden directly on the outline collection 
+                    # the user has manually hidden directly on the outliner's collection 
                     itemID = bpy.context.scene.lastObjectSet.find(obj.name)
                     bpy.context.scene.lastObjectSet.remove(itemID)
 
