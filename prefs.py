@@ -189,6 +189,32 @@ class ReferenceCameraPreferences(AddonPreferences):
         unit='NONE'
     )
 
+    RC_BLINK_ON: FloatProperty(
+        name="",
+        description="Time duration for the 'ON' stage of the blinking mesh cycle, in units of 1/10th of a second",
+        default=0.4,
+        max=1.0,
+        min=0.1,
+        soft_max=1.0,
+        soft_min=0.1,
+        step=10,
+        precision=1,
+        unit='NONE'
+    )
+
+    RC_BLINK_OFF: FloatProperty(
+        name="",
+        description="Time duration for the 'OFF' stage of the blinking mesh cycle, in units of 1/10th of a second",
+        default=0.3,
+        max=1.0,
+        min=0.1,
+        soft_max=1.0,
+        soft_min=0.1,
+        step=10,
+        precision=1,
+        unit='NONE'
+    )
+
     RC_ACTION_REMO: BoolProperty(
         name="Camera Action mode (Remote Control panel)",
         description="If (ON): camera action start when mode button is pressed.\nIf (OFF): just set the adjustment mode but do not start camera action",
@@ -246,39 +272,39 @@ class ReferenceCameraPreferences(AddonPreferences):
 
         split = layout.split(factor=0.45, align=True)
         split.label(text="Meshes Collection name suffix:",icon='DECORATE')
-        split = split.split(factor=0.8, align=True)
-        split.prop(self, 'RC_MESHES', text="")
+        splat = split.split(factor=0.8, align=True)
+        splat.prop(self, 'RC_MESHES', text="")
 
         split = layout.split(factor=0.45, align=True)
         split.label(text="Cameras Collection name suffix:",icon='DECORATE')
-        split = split.split(factor=0.8, align=True)
-        split.prop(self, "RC_CAMERAS", text="")
+        splat = split.split(factor=0.8, align=True)
+        splat.prop(self, "RC_CAMERAS", text="")
 
         split = layout.split(factor=0.45, align=True)
         split.label(text="Targets Collection name suffix:",icon='DECORATE')
-        split = split.split(factor=0.8, align=True)
-        split.prop(self, "RC_TARGETS", text="")
+        splat = split.split(factor=0.8, align=True)
+        splat.prop(self, "RC_TARGETS", text="")
 
         split = layout.split(factor=0.45, align=True)
         split.label(text="Temporary Collection name suffix:",icon='DECORATE')
-        split = split.split(factor=0.8, align=True)
-        split.prop(self, "RC_TEMP", text="")
+        splat = split.split(factor=0.8, align=True)
+        splat.prop(self, "RC_TEMP", text="")
         
         split = layout.split(factor=0.45, align=True)
         split.label(text="Subpanels max number:",icon='DECORATE')
-        split = split.split(factor=0.4, align=True)
-        split.prop(self, "RC_SUBPANELS", text="")
+        splat = split.split(factor=0.4, align=True)
+        splat.prop(self, "RC_SUBPANELS", text="")
 
         split = layout.split(factor=0.45, align=True)
         split.label(text="N-Panel layout option:",icon='DECORATE')
-        split = split.split(factor=0.8, align=True)
-        row = split.row()
+        splat = split.split(factor=0.8, align=True)
+        row = splat.row()
         row.prop(self, "RC_SUBP_MODE", expand=True)
 
         split = layout.split(factor=0.45, align=True)
         split.label(text="N-Panel action mode:",icon='DECORATE')
-        split = split.split(factor=0.8, align=True)
-        split.prop(self, "RC_ACTION_MAIN", text=" Start action immediately")
+        splat = split.split(factor=0.8, align=True)
+        splat.prop(self, "RC_ACTION_MAIN", text=" Start action immediately")
         
         #-- Defaults for creating new camera/target sets
 
@@ -290,33 +316,33 @@ class ReferenceCameraPreferences(AddonPreferences):
 
         split = layout.split(factor=0.45, align=True)
         split.label(text="Perspective Camera focal lenght:",icon='DECORATE')
-        split = split.split(factor=0.4, align=True)
-        split.prop(self, "RC_FOCUS", expand=True)
+        splat = split.split(factor=0.4, align=True)
+        splat.prop(self, "RC_FOCUS", expand=True)
         
         split = layout.split(factor=0.45, align=True)
         split.label(text="Perspective Camera sensor width:",icon='DECORATE')
-        split = split.split(factor=0.4, align=True)
-        split.prop(self, "RC_SENSOR", expand=True)
+        splat = split.split(factor=0.4, align=True)
+        splat.prop(self, "RC_SENSOR", expand=True)
         
         split = layout.split(factor=0.45, align=True)
         split.label(text="Target Object display mode:",icon='DECORATE')
-        split = split.split(factor=0.4, align=True)
-        split.prop(self, "RC_TRGMODE", text="", expand=False)
+        splat = split.split(factor=0.4, align=True)
+        splat.prop(self, "RC_TRGMODE", text="", expand=False)
         
         split = layout.split(factor=0.45, align=True)
         split.label(text="Target Object display color:",icon='DECORATE')
-        split = split.split(factor=0.4, align=True)
-        split.prop(self, "RC_TRGCOLOR", text="")
+        splat = split.split(factor=0.4, align=True)
+        splat.prop(self, "RC_TRGCOLOR", text="")
         
         split = layout.split(factor=0.45, align=True)
         split.label(text="Background Image opacity level:",icon='DECORATE')
-        split = split.split(factor=0.4, align=True)
-        split.prop(self, "RC_OPACITY", text="")
+        splat = split.split(factor=0.4, align=True)
+        splat.prop(self, "RC_OPACITY", text="")
         
         split = layout.split(factor=0.45, align=True)
         split.label(text="Background Image depth option:",icon='DECORATE')
-        split = split.split(factor=0.8, align=True)
-        row = split.row()
+        splat = split.split(factor=0.8, align=True)
+        row = splat.row()
         row.prop(self, "RC_DEPTH", expand=True)
         
         #-- Remote Control Panel configuration
@@ -329,28 +355,37 @@ class ReferenceCameraPreferences(AddonPreferences):
 
         split = layout.split(factor=0.45, align=True)
         split.label(text="General scaling for panel:",icon='DECORATE')
-        split = split.split(factor=0.8, align=True)
-        split.prop(self, "RC_UI_BIND", text=" Bound to Blender's UI")
+        splat = split.split(factor=0.8, align=True)
+        splat.prop(self, "RC_UI_BIND", text=" Bound to Blender's UI")
 
         split = layout.split(factor=0.45, align=True)
         split.label(text="User defined addon scaling:",icon='DECORATE')
-        split = split.split(factor=0.4, align=True)
-        split.prop(self, "RC_SCALE", text="")
+        splat = split.split(factor=0.4, align=True)
+        splat.prop(self, "RC_SCALE", text="")
         
         split = layout.split(factor=0.45, align=True)
+        split.label(text="Blinking Cycle duration  (On / Off):",icon='DECORATE')
+        splat = split.split(factor=0.4, align=True)
+        splot = splat.split(factor=0.5, align=True)
+        row = splot.row(align=False)
+        row.prop(self, "RC_BLINK_ON", text="")
+        row = splot.row(align=False)
+        row.prop(self, "RC_BLINK_OFF", text="")
+
+        split = layout.split(factor=0.45, align=True)
         split.label(text="Panel action mode:",icon='DECORATE')
-        split = split.split(factor=0.8, align=True)
-        split.prop(self, "RC_ACTION_REMO", text=" Start action immediately")
+        splat = split.split(factor=0.8, align=True)
+        splat.prop(self, "RC_ACTION_REMO", text=" Start action immediately")
 
         split = layout.split(factor=0.45, align=True)
         split.label(text="Panel sliding option:",icon='DECORATE')
-        split = split.split(factor=0.8, align=True)
-        split.prop(self, "RC_SLIDE", text=" Move along viewport border")
+        splat = split.split(factor=0.8, align=True)
+        splat.prop(self, "RC_SLIDE", text=" Move along viewport border")
 
         split = layout.split(factor=0.45, align=True)
         split.label(text="Opening screen position:",icon='DECORATE')
-        split = split.split(factor=0.8, align=True)
-        split.prop(self, "RC_POSITION", text=" Same as in the last opened scene")
+        splat = split.split(factor=0.8, align=True)
+        splat.prop(self, "RC_POSITION", text=" Same as in the last opened scene")
 
         if bpy.context.scene.get("bl_ui_panel_saved_data") is None:
             coords = "x: 0    " +\
@@ -365,10 +400,10 @@ class ReferenceCameraPreferences(AddonPreferences):
         
         split = layout.split(factor=0.45, align=True)
         split.label(text="Current screen position:",icon='DECORATE')
-        split = split.split(factor=0.4, align=True)
-        split.label(text=coords)
-        split = split.split(factor=0.65, align=True)
-        split.operator(Reset_Coords.bl_idname)
+        splat = split.split(factor=0.4, align=True)
+        splat.label(text=coords)
+        splot = splat.split(factor=0.455, align=True)
+        splot.operator(Reset_Coords.bl_idname)
         
         layout.separator()
         box = layout.box()
