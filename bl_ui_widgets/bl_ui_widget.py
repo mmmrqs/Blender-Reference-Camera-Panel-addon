@@ -223,6 +223,9 @@ class BL_UI_Widget():
         elif self._style == 'NUMBER_SLIDE':
             # From Preferences/Themes/User Interface/"Value Slider"
             style = "wcol_numslider"
+        elif self._style == 'BOX':
+            # From Preferences/Themes/User Interface/"Box"
+            style = "wcol_box"
         elif self._style == 'TOOLTIP':
             # From Preferences/Themes/User Interface/"Tooltip"
             style = "wcol_tooltip"
@@ -413,6 +416,11 @@ class BL_UI_Widget():
             # From Preferences/Themes/User Interface/"Tooltip"
             theme = bpy.context.preferences.themes[0]
             widget_style = getattr(theme.user_interface, "wcol_tooltip")
+            bgColor = widget_style.inner
+        elif self._style == 'BOX':
+            # From Preferences/Themes/User Interface/"Box"
+            theme = bpy.context.preferences.themes[0]
+            widget_style = getattr(theme.user_interface, "wcol_box")
             bgColor = widget_style.inner
         else:
             # From Preferences/Themes/3D Viewport/"Panel Colors"

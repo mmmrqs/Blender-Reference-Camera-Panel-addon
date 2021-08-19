@@ -35,8 +35,8 @@ bl_info = {
 #--- ### Change log
 
 #v0.6.5 (08.01.2021) - by Marcelo M. Marques 
-#Added: This new class to display tooltips for each widget. If design properties are not overriden by programmer then those
-#       will be inherited from Blender's user themes.
+#Added: This new class to display tooltips for each widget. If design properties are not overriden by programmer 
+#       then those will be inherited from Blender's user themes.
 
 #--- ### Imports
 import bpy
@@ -289,7 +289,7 @@ class BL_UI_Tooltip(BL_UI_Patch):
         
         if widget.description != "":
             line_count = 0
-            self.__tooltip_text_lines = self.text_wrap(widget.description, scaled_text_size, text_kerning, scaled_max_width)
+            self.__tooltip_text_lines = self.text_wrap(widget.description, scaled_text_size, text_kerning, scaled_max_width, self.__max_lines_text)
             for line in self.__tooltip_text_lines:
                 if line_count == self.__max_lines_text:  
                     break
@@ -298,7 +298,7 @@ class BL_UI_Tooltip(BL_UI_Patch):
                 line_count += 1
         if widget.shortcut != "":
             line_count = 0
-            self.__tooltip_shortcut_lines = self.text_wrap(widget.shortcut, scaled_text_size, text_kerning, scaled_max_width)
+            self.__tooltip_shortcut_lines = self.text_wrap(widget.shortcut, scaled_text_size, text_kerning, scaled_max_width, self.__max_lines_shortcut)
             for line in self.__tooltip_shortcut_lines:
                 if line_count == self.__max_lines_shortcut:  
                     break
@@ -307,7 +307,7 @@ class BL_UI_Tooltip(BL_UI_Patch):
                 line_count += 1
         if widget.python_cmd != "" and display_python:
             line_count = 0
-            self.__tooltip_python_lines = self.text_wrap(widget.python_cmd, scaled_text_size, text_kerning, scaled_max_width)
+            self.__tooltip_python_lines = self.text_wrap(widget.python_cmd, scaled_text_size, text_kerning, scaled_max_width, self.__max_lines_python)
             for line in self.__tooltip_python_lines:
                 if line_count == self.__max_lines_python:  
                     break
@@ -348,7 +348,7 @@ class BL_UI_Tooltip(BL_UI_Patch):
                         }
         return (measurements)
 
-    def text_wrap(self, text, text_size, text_kerning, max_width_px):
+    def text_wrap(self, text, text_size, text_kerning, max_width_px, max_lines_count):
         line_break = "\n"
         text = text.rstrip()
 
@@ -368,7 +368,7 @@ class BL_UI_Tooltip(BL_UI_Patch):
         text_line = ""
         char_pos = 0
         
-        while char_pos < text_lenght:
+        while char_pos < text_lenght and len(line_array) < max_lines_count:
             next_chars = text[char_pos:(char_pos+cr)]
             if next_chars == line_break:
                 text_line = text_line.lstrip() if lstrip_it else text_line
@@ -474,16 +474,8 @@ class BL_UI_Tooltip(BL_UI_Patch):
 
         if len(self.__tooltip_text_lines) > 0:
             label.text_color = text_color
-            widest_line = 0
             for line in self.__tooltip_text_lines:
-                if line[1][0] > widest_line:
-                    widest_line = line[1][0] 
-                    limit_chars = len(line[0])
-                if line_count < (self.__max_lines_text -1) or line_count == (len(self.__tooltip_text_lines) - 1):
-                    label.text = line[0]
-                else:
-                    abbreviate = line[0][0:(limit_chars-10)] 
-                    label.text = abbreviate.rstrip() + " ... " + self.__tooltip_text_lines[-1][0][-(limit_chars-len(abbreviate)-3):].lstrip()
+                label.text = line[0]
                 label.draw()
                 line_count += 1
                 # Need to unapply the over scale to compensate for posterior calculations
@@ -497,16 +489,8 @@ class BL_UI_Tooltip(BL_UI_Patch):
             textpos_y -= line_spacing if line_count > 0 else 0 
             label.y_screen = textpos_y
             line_count = 0
-            widest_line = 0
             for line in self.__tooltip_shortcut_lines:
-                if line[1][0] > widest_line:
-                    widest_line = line[1][0] 
-                    limit_chars = len(line[0])
-                if line_count < (self.__max_lines_text -1) or line_count == (len(self.__tooltip_shortcut_lines) - 1):
-                    label.text = line[0]
-                else:
-                    abbreviate = line[0][0:(limit_chars-10)] 
-                    label.text = abbreviate.rstrip() + " ... " + self.__tooltip_tshortcut_lines[-1][0][-(limit_chars-len(abbreviate)-3):].lstrip()
+                label.text = line[0]
                 label.draw()
                 line_count += 1
                 # Need to unapply the over scale to compensate for posterior calculations
@@ -520,16 +504,8 @@ class BL_UI_Tooltip(BL_UI_Patch):
             textpos_y -= line_spacing if line_count > 0 else 0 
             label.y_screen = textpos_y
             line_count = 0
-            widest_line = 0
             for line in self.__tooltip_python_lines:
-                if line[1][0] > widest_line:
-                    widest_line = line[1][0] 
-                    limit_chars = len(line[0])
-                if line_count < (self.__max_lines_text -1) or line_count == (len(self.__tooltip_python_lines) - 1):
-                    label.text = line[0]
-                else:
-                    abbreviate = line[0][0:(limit_chars-10)] 
-                    label.text = abbreviate.rstrip() + " ... " + self.__tooltip_python_lines[-1][0][-(limit_chars-len(abbreviate)-3):].lstrip()
+                label.text = line[0]
                 label.draw()
                 line_count += 1
                 # Need to unapply the over scale to compensate for posterior calculations
@@ -537,3 +513,29 @@ class BL_UI_Tooltip(BL_UI_Patch):
                 label.y_screen = textpos_y
                 if line_count >= self.__max_lines_python:  
                     break
+
+    # This piece of logic below would be used to merge/abbreviate the latest line to the "greatest" one
+    # when going over the configured max lines count, however it needed to take in account the actual
+    # pixels lenght of the strings instead of characters count, so it has been left out for now.
+
+    # def abbreviate_text(self, limit_chars, this_line, last_line):
+        # this_line = this_line.rstrip()
+        # last_line = last_line.strip()
+        # last_save = last_line
+
+        # half_size = round(limit_chars / 2.0) - 1
+
+        # if len(last_line) >= half_size: 
+            # last_line = last_line[(len(last_line) - half_size + 2):].lstrip()
+
+        # comb_size = len(this_line) + len(last_line)
+
+        # if comb_size >= limit_chars:
+            # over_size = comb_size - limit_chars
+            # this_line = this_line[0:(len(this_line) - over_size - 2)].rstrip()
+        # else:
+            # over_size = limit_chars - len(this_line) - 2
+            # if over_size <= len(last_save):
+                # last_line = last_save[(len(last_save) - over_size):].lstrip()
+
+        # return (this_line + " ... " + last_line)

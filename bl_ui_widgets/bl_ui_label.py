@@ -56,7 +56,7 @@ class BL_UI_Label(BL_UI_Widget):
         super().__init__(x, y, width, height)
 
         self._text = "Label"
-        self._style = 'REGULAR'                 # Label color style options are: {REGULAR,TITLE,BUTTON,CHECKBOX,TOOLTIP}
+        self._style = 'REGULAR'                 # Label color style options are: {REGULAR,TITLE,BOX,BUTTON,CHECKBOX,TOOLTIP}
         self._text_color = None                 # Label normal color 
         self._text_title = None                 # Label titles color 
         
@@ -69,6 +69,8 @@ class BL_UI_Label(BL_UI_Widget):
         self._shadow_offset_y = None            # Label shadow offset y (negative goes down)
         self._shadow_color = None               # Label shadow color [0..1] = gray tone, from dark to clear
         self._shadow_alpha = None               # Label shadow alpha value [0..1]
+        
+        self._clip = None                       # Clipping coordenates (populated only by BL_UI_Button class)
         
     @property
     def text(self):
@@ -158,17 +160,21 @@ class BL_UI_Label(BL_UI_Widget):
     def shadow_alpha(self, value):
         self._shadow_alpha = value
             
+    @property
+    def clip(self):
+        return self._clip
+
+    @clip.setter
+    def clip(self, value):
+        self._clip = value
+
     # Overrides base class function
     def my_style(self):
         if self._style == 'TITLE':
             style = "panel_title"
-        elif self._style == 'REGULAR':
+        elif self._style == 'REGULAR' or self._style == 'BOX':
             style = "widget_label"
-        elif self._style == 'BUTTON':
-            style = "widget"
-        elif self._style == 'CHECKBOX':
-            style = "widget"
-        elif self._style == 'TOOLTIP':
+        elif self._style == 'BUTTON' or self._style == 'CHECKBOX' or self._style == 'TOOLTIP':
             style = "widget"
         else:    
             style = "widget_label"
@@ -191,6 +197,7 @@ class BL_UI_Label(BL_UI_Widget):
 
         if self._style == 'REGULAR' or self._style == 'TOOLTIP':
             if self._text_color is None:
+                # From Preferences/Themes/3D Viewport/"Theme Space"
                 theme = bpy.context.preferences.themes[0]
                 widget_style = getattr(theme.view_3d, "space")               
                 text_color = tuple(widget_style.button_text) + (1.0,)
@@ -199,11 +206,21 @@ class BL_UI_Label(BL_UI_Widget):
                 
         elif self._style == 'TITLE':
             if self._text_title is None:
+                # From Preferences/Themes/3D Viewport/"Theme Space"
                 theme = bpy.context.preferences.themes[0]
                 widget_style = getattr(theme.view_3d, "space")               
                 text_color = tuple(widget_style.button_title) + (1.0,)
             else:
                 text_color = self._text_title
+
+        elif self._style == 'BOX':
+            if self._text_color is None:
+                # From Preferences/Themes/User Interface/"Box"
+                theme = bpy.context.preferences.themes[0]
+                widget_style = getattr(theme.user_interface, "wcol_box")               
+                text_color = tuple(widget_style.text) + (1.0,)
+            else:
+                text_color = self._text_color
         else:
             if self._text_color is None:
                 # Warning error out color :-)
@@ -267,6 +284,13 @@ class BL_UI_Label(BL_UI_Widget):
             blf.rotation(0, self._text_rotation)
         if text_kerning:
             blf.enable(0, blf.KERNING_DEFAULT)
+        if not self._clip is None:
+            blf.enable(0, blf.CLIPPING)
+            x_min = self.over_scale(self._clip[0])
+            y_max = self.over_scale(self._clip[1])
+            x_max = x_min + self.over_scale(self._clip[2])
+            y_min = y_max - self.over_scale(self._clip[3])
+            blf.clipping(0, x_min, y_min, x_max, y_max)
 
         area_height = self.get_area_height()
         
@@ -288,3 +312,5 @@ class BL_UI_Label(BL_UI_Widget):
             blf.disable(0, blf.ROTATION)
         if text_kerning:
             blf.disable(0, blf.KERNING_DEFAULT)
+        if not self._clip is None:
+            blf.disable(0, blf.CLIPPING)

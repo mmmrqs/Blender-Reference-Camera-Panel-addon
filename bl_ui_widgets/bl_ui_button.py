@@ -411,6 +411,7 @@ class BL_UI_Button(BL_UI_Patch):
             label = BL_UI_Label(textpos_x, textpos_y, length1, height1)
             label.style = 'BUTTON'
             label.text = self._text
+            label.clip = (self.x_screen, self.y_screen, self.width, self.height)
             
             if self._text_size is None:
                 # Do not populate the text_size property to avoid it being leveraged and scaled twice
@@ -449,6 +450,7 @@ class BL_UI_Button(BL_UI_Patch):
             label = BL_UI_Label(textpos_x, textpos_y, length2, height2)
             label.style = 'BUTTON'
             label.text = self._textwo
+            label.clip = (self.x_screen, self.y_screen, self.width, self.height)
             
             if self._textwo_size is None:
                 # Do not populate the text_size property to avoid it being leveraged and scaled twice

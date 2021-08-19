@@ -49,7 +49,7 @@ class BL_UI_Patch(BL_UI_Widget):
  
         # Note: '_style' value will always be ignored if the bg_color value is overriden after object initialization.
 
-        self._style = 'NONE'                    # Patch background color styles are: {HEADER,PANEL,SUBPANEL,TOOLTIP,NONE}
+        self._style = 'NONE'                    # Patch background color styles are: {HEADER,PANEL,SUBPANEL,BOX,TOOLTIP,NONE}
         self._bg_color = None                   # Patch background color (defaults to invisible)
         self._outline_color = None              # Panel outline color (defaults to invisible)
         self._roundness = 0                     # Patch corners roundness factor [0..1]
