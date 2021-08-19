@@ -41,6 +41,7 @@ bl_info = {
 #--- ### Imports
 
 import bpy
+import time
 import os
 
 from bpy.types import Operator
@@ -55,7 +56,7 @@ from ..bl_ui_widgets.bl_ui_tooltip import BL_UI_Tooltip
 from ..bl_ui_widgets.bl_ui_draw_op import BL_UI_OT_draw_operator
 from ..bl_ui_widgets.bl_ui_drag_panel import BL_UI_Drag_Panel
 
-#from . reference_cameras import get_target, find_collection  <-- not needed anymore but left as example
+#from . reference_cameras import get_target                # <-- not needed anymore but left as example
 
 #----- Diagnostic flag 
 DEBUG = 0 # Set it to 0 in the production version; 1 to see diagnostic messages; 2 to enable PyDev debugger
@@ -95,6 +96,8 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
     def __init__(self):
 
         super().__init__()
+
+        package = __package__[0:__package__.find(".")]
 
         # From Preferences/Themes/"Text Style"
         # theme = bpy.context.preferences.themes[0]
@@ -224,15 +227,22 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         self.buttonR.set_mouse_up(self.buttonR_click)
         self.buttonR.description = "Sets Target Location and Rotation to (0,0,0) and removes related locks"
         self.buttonR.python_cmd = "bpy.ops.object.ref_camera_panelbutton_rset()"
-        newY = btnY + btnH +btnS
+        newY = btnY + btnH + btnS
         # Blink Mesh: Turns mesh visibility on/off
+        preferences = bpy.context.preferences.addons[package].preferences
+        blink_on = round(preferences.RC_BLINK_ON, 1)
+        blink_off = round(preferences.RC_BLINK_OFF, 1)
+        col_name = preferences.RC_MESHES
+        self.buttonA_description = "Turns the visibility on/off for mesh(es) in collection '{0}'.\n" +\
+                                   "Blinking frequency can be adjusted in the addon Preferences.\n" +\
+                                   "Current settings are:  On ({1:.1f} sec), Off ({2:.1f} sec)"
         self.buttonA = BL_UI_Button(newX, newY, btnW, btnH)
         self.buttonA.style = 'TOOL'
-        self.buttonA.text = "Blink Mesh"
+        self.buttonA.text = "Blink Mesh(es)"
         self.buttonA.set_mouse_up(self.buttonA_click)
-        self.buttonA.description = "Turns the mesh(es) visibility on/off"        
+        self.buttonA.set_mouse_enter(self.buttonA_enter)
+        self.buttonA.description = self.buttonA_description.format(col_name, blink_on, blink_off)
         self.buttonA.python_cmd = "bpy.ops.object.set_mesh_visibility()"
-        self.buttonA.set_timer_event(self.buttonA_timer)
         self.buttonA.set_button_pressed(self.buttonA_pressed)
         if self.buttonA_pressed(self.buttonA): self.buttonA.state = 3
         newX = newX + btnW-1 + btnS
@@ -246,7 +256,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         self.button8.description = "Locks Target Position properties and disables impacted buttons"        
         self.button8.python_cmd = "bpy.ops.object.ref_camera_panelbutton_lpos()"
         if self.button8_pressed(self.button8): self.button8.state = 3
-        newY = btnY + btnH +btnS
+        newY = btnY + btnH + btnS
         # Lock Rotation: Locks Target Rotation fields and disables impacted buttons
         self.button9 = BL_UI_Button(newX, newY, btnW, btnH)
         self.button9.style = 'TOGGLE'
@@ -257,34 +267,59 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         self.button9.description = "Locks Target Rotation properties and disables impacted buttons"        
         self.button9.python_cmd = "bpy.ops.object.ref_camera_panelbutton_lrot()"
         if self.button9_pressed(self.button9): self.button9.state = 3
+        btnC = 0
+        newX = newX + btnW-1 + btnS + marginX
+        btnW = 22
+        btnH = 20
+        # Memory slots box
+        self.slotbox = BL_UI_Patch((newX - btnS), (btnY - btnS), (btnW*3 + btnS*3), (btnH*2 + btnS*3))
+        self.slotbox.style = 'BOX'
+        self.slotbox.radius = 4
+        # Memory switch first button
+        self.memory1 = BL_UI_Button(newX, btnY, btnW, btnH)
+        self.memory1.style = 'TOOL'
+        self.memory1.text = "M1"
+        self.memory1.set_mouse_up(self.memory1_click)
+        self.memory1.set_timer_event(self.memory1_poll)
+        self.memory1.description = "Switches the Camera+Target set configuration with memory slot 1"        
+        self.memory1.python_cmd = "bpy.ops.object.ref_camera_panelbutton_m1()"
+        newY = btnY + btnH + btnS
+        # Memory save button
+        self.memsave = BL_UI_Button(newX, newY, (btnW*2 + 2), btnH)
+        self.memsave.style = 'TOOL'
+        self.memsave.text = "MSave"
+        self.memsave.set_mouse_up(self.memsave_click)
+        self.memsave.set_timer_event(self.memsave_poll)
+        self.memsave.description = "Saves the Camera+Target set configuration in the next available memory slot"        
+        self.memsave.python_cmd = "bpy.ops.object.ref_camera_panelbutton_ms()"
+        newX = newX + btnW + 2
+        # Memory switch second button 
+        self.memory2 = BL_UI_Button(newX, btnY, btnW, btnH)
+        self.memory2.style = 'TOOL'
+        self.memory2.text = "M2"
+        self.memory2.set_mouse_up(self.memory2_click)
+        self.memory2.set_timer_event(self.memory2_poll)
+        self.memory2.description = "Switches the Camera+Target set configuration with memory slot 2"        
+        self.memory2.python_cmd = "bpy.ops.object.ref_camera_panelbutton_m2()"
+        newX = newX + btnW + 2
+        # Memory switch third button
+        self.memory3 = BL_UI_Button(newX, btnY, btnW, btnH)
+        self.memory3.style = 'TOOL'
+        self.memory3.text = "M3"
+        self.memory3.set_mouse_up(self.memory3_click)
+        self.memory3.set_timer_event(self.memory3_poll)
+        self.memory3.description = "Switches the Camera+Target set configuration with memory slot 3"        
+        self.memory3.python_cmd = "bpy.ops.object.ref_camera_panelbutton_m3()"
+        newY = btnY + btnH + btnS
+        # Memory clear button
+        self.memtrim = BL_UI_Button(newX, newY, btnW, btnH)
+        self.memtrim.style = 'TOOL'
+        self.memtrim.text = "MC"
+        self.memtrim.set_mouse_up(self.memtrim_click)
+        self.memtrim.set_timer_event(self.memtrim_poll)
+        self.memtrim.description = "Clears out all three memory slots"        
+        self.memtrim.python_cmd = "bpy.ops.object.ref_camera_panelbutton_mc()"
         #-----------
-
-        self.check1 = BL_UI_Checkbox(newX, newY+60, btnW, btnH)
-        self.check1.text = "Testing"
-#        self.check1.set_state_changed(self.check1.changed)
-        self.check1.description = "This is my checkbox tooltip"        
-        self.check1.python_cmd = "bpy.ops.object.checkbox()"
-        self.check1.is_checked = True
-
-        preX = newX - (btnW-1 + btnS)
-        self.number1 = BL_UI_Slider(preX, newY+35, btnW, btnH)
-        self.number1.style = 'NUMBER_CLICK'
-        self.number1.value = 500
-        self.number1.step = 100
-        self.number1.unit = "m"
-        self.number1.precision = 0
-        self.number1.description = "This is my click slider tooltip"        
-        self.number1.set_slider_updated(self.slider_update)
-
-        newX = preX + btnW-1 + btnS
-        self.slider1 = BL_UI_Slider(newX, newY+35, btnW, btnH)
-        self.slider1.style = 'NUMBER_SLIDE'
-        self.slider1.text = "Lens"
-        self.slider1.value = 50
-        self.slider1.min = 0
-        self.slider1.max = 100
-        self.slider1.unit = "m"
-        self.slider1.description = "This is my standard slider tooltip"        
 
         self.textbox1 = BL_UI_Textbox(marginX, newY+35, 200, btnH)
         self.textbox1.text = "My editing text"
@@ -293,11 +328,38 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         self.textbox1.is_numeric = True
         self.textbox1.description = "Textbox editing entry field"
 
-        panW = newX+btnW+2+marginX  # Panel desired width  (beware: this math is good for my setup only)
-        panH = newY+btnH+0+marginY  # Panel desired height (ditto)
+        getX = marginX + 220
+        self.check1 = BL_UI_Checkbox(getX, newY+35, 100, 20)
+        self.check1.text = "Testing"
+#        self.check1.set_state_changed(self.check1.changed)
+        self.check1.description = "This is my checkbox tooltip"        
+        self.check1.python_cmd = "bpy.ops.object.checkbox()"
+        self.check1.is_checked = True
+
+        getX = getX + 120
+        self.number1 = BL_UI_Slider(getX, newY+35, 100, 20)
+        self.number1.style = 'NUMBER_CLICK'
+        self.number1.value = 500
+        self.number1.step = 100
+        self.number1.unit = "m"
+        self.number1.precision = 0
+        self.number1.description = "This is my click slider tooltip"        
+        self.number1.set_slider_updated(self.number1_update)
+
+        getX = getX + 120
+        self.slider1 = BL_UI_Slider(getX, newY+35, 100, 20)
+        self.slider1.style = 'NUMBER_SLIDE'
+        self.slider1.text = "Lens"
+        self.slider1.value = 50
+        self.slider1.min = 0
+        self.slider1.max = 100
+        self.slider1.unit = "m"
+        self.slider1.description = "This is my standard slider tooltip"        
+
+        panW = newX+btnW+marginX+btnS  # Panel desired width  (beware: this math is good for my setup only)
+        panH = newY+btnH+marginY       # Panel desired height (ditto)
 
         # Save the panel's size to preferences properties to be used in there
-        package = __package__[0:__package__.find(".")]
         bpy.context.preferences.addons[package].preferences.RC_PAN_W = panW
         bpy.context.preferences.addons[package].preferences.RC_PAN_H = panH
 
@@ -358,6 +420,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         widgets_items = [
                          self.button1, self.button2, self.button3, self.button4, self.button5, self.button6, 
                          self.button7, self.button8, self.button9, self.buttonA, self.buttonR, 
+                         self.slotbox, self.memory1, self.memory2, self.memory3, self.memsave, self.memtrim, 
                          self.slider1, self.number1, self.check1, self.textbox1, 
                          self.tooltip, # <-- If there is a tooltip object, it must be the last in this list
                         ]
@@ -372,8 +435,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         self.panel.add_widgets(widgets_items)
 
         self.panel.set_location(self.panel.x, self.panel.y)
-
-
+        
     #-- Helper function
     
     def terminate_execution(self):
@@ -394,11 +456,17 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         # Characteristics - Selected:Camera; Transformation:Local; Pivot:ActiveElement(=Camera)
         bpy.ops.object.ref_camera_panelbutton_zoom(mode='REMOTE')
 
+    def button1_pressed(self, widget):
+        return (bpy.context.scene.var.OpState1)
+
     def button2_click(self, widget, event, x, y):
         # Horizontal Orbit: The camera rotates around the target which stays in place (R + Z + move mouse)
         # Good to adjust 'Rotation'
         # Characteristics - Selected:Camera; Transformation:Global; Pivot:3DCursor (which is moved to 'Target' origin)
         bpy.ops.object.ref_camera_panelbutton_horb(mode='REMOTE')
+
+    def button2_pressed(self, widget):
+        return (bpy.context.scene.var.OpState2)
 
     def button3_click(self, widget, event, x, y):
         # Vertical Orbit: The camera rotates around the target which stays in place (R + XX + move mouse)
@@ -406,11 +474,17 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         # Characteristics - Selected:Camera; Transformation:Local; Pivot:3DCursor (which is moved to 'Target' origin)
         bpy.ops.object.ref_camera_panelbutton_vorb(mode='REMOTE')
 
+    def button3_pressed(self, widget):
+        return (bpy.context.scene.var.OpState3)
+
     def button4_click(self, widget, event, x, y):
         # TILT: Camera stays still, moves from up and down (R + YY + move mouse)
         # Good to adjust 'Inclination'
         # Characteristics - Selected:Target; Transformation:Local; Pivot:ActiveElement(=Target)
         bpy.ops.object.ref_camera_panelbutton_tilt(mode='REMOTE')
+
+    def button4_pressed(self, widget):
+        return (bpy.context.scene.var.OpState4)
 
     def button5_click(self, widget, event, x, y):
         # This one is same as button6 (not an error)
@@ -419,6 +493,9 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         # Characteristics - Selected:Camera+Target; Transformation:Global; Pivot:ActiveElement(=Target)
         bpy.ops.object.ref_camera_panelbutton_move(mode='REMOTE')
 
+    def button5_pressed(self, widget):
+        return (bpy.context.scene.var.OpState5)
+
     def button6_click(self, widget, event, x, y):
         # This one is same as button5 (not an error)
         # Roll: Camera stays still, lean from left to right (R + X/Y + move mouse)
@@ -426,17 +503,26 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         # Characteristics - Selected:Camera+Target; Transformation:Global; Pivot:ActiveElement(=Target)
         bpy.ops.object.ref_camera_panelbutton_roll(mode='REMOTE')
 
+    def button6_pressed(self, widget):
+        return (bpy.context.scene.var.OpState6)
+
     def button7_click(self, widget, event, x, y):
         # Perspective: combination of Camera's Translation with Elevation/Rotation (G + X/Y/Z + mouse move)
         # Good to adjust 'Point of View'
         # Characteristics - Selected:Camera; Transformation:Global; Pivot:ActiveElement(=Target)
         bpy.ops.object.ref_camera_panelbutton_pov(mode='REMOTE')
 
+    def button7_pressed(self, widget):
+        return (bpy.context.scene.var.OpState7)
+
     def button8_click(self, widget, event, x, y):
         # Lock Position: Locks Target Position properties and disables impacted buttons
         # Good to prevent accidental changes in target placement
         bpy.ops.object.ref_camera_panelbutton_lpos()
         self.button5.enabled = (not bpy.context.scene.var.OpState8)
+
+    def button8_pressed(self, widget):
+        return (bpy.context.scene.var.OpState8)
 
     def button9_click(self, widget, event, x, y):
         # Lock Rotation: Locks Target Rotation properties and disables impacted buttons
@@ -445,46 +531,28 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         self.button4.enabled = (not bpy.context.scene.var.OpState9)
         self.button6.enabled = (not bpy.context.scene.var.OpState9)
 
-    def buttonA_click(self, widget, event, x, y):
-        # Blink Mesh: Turns mesh visibility on/off
-        # Good to precisely eyeball superposition of fine mesh details against the image background
-        if not bpy.context.scene.var.OpStateA:
-            if bpy.types.OBJECT_OT_set_mesh_visibility.poll(bpy.context):
-                bpy.ops.object.set_mesh_visibility()
-                if len(bpy.context.scene.lastObjectSet.items()) > 0:
-                    # Indicates that blinking mode has been started
-                    widget.set_exclusive_mode(widget)
-                    bpy.context.scene.var.OpStateA = True
-                else:    
-                    package = __package__[0:__package__.find(".")]
-                    collect = bpy.context.preferences.addons[package].preferences.RC_MESHES
-                    self.report({'ERROR'}, "All Meshes in '" + collect + "' collection are Hidden")
-            else:
-                package = __package__[0:__package__.find(".")]
-                collect = bpy.context.preferences.addons[package].preferences.RC_MESHES
-                if not bpy.types.OBJECT_OT_set_mesh_visibility.wip_mesh_found():
-                    self.report({'ERROR'}, "Collection '" + collect + "' not found or Hidden")
-        else:
-            # Indicates that blinking mode has been stopped
-            widget.set_exclusive_mode(None)
-            bpy.context.scene.var.OpStateA = False
-            if not bpy.context.scene.var.MeshVisible:
-                if bpy.types.OBJECT_OT_set_mesh_visibility.poll(bpy.context):
-                    bpy.ops.object.set_mesh_visibility()
+    def button9_pressed(self, widget):
+        return (bpy.context.scene.var.OpState9)
 
-    def buttonA_timer(self, widget, event, x, y):
-        if self.buttonA_pressed(widget):
-            stop_it = True
-            if len(bpy.context.scene.lastObjectSet.items()) > 0:
-                if bpy.types.OBJECT_OT_set_mesh_visibility.poll(bpy.context):
-                    stop_it = False
-                    bpy.ops.object.set_mesh_visibility()
-            if stop_it:    
-                # Indicates that blinking mode has been stopped
-                widget.set_exclusive_mode(None)
-                bpy.context.scene.var.OpStateA = False
-                widget.state = 0
-        return False
+    def buttonA_click(self, widget, event, x, y):
+        # Blink Mesh(es): Turns mesh visibility on/off
+        # Good to precisely eyeball superposition of fine mesh details against the image background
+        result = bpy.ops.object.ref_camera_panelbutton_flsh(mode='REMOTE')
+        if result == {'CANCELLED'}:
+            package = __package__[0:__package__.find(".")]
+            collect = bpy.context.preferences.addons[package].preferences.RC_MESHES
+            self.report(type={'ERROR'}, message="Collection '" + collect + "' not found or all meshes are hidden")
+
+    def buttonA_enter(self, widget, event, x, y):
+        package = __package__[0:__package__.find(".")]
+        preferences = bpy.context.preferences.addons[package].preferences
+        blink_on = round(preferences.RC_BLINK_ON, 1)
+        blink_off = round(preferences.RC_BLINK_OFF, 1)
+        col_name = preferences.RC_MESHES
+        widget.description = self.buttonA_description.format(col_name, blink_on, blink_off)
+
+    def buttonA_pressed(self, widget):
+        return (bpy.context.scene.var.OpStateA)
 
     def buttonR_click(self, widget, event, x, y):
         # Reset Target: Sets Target Location and Rotation to (0,0,0) and removes related locks
@@ -496,37 +564,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
     def buttonU_click(self, widget, event, x, y):
         self.finish()
 
-    def button1_pressed(self, widget):
-        return (bpy.context.scene.var.OpState1)
-
-    def button2_pressed(self, widget):
-        return (bpy.context.scene.var.OpState2)
-
-    def button3_pressed(self, widget):
-        return (bpy.context.scene.var.OpState3)
-
-    def button4_pressed(self, widget):
-        return (bpy.context.scene.var.OpState4)
-
-    def button5_pressed(self, widget):
-        return (bpy.context.scene.var.OpState5)
-
-    def button6_pressed(self, widget):
-        return (bpy.context.scene.var.OpState6)
-
-    def button7_pressed(self, widget):
-        return (bpy.context.scene.var.OpState7)
-
-    def button8_pressed(self, widget):
-        return (bpy.context.scene.var.OpState8)
-
-    def button9_pressed(self, widget):
-        return (bpy.context.scene.var.OpState9)
-
-    def buttonA_pressed(self, widget):
-        return (bpy.context.scene.var.OpStateA)
-
-    def slider_update(self, widget, value):
+    def number1_update(self, widget, value):
         # Example of a dynamic unit conversion with dynamic min/max limits
         converted = False
         if widget.unit == "mm" and value >= 1000:
@@ -573,11 +611,51 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
             # By returning True the 'value' argument will be committed to the widget.value property
             return True
     
+    def memory1_click(self, widget, event, x, y):
+        # Memory Switch 1: Switches the Camera+Target set configuration with memory slot 1"
+        bpy.ops.object.ref_camera_panelbutton_m1()
+
+    def memory1_poll(self, widget, event, x, y):
+        widget.enabled = bpy.context.scene.var.OpStatM1
+        return False
         
+    def memory2_click(self, widget, event, x, y):
+        # Memory Switch 2: Switches the Camera+Target set configuration with memory slot 2"
+        bpy.ops.object.ref_camera_panelbutton_m2()
+        
+    def memory2_poll(self, widget, event, x, y):
+        widget.enabled = bpy.context.scene.var.OpStatM2
+        return False
+        
+    def memory3_click(self, widget, event, x, y):
+        # Memory Switch 3: Switches the Camera+Target set configuration with memory slot 3"
+        bpy.ops.object.ref_camera_panelbutton_m3()
+        
+    def memory3_poll(self, widget, event, x, y):
+        widget.enabled = bpy.context.scene.var.OpStatM3
+        return False
+        
+    def memsave_click(self, widget, event, x, y):
+        # Memory Save: Saves the Camera+Target set configuration in the next available memory slot"
+        bpy.ops.object.ref_camera_panelbutton_ms()
+        
+    def memsave_poll(self, widget, event, x, y):
+        widget.enabled = (not bpy.context.scene.var.OpStatM3)
+        return False
+        
+    def memtrim_click(self, widget, event, x, y):
+        # Memory Clear: Clears out all three memory slots"
+        bpy.ops.object.ref_camera_panelbutton_mc()
+        
+    def memtrim_poll(self, widget, event, x, y):
+        widget.enabled = bpy.context.scene.var.OpStatM1
+        return False
+        
+
 ##-Register/unregister processes 
 def register():
     bpy.utils.register_class(DP_OT_draw_operator)
  
 def unregister():
-    bpy.utils.unregister_class(DP_OT_draw_operator)            
+    bpy.utils.unregister_class(DP_OT_draw_operator)           
     
