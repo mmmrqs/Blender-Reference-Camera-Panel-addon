@@ -52,7 +52,7 @@ import math
 import bpy
 import os
 
-from bpy.props import StringProperty, IntProperty, BoolProperty, FloatProperty, FloatVectorProperty
+from bpy.props import StringProperty, IntProperty, BoolProperty, FloatProperty, FloatVectorProperty, PointerProperty
 from bpy_extras.io_utils import ImportHelper
 
 #from . drag_panel_op import DP_OT_draw_operator  <-- not needed anymore but left as example
@@ -597,22 +597,14 @@ class RefCameraPanelbutton_LROT(bpy.types.Operator):
             SetAdjustmentMode("ZOOM")
         return {'FINISHED'}
 
-def blink_mesh_timer():
-    has_error = False
+def blink_mesh_objects():
     context = bpy.context
     rc = find_collection(context.scene.collection, RC_MESHES())
-    if not rc:
-        has_error = True
-        #context.scene.lastObjectSet.clear()
-    else:    
-        if context.view_layer.layer_collection.children[RC_MESHES()].hide_viewport:
-            has_error = True
-            #context.scene.lastObjectSet.clear()
-        else:
+    if rc:
+        if not context.view_layer.layer_collection.children[RC_MESHES()].hide_viewport:
             for obj in rc.objects:
                 if not obj.type == 'MESH': 
                     continue
-                    
                 thisObjWasMadeHidden = obj.hide_get()
                 thisObjFound = False
                 for stateListed in context.scene.lastObjectSet:
@@ -631,7 +623,28 @@ def blink_mesh_timer():
                     # the user has manually hidden directly on the outliner's collection 
                     itemID = context.scene.lastObjectSet.find(obj.name)
                     context.scene.lastObjectSet.remove(itemID)
-                
+            return True        
+    return False
+
+def blink_mesh_timer():
+    context = bpy.context
+    has_error = True
+    try:
+        if context.mode == 'OBJECT':
+            areas = context.window.screen.areas
+            for area in areas:
+                if area.type == 'VIEW_3D':
+                    #if area.regions[-1].data.view_perspective == 'CAMERA': # <-- Could've done just this instead
+                    #    has_error = not blink_mesh_objects()               #     but I didn't trust it for production.
+                    #break                                                  #
+                    for region in area.regions:
+                        if region.type == 'WINDOW':
+                            if region.data.view_perspective == 'CAMERA':
+                                has_error = not blink_mesh_objects()
+                                break
+                    break
+    except: 
+        pass
     if len(context.scene.lastObjectSet.items()) > 0 and not has_error:
         context.scene.var.MeshVisible = not context.scene.var.MeshVisible
         package = __package__[0:__package__.find(".")]
@@ -639,9 +652,11 @@ def blink_mesh_timer():
         duration = preferences.RC_BLINK_ON if context.scene.var.MeshVisible else preferences.RC_BLINK_OFF
         return round(duration,1)
     else:    
-        # Auto stop blinking if meshes are made unavailable
+        # Auto stop blinking if meshes are made unavailable or any errors
         context.scene.var.OpStateA = False
-        context.scene.var.MeshVisible = False
+        if not context.scene.var.MeshVisible:
+            # Call it one last time if needed to leave the mesh(es) turned on
+            context.scene.var.MeshVisible = blink_mesh_objects()
         return None
 
 class RefCameraPanelbutton_FLSH(bpy.types.Operator):
@@ -671,20 +686,17 @@ class RefCameraPanelbutton_FLSH(bpy.types.Operator):
             if self.mode == 'NPANEL':
                 self.report(type={'ERROR'}, message="Collection '" + RC_MESHES() + "' not found or all meshes are hidden")
             return {'CANCELLED'}
-
-        context.scene.var.OpStateA = not context.scene.var.OpStateA
-        if context.scene.var.OpStateA:
-            if not bpy.app.timers.is_registered(blink_mesh_timer):
-                bpy.app.timers.register(blink_mesh_timer, first_interval=0, persistent=False)
-        else:
-            if bpy.app.timers.is_registered(blink_mesh_timer):
-                try: 
+        else:    
+            context.scene.var.OpStateA = not context.scene.var.OpStateA
+            if context.scene.var.OpStateA:
+                if not bpy.app.timers.is_registered(blink_mesh_timer):
+                    bpy.app.timers.register(blink_mesh_timer, first_interval=0, persistent=False)
+            else:
+                if bpy.app.timers.is_registered(blink_mesh_timer):
                     bpy.app.timers.unregister(blink_mesh_timer)
-                except: 
-                    pass
-            # Call it one last time if needed to leave the mesh(es) turned on
-            if not context.scene.var.MeshVisible:
-                blink_mesh_timer()
+                if not context.scene.var.MeshVisible:
+                    # Call it one last time if needed to leave the mesh(es) turned on
+                    context.scene.var.MeshVisible = blink_mesh_objects()
         return {'FINISHED'}
         
 def switch_memory_data(slot=0):
@@ -1571,10 +1583,11 @@ def register():
 
     if DEBUG: 
         os.system("cls")
+        timestr = time.strftime("%Y-%m-%d %H:%M:%S")
         print('---------------------------------------')
         print('-------------- RESTART ----------------')
         print('---------------------------------------')
-        print(time.time(), __name__ + ": registered")
+        print(timestr, __name__ + ": registered")
 
 
 def unregister():
@@ -1587,7 +1600,9 @@ def unregister():
         delattr(bpy.types.Scene, propSubPanel)
     for cls in reversed(classes):
         unregister_class(cls)  
-    if DEBUG: print(time.time(), __name__ + ": UNregistered")
+    if DEBUG: 
+        timestr = time.strftime("%Y-%m-%d %H:%M:%S")
+        print(timestr, __name__ + ": UNregistered")
 
 
 if __name__ == '__main__':
