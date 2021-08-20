@@ -70,7 +70,7 @@ class BL_UI_Label(BL_UI_Widget):
         self._shadow_color = None               # Label shadow color [0..1] = gray tone, from dark to clear
         self._shadow_alpha = None               # Label shadow alpha value [0..1]
         
-        self._clip = None                       # Clipping coordenates (populated only by BL_UI_Button class)
+        self._clip = None                       # Clipping coordinates (populated only by BL_UI_Button class)
         
     @property
     def text(self):
