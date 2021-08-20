@@ -65,6 +65,7 @@ class BL_UI_Textbox(BL_UI_Button):
         self._selected_color = None             # Textbox background color (when in edit mode)
         self._outline_color = None              # Textbox outline color 
         self._cursor_color = None               # Textbox cursor color (when in edit mode)
+        self._marked_color = None               # Textbox marked color (when in edit mode)
         self._roundness = None                  # Textbox corners roundness factor [0..1]
         self._radius = 8.5                      # Textbox corners circular radius
         self._rounded_corners = (1,1,1,1)       # 1=Round/0=Straight, coords:(bottomLeft,topLeft,topRight,bottomRight)
@@ -83,11 +84,12 @@ class BL_UI_Textbox(BL_UI_Button):
         self._text_shadow_alpha = None          # Textbox text shadow alpha value [0..1]
 
         self.__ui_scale = 0
-        # self.__cursor_pos = [0,0]
-        self.__cursor_pos = 0
+        self.__cursor_pos = 'RIGHT'             # Identifies which side {'LEFT','RIGHT'} the cursor is positioned
+        self.__marked_pos = [0,0]
         self.__cached_text = ""
         self.__is_editing = False
-        self.__input_keys = ['ESC','RET','NUMPAD_ENTER','BACK_SPACE','HOME','END','LEFT_ARROW','RIGHT_ARROW','DEL']
+        self.__input_keys = ['ESC','RET','NUMPAD_ENTER','BACK_SPACE','HOME','END','DEL', \
+                             'LEFT_ARROW','RIGHT_ARROW','UP_ARROW','DOWN_ARROW']
 
     @property
     def cursor_color(self):
@@ -96,6 +98,14 @@ class BL_UI_Textbox(BL_UI_Button):
     @cursor_color.setter
     def cursor_color(self, value):
         self._cursor_color = value
+
+    @property
+    def marked_color(self):
+        return self._marked_color
+
+    @marked_color.setter
+    def marked_color(self, value):
+        self._marked_color = value
 
     @property
     def max_input_chars(self):
@@ -130,8 +140,8 @@ class BL_UI_Textbox(BL_UI_Button):
             self.state = 3
             self.__is_editing = True
             self.__cached_text = self._text
-            self.__cursor_pos = len(self._text)
-            # self.__cursor_pos = [0, len(self._text)]
+            self.__cursor_pos = 'RIGHT'
+            self.__marked_pos = [0, len(self._text)]
             self.__ui_scale = self.over_scale(1)
             self.update_cursor()
             self.set_exclusive_mode(self)
@@ -187,6 +197,23 @@ class BL_UI_Textbox(BL_UI_Button):
                 
         return True
 
+    def find_text_gap(self, direction):
+        char_filter = ' .,:;-\/~!@#$%^&*+=(")?|{[<>]}' + "'"
+        if direction == 'LEFT':
+            position = 0
+            for i in range(self.__marked_pos[0], 1, -1):   
+                if self._text[i-1] in char_filter:         
+                    position = i if self.__marked_pos[0] > i else i - 1
+                    break
+        else:
+            end = len(self._text)
+            position = len(self._text)
+            for i in range(self.__marked_pos[1], end):
+                if self._text[i] in char_filter:
+                    position = i if self.__marked_pos[0] < i else i + 1
+                    break
+        return position
+
     def get_cursor_pos_px(self):
         theme = bpy.context.preferences.ui_styles[0]
         widget_style = getattr(theme, "widget")
@@ -204,35 +231,43 @@ class BL_UI_Textbox(BL_UI_Button):
             blf.enable(0, blf.KERNING_DEFAULT)
         blf.size(0, scaled_size, 72)
 
-        # if self.__cursor_pos[0] == 0:
-            # start = 0
-        # else:    
-            # text_to_cursor = self._text[:self.__cursor_pos[0]]
-            # start = blf.dimensions(0, text_to_cursor)[0]  
-        text_to_cursor = self._text[:self.__cursor_pos]    
+        if self.__marked_pos[0] == 0:
+            start = 0
+        else:    
+            text_to_cursor = self._text[:self.__marked_pos[0]]
+            start = blf.dimensions(0, text_to_cursor)[0]  
 
-        # text_to_cursor = self._text[self.__cursor_pos[0] : self.__cursor_pos[1]]
+        text_to_cursor = self._text[self.__marked_pos[0] : self.__marked_pos[1]]
         length = blf.dimensions(0, text_to_cursor)[0]  
 
         if text_kerning:
             blf.disable(0, blf.KERNING_DEFAULT)
 
-        # return [start, length]
-        return length
+        return [start, length]
 
     def update_cursor(self):
-        x_screen = self.over_scale(self.x_screen + self._text_margin) + self.get_cursor_pos_px()
-        vertices = ((x_screen, self.over_scale(self.y_screen - 1)),
-                    (x_screen, self.over_scale(self.y_screen - self.height + 2))
-                    )
+        cursor_pos_px = self.get_cursor_pos_px()
+        x0_screen = self.over_scale(self.x_screen + self._text_margin) 
+        
+        x1_screen = x0_screen + cursor_pos_px[0] + (0 if self.__cursor_pos == 'LEFT' else cursor_pos_px[1])
+        vertices = ((x1_screen, self.over_scale(self.y_screen - 1)),
+                    (x1_screen, self.over_scale(self.y_screen - self.height + 2)))
         self.batch_cursor = batch_for_shader(self.shader_cursor, 'LINES', {"pos": vertices})
+
+        x1_screen = x0_screen + cursor_pos_px[0]
+        x2_screen = x1_screen + cursor_pos_px[1]
+        vertices = ((x1_screen, self.over_scale(self.y_screen - 1)),
+                    (x2_screen, self.over_scale(self.y_screen - 1)),
+                    (x2_screen, self.over_scale(self.y_screen - self.height + 2)),
+                    (x1_screen, self.over_scale(self.y_screen - self.height + 2)))
+                    
+        self.batch_marked = batch_for_shader(self.shader_marked, 'TRI_FAN', {"pos": vertices})
 
     # Overrides base class function
     def update(self, x, y):        
         super().update(x, y)
-
         self.shader_cursor = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
-            
+        self.shader_marked = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
         self.update_cursor()
         
     # Overrides base class function
@@ -249,6 +284,29 @@ class BL_UI_Textbox(BL_UI_Button):
 
         # Draw cursor
         if self.__is_editing:
+            if self.__marked_pos[0] != self.__marked_pos[1]:
+                # Paint the marked selection
+                if self._marked_color is None:
+                    # From Preferences/Themes/User Interface/"Text"
+                    theme = bpy.context.preferences.themes[0]
+                    widget_style = getattr(theme.user_interface, "wcol_text")
+                    color = widget_style.item
+                else:
+                    color = self._marked_color
+
+                self.shader_marked.bind()
+                
+                self.shader_marked.uniform_float("color", color)
+                
+                bgl.glEnable(bgl.GL_LINE_SMOOTH)
+                
+                self.batch_marked.draw(self.shader_marked)
+
+                bgl.glDisable(bgl.GL_LINE_SMOOTH)
+
+                self.draw_marked_text()
+
+            # Paint the editing cursor
             if self._cursor_color is None:
                 # From Preferences/Themes/User Interface/"Styles"
                 theme = bpy.context.preferences.themes[0]
@@ -269,6 +327,27 @@ class BL_UI_Textbox(BL_UI_Button):
 
             bgl.glDisable(bgl.GL_LINE_SMOOTH)
 
+    def draw_marked_text(self):
+        if not self._is_visible:
+            return
+        
+        # Save these values that will be temporarily overriden for the purpose of drawing only the marked text 
+        save_text = self._text           
+        save_x_screen = self.x_screen 
+        save_width = self.width
+        
+        cursor_pos_px = self.get_cursor_pos_px()
+        self._text = self._text[self.__marked_pos[0]:self.__marked_pos[1]]
+        self.x_screen = self.x_screen + (cursor_pos_px[0] / self.over_scale(1))
+        self.width = self._text_margin + cursor_pos_px[1]
+
+        super().draw_text()
+        
+        # Restore former values 
+        self._text = save_text
+        self.x_screen = save_x_screen
+        self.width = save_width
+            
     # Overrides base class function
     def get_input_keys(self):
         return self.__input_keys
@@ -278,58 +357,116 @@ class BL_UI_Textbox(BL_UI_Button):
         if not (self._is_enabled and self.__is_editing):
             return False
 
-        index = self.__cursor_pos
         former_text = self._text
-        former_pos  = self.__cursor_pos
+        former_pos  = self.__marked_pos
+        marked = not (self.__marked_pos[0] == self.__marked_pos[1])
         
-        if event.ascii != '' and len(self._text) < self._max_input_chars:
-            digits = ['0','1','2','3','4','5','6','7','8','9']              # <-- This to avoid any funny business 
-            value = self._text[:index] + event.ascii + self._text[index:]
+        if event.ascii != '' and (marked or len(self._text) < self._max_input_chars):
+            digits = ['0','1','2','3','4','5','6','7','8','9']              
+            new_text = self._text[:self.__marked_pos[0]] + self._text[self.__marked_pos[1]:]
             if (not self._is_numeric) \
-            or (event.ascii == '-' and not ('-' in self._text or index > 0)) \
-            or (event.ascii == '.' and not ('.' in self._text or ',' in self._text)) \
-            or (event.ascii == ',' and not (',' in self._text or '.' in self._text)) \
-            or (event.ascii in digits and not (index == 0 and '-' in self._text)):
-                self._text = value
-                self.__cursor_pos += 1
-
+            or (event.ascii == '-' and not ('-' in new_text or self.__marked_pos[0] > 0)) \
+            or (event.ascii == '.' and not ('.' in new_text or ',' in new_text)) \
+            or (event.ascii == ',' and not (',' in new_text or '.' in new_text)) \
+            or (event.ascii in digits and not (self.__marked_pos[0] == 0 and '-' in new_text)):
+                self._text = self._text[:self.__marked_pos[0]] + event.ascii + self._text[self.__marked_pos[1]:]
+                self.__marked_pos = [self.__marked_pos[0] + 1, self.__marked_pos[0] + 1]
+                
         elif event.type == 'BACK_SPACE':
-            if index > 0:
-                if event.ctrl:
-                    self._text = ""
-                    self.__cursor_pos = 0
-                else:    
-                    self._text = self._text[:index-1] + self._text[index:]
-                    self.__cursor_pos -= 1
+            # Missing feature: with event.ctrl cursor should jump to closest word separation
+            if marked:
+                self._text = self._text[:self.__marked_pos[0]] + self._text[self.__marked_pos[1]:]
+                self.__marked_pos = [self.__marked_pos[0], self.__marked_pos[0]]
+            else:
+                if self.__marked_pos[0] > 0:
+                    if event.ctrl:
+                        self._text = ""
+                        self.__marked_pos = [0,0]
+                    else:    
+                        self._text = self._text[:(self.__marked_pos[0] - 1)] + self._text[self.__marked_pos[0]:]
+                        self.__marked_pos = [self.__marked_pos[0] - 1, self.__marked_pos[0] - 1]
 
         elif event.type == 'DEL':
-            if index < len(self._text):
-                if event.ctrl:
-                    self._text = self._text[:index]
-                else:    
-                    self._text = self._text[:index] + self._text[index+1:]
+            # Missing feature: with event.ctrl cursor should jump to closest word separation
+            if marked:
+                self._text = self._text[:self.__marked_pos[0]] + self._text[self.__marked_pos[1]:]
+                self.__marked_pos = [self.__marked_pos[0], self.__marked_pos[0]]
+            else:
+                if self.__marked_pos[0] < len(self._text):
+                    if event.ctrl:
+                        self._text = self._text[:self.__marked_pos[0]]
+                    else:    
+                        self._text = self._text[:self.__marked_pos[0]] + self._text[(self.__marked_pos[0] + 1):]
 
         elif event.type == 'LEFT_ARROW':
-            if index > 0:
+            # Missing feature: with event.ctrl  cursor should jump to closest word separation
+            # Missing feature: with event.shift it should extend/contract the marked block
+            # Missing feature: event.ctrl should work also together (combined) with event.shift
+            if event.shift:
                 if event.ctrl:
-                    self.__cursor_pos = 0
+                    self.__marked_pos = [0, self.__marked_pos[1]]
+                    self.__cursor_pos = 'LEFT'
                 else:
-                    self.__cursor_pos -= 1
+                    if self.__marked_pos[0] == self.__marked_pos[1]:
+                        self.__cursor_pos = 'LEFT'
+                    if self.__marked_pos[0] > 0 and self.__cursor_pos == 'LEFT':
+                        self.__marked_pos = [self.__marked_pos[0] - 1, self.__marked_pos[1]]
+                    if self.__marked_pos[1] > 0 and self.__cursor_pos == 'RIGHT':
+                        self.__marked_pos = [self.__marked_pos[0], self.__marked_pos[1] - 1]
+            elif marked:
+                self.__marked_pos = [self.__marked_pos[0], self.__marked_pos[0]]
+            elif event.ctrl:
+                position = self.find_text_gap('LEFT')
+                self.__marked_pos = [position, position]
+            else:
+                if self.__marked_pos[0] > 0:
+                    if event.ctrl:
+                        self.__marked_pos = [0,0]
+                    else:
+                        self.__marked_pos = [self.__marked_pos[0] - 1, self.__marked_pos[0] - 1]
 
         elif event.type == 'RIGHT_ARROW':
-            if index < len(self._text):
+            # Missing feature: with event.ctrl  cursor should jump to closest word separation
+            # Missing feature: with event.shift it should extend/contract the marked block
+            # Missing feature: event.ctrl should work also together (combined) with event.shift
+            if event.shift:
                 if event.ctrl:
-                    self.__cursor_pos = len(self._text)
+                    self.__marked_pos = [self.__marked_pos[1], len(self._text)]
+                    self.__cursor_pos = 'RIGHT'
                 else:
-                    self.__cursor_pos += 1
+                    if self.__marked_pos[0] == self.__marked_pos[1]:
+                        self.__cursor_pos = 'RIGHT'
+                    if self.__marked_pos[1] < len(self._text) and self.__cursor_pos == 'RIGHT':
+                        self.__marked_pos = [self.__marked_pos[0], self.__marked_pos[1] + 1]
+                    if self.__marked_pos[0] < len(self._text) and self.__cursor_pos == 'LEFT':
+                        self.__marked_pos = [self.__marked_pos[0] + 1, self.__marked_pos[1]]
+            elif marked:
+                self.__marked_pos = [self.__marked_pos[1], self.__marked_pos[1]]
+            elif event.ctrl:
+                position = self.find_text_gap('RIGHT')
+                self.__marked_pos = [position, position]
+            else:
+                if self.__marked_pos[1] < len(self._text):
+                    if event.ctrl:
+                        self.__marked_pos = [len(self._text), len(self._text)]
+                    else:
+                        self.__marked_pos = [self.__marked_pos[1] + 1, self.__marked_pos[1] + 1]
 
-        elif event.type == 'HOME':
-            self.__cursor_pos = 0
+        elif event.type in {'HOME','UP_ARROW'}:
+            if event.shift:
+                self.__marked_pos = [0, self.__marked_pos[1]]
+                self.__cursor_pos = 'LEFT'
+            else:
+                self.__marked_pos = [0,0]
 
-        elif event.type == 'END':
-            self.__cursor_pos = len(self._text)
+        elif event.type in {'END','DOWN_ARROW'}:
+            if event.shift:
+                self.__marked_pos = [self.__marked_pos[1], len(self._text)]
+                self.__cursor_pos = 'RIGHT'
+            else:
+                self.__marked_pos = [len(self._text), len(self._text)]
 
-        elif event.type == 'RET' or event.type == 'NUMPAD_ENTER':
+        elif event.type in {'RET','NUMPAD_ENTER'}:
             self.stop_editing()
 
         elif event.type == 'ESC':
@@ -339,7 +476,7 @@ class BL_UI_Textbox(BL_UI_Button):
         if self._text != former_text and event.type != 'ESC':
             if not self.text_updated_func(self, self.context, event, former_text, self._text):
                 self._text = former_text
-                self.__cursor_pos = former_pos
+                self.__marked_pos = former_pos
                 
         self.update_cursor()
         return True

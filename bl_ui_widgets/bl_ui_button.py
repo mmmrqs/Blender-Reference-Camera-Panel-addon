@@ -389,7 +389,7 @@ class BL_UI_Button(BL_UI_Patch):
 
         over_scale = self.over_scale(1)
 
-        if self._style == 'NUMBER_CLICK' or self._style == 'NUMBER_SLIDE' or self._style == 'TEXTBOX':
+        if self._style in {'NUMBER_CLICK','NUMBER_SLIDE','TEXTBOX'}:
             top_margin = int((self.height - normal1) / 2.0)
         else:
             top_margin = int((self.height - int(round(normal1+0.499)) - int(round(normal2+0.499)) - middle_gap) / 2.0)
@@ -403,7 +403,7 @@ class BL_UI_Button(BL_UI_Patch):
         shadow_alpha = widget_style.shadow_alpha if self._text_shadow_alpha is None else self._text_shadow_alpha
 
         if self._text != "":
-            if self._style == 'NUMBER_CLICK' or self._style == 'NUMBER_SLIDE' or self._style == 'TEXTBOX':
+            if self._style in {'NUMBER_CLICK','NUMBER_SLIDE','TEXTBOX'}:
                 textpos_x = self.x_screen + self._text_margin
             else:
                 textpos_x = self.x_screen + int((self.width - (length1 / over_scale)) / 2.0)
@@ -436,13 +436,13 @@ class BL_UI_Button(BL_UI_Patch):
             label.context_it(self.context)
             label.draw()
 
-            if self._style == 'NUMBER_CLICK' or self._style == 'NUMBER_SLIDE':
+            if self._style in {'NUMBER_CLICK','NUMBER_SLIDE','TEXTBOX'}:
                 pass
             else:    
                 textpos_y = textpos_y - middle_gap - int(round(normal1+0.499)) 
 
         if self._textwo != "":
-            if self._text != "" and (self._style == 'NUMBER_CLICK' or self._style == 'NUMBER_SLIDE'):
+            if self._text != "" and (self._style in {'NUMBER_CLICK','NUMBER_SLIDE'}):
                 textpos_x = self.x_screen + int((self.width - (length2 / over_scale)) - self._text_margin)
             else:
                 textpos_x = self.x_screen + int((self.width - (length2 / over_scale)) / 2.0)
