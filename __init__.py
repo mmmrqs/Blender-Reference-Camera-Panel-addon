@@ -64,10 +64,11 @@ if 'DEBUG_MODE' in sys.argv:
     import os
     import time
     os.system("cls")
+    timestr = time.strftime("%Y-%m-%d %H:%M:%S")
     print('---------------------------------------')
     print('-------------- RESTART ----------------')
     print('---------------------------------------')
-    print(time.time(), __name__ + ": registered")
+    print(timestr, __name__ + ": registered")
     print()
     sys.argv.remove('DEBUG_MODE')
  
