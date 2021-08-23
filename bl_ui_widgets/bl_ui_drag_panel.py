@@ -123,8 +123,9 @@ class BL_UI_Drag_Panel(BL_UI_Patch):
 
     def child_widget_focused(self, x, y):
         for widget in self.widgets:
-            if widget.is_in_rect(x, y):
-                return True 
+            if widget.visible:
+                if widget.is_in_rect(x, y):
+                    return True 
         return False
     
     def save_panel_coords(self, x, y):

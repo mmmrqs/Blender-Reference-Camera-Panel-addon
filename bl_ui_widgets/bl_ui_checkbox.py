@@ -48,7 +48,7 @@ bl_info = {
 #        in the following clockwise sequence: bottom left, top left, top right, bottom right. 
 #Added: 'shadow' property and coding to allow the checkbox to be painted with a shadow (value is boolean).
 #Added: Logic to allow a checkbox to be disabled (darkned out) and turned off to user interaction.
-#Added: 'set_state_changed' function to allow assignment of an external function to be called by mouse_down function.
+#Added: 'value_changed_func' function to allow assignment of an external function to be called by mouse_down function.
 #Added: Shadow and Kerning related properties that allow the text to be painted using these characteristics.
 #Added: Size, Shadow and Kerning attributes default to values retrieved from user theme (may be overriden by programmer).
 #Chang: Design of the checkmark changed from 'cross' to a 'tick' symbol.
@@ -87,7 +87,7 @@ class BL_UI_Checkbox(BL_UI_Patch):
         self._selected_color = None             # Checkbox face color (when pressed state == 3)
         self._outline_color = None              # Checkbox outline color
         self._roundness = None                  # Checkbox corners roundness factor [0..1]
-        self._radius = int(height/4)            # Checkbox corners circular radius 
+        self._radius = 8.5                      # Checkbox corners circular radius 
         self._rounded_corners = (1,1,1,1)       # 1=Round/0=Straight, coords:(bottomLeft,topLeft,topRight,bottomRight)
         self._has_shadow = True                 # Indicates whether a shadow must be drawn around the Checkbox 
 
@@ -206,10 +206,10 @@ class BL_UI_Checkbox(BL_UI_Patch):
     def is_checked(self, value):
         self.__state = 1 if value else 0
 
-    def set_state_changed(self, state_changed_func):
-        self.state_changed_func = state_changed_func  
+    def set_value_changed(self, value_changed_func):
+        self.value_changed_func = value_changed_func  
  
-    def state_changed_func(self, widget, event, x, y):
+    def value_changed_func(self, widget, event, x, y):
         # This must return False when function is not overriden, so that checkbox
         # turns into pressed mode everytime the user clicks over it. 
         return True
@@ -263,8 +263,8 @@ class BL_UI_Checkbox(BL_UI_Patch):
                     color = widget_style.inner
                 else:
                     color = self._bg_color 
-                # Light the "state 0" background color by scaling it down 10%
-                color = self.tint_color(color,0.1)
+                # Take the "state 0" background color and "tint" it by either 10% or 20%
+                color = self.tint_color(color,(0.2 if color[0] < 0.5 else 0.1))    
 
         self.shader.uniform_float("color", color)
 
@@ -357,7 +357,7 @@ class BL_UI_Checkbox(BL_UI_Patch):
             blf.disable(0, blf.KERNING_DEFAULT)
             
         textpos_x = self.x_screen + self.width  - 1
-        textpos_y = self.y_screen - self.height + 3
+        textpos_y = self.y_screen - self.height + 4
 
         label = BL_UI_Label(textpos_x, textpos_y, length, height)
         label.style = 'CHECKBOX'
@@ -394,6 +394,9 @@ class BL_UI_Checkbox(BL_UI_Patch):
             if not self._is_enabled: 
                 # Consume the mouse event to avoid the camera/target be unselected
                 return True
+            if not self.value_changed_func(self, event, x, y):
+                # Consume the mouse event to avoid the camera/target be unselected
+                return True
             # Invert state
             if self.__state != 1:
                 # Marked state
@@ -401,7 +404,7 @@ class BL_UI_Checkbox(BL_UI_Patch):
             else:    
                 # Hover state
                 self.__state = 2
-            return self.state_changed_func(self, event, x, y) 
+            return True
         else:    
             return False
     

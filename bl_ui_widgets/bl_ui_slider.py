@@ -133,6 +133,7 @@ class BL_UI_Slider(BL_UI_Patch):
             self.decrease.text_color = self._text_color
             self.decrease.style = self._style             
             self.decrease.bg_color = self._bg_color              
+            self.decrease.selected_color = self._selected_color        
             self.decrease.outline_color = self._outline_color         
             self.decrease.roundness = self._roundness
             self.decrease.radius = self._radius
@@ -142,7 +143,7 @@ class BL_UI_Slider(BL_UI_Patch):
             else:
                 self.decrease.rounded_corners = (self._rounded_corners[0],self._rounded_corners[1],0,0)
                  
-            self.decrease.text_size = self._text_size             
+            self.decrease.text_size = 9
             self.decrease.text_kerning = self._text_kerning          
             self.decrease.text_shadow_size = self._text_shadow_size      
             self.decrease.text_shadow_offset_x = self._text_shadow_offset_x  
@@ -158,7 +159,7 @@ class BL_UI_Slider(BL_UI_Patch):
         self.slider._is_mslider = (self._style == 'NUMBER_CLICK') # Indicates this is the middle section of the slider 
 
         self.slider.text = self._text
-        self.slider.textwo = self.update_self_value(self._value)
+        self.slider.textwo = self.update_self_value(self._value,'GET')
         self.slider.text_color = self._text_color
         self.slider.textwo_color = self._text_color
 
@@ -173,7 +174,7 @@ class BL_UI_Slider(BL_UI_Patch):
 
         self.slider.text_size = self._text_size             
         self.slider.textwo_size = self._text_size             
-        self.slider.text_margin = 2 if self._style == 'NUMBER_CLICK' else 8
+        self.slider.text_margin = 2 if self._style == 'NUMBER_CLICK' else self._text_margin
         self.slider.text_kerning = self._text_kerning          
         self.slider.text_shadow_size = self._text_shadow_size      
         self.slider.text_shadow_offset_x = self._text_shadow_offset_x  
@@ -193,6 +194,7 @@ class BL_UI_Slider(BL_UI_Patch):
             self.increase.text_color = self._text_color
             self.increase.style = self._style             
             self.increase.bg_color = self._bg_color              
+            self.increase.selected_color = self._selected_color        
             self.increase.outline_color = self._outline_color         
             self.increase.roundness = self._roundness
             self.increase.radius = self._radius
@@ -202,7 +204,7 @@ class BL_UI_Slider(BL_UI_Patch):
             else:
                 self.increase.rounded_corners = (0,0,self._rounded_corners[2],self._rounded_corners[3])
                  
-            self.increase.text_size = self._text_size             
+            self.increase.text_size = 9
             self.increase.text_kerning = self._text_kerning          
             self.increase.text_shadow_size = self._text_shadow_size      
             self.increase.text_shadow_offset_x = self._text_shadow_offset_x  
@@ -215,6 +217,7 @@ class BL_UI_Slider(BL_UI_Patch):
         #-- Textbox editing overlay object --
         
         self.textbox.context = context
+        self.textbox.alignment = 'LEFT'
 
         self.textbox.text = str(self._value)
         self.textbox.text_color = self._text_color
@@ -403,21 +406,35 @@ class BL_UI_Slider(BL_UI_Patch):
     def text_shadow_alpha(self, value):
         self._text_shadow_alpha = value
 
-    def set_slider_updated(self, slider_updated_func):
-        self.slider_updated_func = slider_updated_func   
+    def set_value_changed(self, value_changed_func):
+        self.value_changed_func = value_changed_func   
 
-    def slider_updated_func(self, widget, value):
+    def value_changed_func(self, widget, value):
         # This must return True when function is not overriden, 
         # so that the value updated by the slider is actually committed. 
         return True
                  
-    def update_self_value(self, value):
+    def set_value_updated(self, value_updated_func):
+        self.value_updated_func = value_updated_func   
+
+    def value_updated_func(self, widget, value):
+        # This must return True when function is not overriden, 
+        # so that the value updated by the slider is actually committed. 
+        return True
+                 
+    def update_self_value(self, value, mode):
         update_value = value
         if not self._min_value is None:
             update_value = self._min_value if update_value < self._min_value else update_value
         if not self._max_value is None:
             update_value = self._max_value if update_value > self._max_value else update_value
-        if self.slider_updated_func(self, update_value):
+        if mode == 'FINAL':    
+            if self.value_changed_func(self, update_value):
+                self._value = round(update_value, self._precision)
+        elif mode == 'UPDATE':    
+            if self.value_updated_func(self, update_value):
+                self._value = round(update_value, self._precision)
+        else:
             self._value = round(update_value, self._precision)
         str_value = str(round(self._value, self._precision))
         str_value = str_value[:len(str_value)-2] if str_value[-2:] == ".0" else str_value
@@ -561,7 +578,7 @@ class BL_UI_Slider(BL_UI_Patch):
         self.slider.state = widget.state
         
     def stop_editing(self):
-        self.update_self_value(float(self.textbox.text))
+        self.update_self_value(float(self.textbox.text),'FINAL')
         self.__is_editing = False
 
     # Overrides base class function
@@ -595,14 +612,11 @@ class BL_UI_Slider(BL_UI_Patch):
                 self.__drag_start_x = x
                 self.__mouse_moved = False
                 if self._style == 'NUMBER_CLICK':
-                    if self.decrease.mouse_down(event, x, y):
-                        self.equalize_states(self.decrease)
+                    if self.button_mouse_down(self.decrease, event, x, y):
                         return True
-                    if self.increase.mouse_down(event, x, y):
-                        self.equalize_states(self.increase)
+                    if self.button_mouse_down(self.increase, event, x, y):
                         return True
-                if self.slider.mouse_down(event, x, y):
-                    self.equalize_states(self.slider)
+                if self.button_mouse_down(self.slider, event, x, y):
                     return True
         else:
             if self.__is_editing:
@@ -611,6 +625,48 @@ class BL_UI_Slider(BL_UI_Patch):
                 pass  # Nothing to do
         return False
     
+    # Overrides base class function
+    def mouse_move(self, event, x, y):    
+        # When slider is disabled, just ignore the hover
+        if not self._is_enabled: 
+            return False
+
+        if self.__is_editing:
+            return False
+        #---------------------
+        if self.__is_draging:
+            # Update the value according to direction of x_drag
+            drag_offset_x = x - self.__drag_start_x
+            if drag_offset_x != 0:
+                if self._style == 'NUMBER_CLICK':
+                    # Proportionally change to the step coeficient
+                    new_value = self._value + (drag_offset_x * self._step)
+                else:    
+                    # Proportionally change to the size-range coeficient
+                    new_value = self._value + ((drag_offset_x / self.width) * (self._max_value - self._min_value)) 
+                #--    
+                self.update_self_value(new_value,'UPDATE')
+                self.__drag_start_x = x
+                self.__mouse_moved = True
+            return True
+
+        if self._style == 'NUMBER_CLICK':
+            if self.is_in_rect(x,y):
+                self.decrease.text = "<"
+                self.increase.text = ">"
+            else:
+                self.decrease.text = ""
+                self.increase.text = ""
+                # Up state
+                self.slider.state = 0
+                self.equalize_states(self.slider)
+
+            self.button_mouse_move(self.decrease, event, x, y)
+            self.button_mouse_move(self.increase, event, x, y)
+
+        self.button_mouse_move(self.slider, event, x, y)
+        return False
+
     # Overrides base class function
     def mouse_up(self, event, x, y):    
         # When slider is disabled, just ignore the click
@@ -650,67 +706,58 @@ class BL_UI_Slider(BL_UI_Patch):
         return False
 
     # Overrides base class function
-    def mouse_move(self, event, x, y):    
-        # When slider is disabled, just ignore the hover
-        if not self._is_enabled: 
-            return False
-
-        if self.__is_editing:
-            return False
-        #---------------------
-        if self.__is_draging:
-            # Update the value according to direction of x_drag
-            drag_offset_x = x - self.__drag_start_x
-            if drag_offset_x != 0:
-                if self._style == 'NUMBER_CLICK':
-                    # Proportionally change to the step coeficient
-                    new_value = self._value + (drag_offset_x * self._step)
-                else:    
-                    # Proportionally change to the size-range coeficient
-                    new_value = self._value + ((drag_offset_x / self.width) * (self._max_value - self._min_value)) 
-                #--    
-                self.update_self_value(new_value)
-                self.__drag_start_x = x
-                self.__mouse_moved = True
-            return True
-
-        if self._style == 'NUMBER_CLICK':
-            if self.is_in_rect(x,y):
-                self.decrease.text = "<"
-                self.increase.text = ">"
-            else:
-                self.decrease.text = ""
-                self.increase.text = ""
-
-            self.button_mouse_move(self.decrease, event, x, y)
-            self.button_mouse_move(self.increase, event, x, y)
-
-        self.button_mouse_move(self.slider, event, x, y)
-        return False
-
-    # Overrides base class function
     def mouse_up_over(self):
         pass
 
+    # Emulates the mouse_down function of 'BL_UI_Button' class
+    def button_mouse_down(self, widget, event, x, y):
+        if widget.is_in_rect(x,y):
+            # Down state
+            if self._style == 'NUMBER_CLICK':
+                widget.state = 5
+                if not self.decrease is widget:
+                    self.decrease.state = 1
+                if not self.increase is widget:
+                    self.increase.state = 1
+                if not self.slider is widget:
+                    self.slider.state = 1
+            else:
+                widget.state = 1
+            return widget.mouse_down_func(widget, event, x, y) 
+        else:    
+            return False
+            
     # Emulates the mouse_move function of 'BL_UI_Button' class
     def button_mouse_move(self, widget, event, x, y):
         if widget.is_in_rect(x,y):
-            if widget.state != 1:
+            if widget.state != 1 and widget.state != 5:  # states 1 and 5 are equivalent for this particular widget
                 # Hover state
-                widget.state = 2
+                if self._style == 'NUMBER_CLICK':
+                    widget.state = 4
+                    if not self.decrease is widget:
+                        self.decrease.state = 2
+                    if not self.increase is widget:
+                        self.increase.state = 2
+                    if not self.slider is widget:
+                        self.slider.state = 2
+                else:
+                    widget.state = 2
         else:
             if widget.state == 2:
                 # Up state
-                widget.state = 0
- 
+                if self._style == 'NUMBER_CLICK':
+                    pass
+                else:
+                    widget.state = 0
+
     def decrease_mouse_up_func(self, widget, event, x, y):    
         if not self.__mouse_moved:
-            self.update_self_value(self._value - self._step)
+            self.update_self_value(self._value - self._step, 'UPDATE')
         return True
 
     def increase_mouse_up_func(self, widget, event, x, y):  
         if not self.__mouse_moved:
-            self.update_self_value(self._value + self._step)
+            self.update_self_value(self._value + self._step, 'UPDATE')
         return True
 
     def slider_mouse_down_func(self, widget, event, x, y):    

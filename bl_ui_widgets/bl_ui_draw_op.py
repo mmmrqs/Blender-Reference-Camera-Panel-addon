@@ -154,13 +154,15 @@ class BL_UI_OT_draw_operator(Operator):
     def handle_widget_events(self, event):
         result = False
         for widget in self.widgets:
-            if widget.handle_event(event):
-                result = True
-                break
+            if widget.visible or event.type == 'TIMER':
+                if widget.handle_event(event):
+                    result = True
+                    break
         if event.type != 'TIMER':
             for widget in self.widgets:
-                # Need to pass one more time to wrap up any pending change of state for widgets on the widgets list
-                widget.handle_event_finalize(event)
+                if widget.visible:
+                    # Need to pass one more time to wrap up any pending change of state for widgets on the widgets list
+                    widget.handle_event_finalize(event)
         return result
           
     def terminate_execution(self):

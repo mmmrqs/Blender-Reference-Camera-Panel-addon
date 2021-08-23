@@ -60,6 +60,7 @@ bl_info = {
 #Added: Size, Shadow and Kerning attributes default to values retrieved from user theme (may be overriden by programmer).
 #Chang: Made it a subclass of 'BL_UI_Patch' instead of 'BL_UI_Widget' so that it can inherit the layout features from there.
 #Chang: Instead of hardcoded logic it is now leveraging 'BL_UI_Label' to paint the button text lines.
+#Chang: Draw_text() function logic leveraged to be used by 'BL_UI_Textbox' and 'BL_UI_Slider' classes.
 #Fixed: New call to verify_screen_position() so that object behaves alright when viewport is resized.
 #Fixed: The calculation of vertical text centering because it was varying depending on which letters presented in the text.
 
@@ -92,6 +93,7 @@ class BL_UI_Button(BL_UI_Patch):
         self._radius = 8.5                      # Button corners circular radius 
         self._rounded_corners = (1,1,1,1)       # 1=Round/0=Straight, coords:(bottomLeft,topLeft,topRight,bottomRight)
         self._has_shadow = True                 # Indicates whether a shadow must be drawn around the button 
+        self._alignment = 'CENTER'              # Text alignment options: {CENTER,LEFT,RIGHT}
 
         self._text_size = None                  # Button text line 1 size
         self._textwo_size = None                # Button text line 2 size
@@ -124,6 +126,14 @@ class BL_UI_Button(BL_UI_Patch):
     def selected_color(self, value):
         self._selected_color = value 
         
+    @property
+    def alignment(self):
+        return self._alignment
+
+    @alignment.setter
+    def alignment(self, value):
+        self._alignment = value
+                
     @property
     def text(self):
         return self._text
@@ -305,11 +315,8 @@ class BL_UI_Button(BL_UI_Patch):
                     color = widget_style.inner
                 else:
                     color = self._bg_color 
-                # Light the "state 0" background color by scaling it down 10%
-                if self._style == 'TEXTBOX':
-                    color = self.tint_color(color,0.025)
-                else:
-                    color = self.tint_color(color,0.1)
+                # Take the "state 0" background color and "tint" it by either 10% or 20%
+                color = self.tint_color(color,(0.18 if color[0] < 0.5 else 0.08))
             # Pressed
             elif self.__state == 3:
                 if self._selected_color is None:
@@ -318,6 +325,28 @@ class BL_UI_Button(BL_UI_Patch):
                     color = widget_style.inner_sel
                 else:
                     color = self._selected_color 
+            # Hover++ (special case used by 'NUMBER_CLICK' sliders only); this is similar to __state == 2
+            elif self.__state == 4:
+                if self._bg_color is None:
+                    theme = bpy.context.preferences.themes[0]
+                    widget_style = getattr(theme.user_interface, self.my_style())
+                    basecolor = widget_style.inner
+                else:
+                    basecolor = self._bg_color 
+                # Has to tint the color twice the same factor values used for state 2   
+                color = self.tint_color(basecolor,(0.18 if basecolor[0] < 0.5 else 0.08))
+                color = self.tint_color(color,(0.18 if basecolor[0] < 0.5 else 0.08))
+            # Down++ (special case used by 'NUMBER_CLICK' sliders only); this is similar to __state == 1
+            elif self.__state == 5:
+                if self._selected_color is None:
+                    theme = bpy.context.preferences.themes[0]
+                    widget_style = getattr(theme.user_interface, self.my_style())
+                    basecolor = widget_style.inner_sel
+                else:
+                    basecolor = self._selected_color 
+                # Has to tint the color twice the same factor values used for state 2   
+                color = self.tint_color(basecolor,(0.18 if basecolor[0] < 0.5 else 0.08))
+                color = self.tint_color(color,(0.18 if basecolor[0] < 0.5 else 0.08))
 
         self.shader.uniform_float("color", color)
 
@@ -332,7 +361,7 @@ class BL_UI_Button(BL_UI_Patch):
         theme = bpy.context.preferences.themes[0]
         widget_style = getattr(theme.user_interface, self.my_style())
 
-        if self.button_pressed_func(self):
+        if self.button_pressed_func(self) or self.__state in [1,3,5]:
             text_color = tuple(widget_style.text_sel) + (1.0,) if self._text_highlight is None else self._text_highlight
             textwo_color = tuple(widget_style.text_sel) + (1.0,) if self._textwo_highlight is None else self._textwo_highlight
         else:
@@ -403,11 +432,13 @@ class BL_UI_Button(BL_UI_Patch):
         shadow_alpha = widget_style.shadow_alpha if self._text_shadow_alpha is None else self._text_shadow_alpha
 
         if self._text != "":
-            if self._style in {'NUMBER_CLICK','NUMBER_SLIDE','TEXTBOX'}:
+            if self._alignment == 'LEFT' or self._style in {'NUMBER_SLIDE','TEXTBOX'} or (self._style == 'NUMBER_CLICK' and self._is_mslider):
                 textpos_x = self.x_screen + self._text_margin
+            elif self._alignment == 'RIGHT':
+                textpos_x = self.x_screen + int((self.width - (length1 / over_scale)) - self._text_margin)
             else:
                 textpos_x = self.x_screen + int((self.width - (length1 / over_scale)) / 2.0)
-
+        
             label = BL_UI_Label(textpos_x, textpos_y, length1, height1)
             label.style = 'BUTTON'
             label.text = self._text
@@ -442,8 +473,10 @@ class BL_UI_Button(BL_UI_Patch):
                 textpos_y = textpos_y - middle_gap - int(round(normal1+0.499)) 
 
         if self._textwo != "":
-            if self._text != "" and (self._style in {'NUMBER_CLICK','NUMBER_SLIDE'}):
+            if self._alignment == 'RIGHT' or (self._text != "" and (self._style in {'NUMBER_CLICK','NUMBER_SLIDE'})):
                 textpos_x = self.x_screen + int((self.width - (length2 / over_scale)) - self._text_margin)
+            elif self._alignment == 'LEFT':
+                textpos_x = self.x_screen + self._text_margin
             else:
                 textpos_x = self.x_screen + int((self.width - (length2 / over_scale)) / 2.0)
 
@@ -516,7 +549,7 @@ class BL_UI_Button(BL_UI_Patch):
             if not self._is_enabled: 
                 # Consume the mouse event to avoid the camera/target be unselected
                 return True
-            if self.__state == 1:
+            if self.__state == 1 or self.__state == 5:  # states 1 and 5 are equivalent for 'SLIDER' widget
                 result = self.mouse_up_func(self, event, x, y) 
         if self.button_pressed_func(self):
             # Pressed state

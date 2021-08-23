@@ -88,7 +88,7 @@ class BL_UI_Textbox(BL_UI_Button):
         self.__marked_pos = [0,0]
         self.__cached_text = ""
         self.__is_editing = False
-        self.__input_keys = ['ESC','RET','NUMPAD_ENTER','BACK_SPACE','HOME','END','DEL', \
+        self.__input_keys = ['ESC','RET','NUMPAD_ENTER','BACK_SPACE','HOME','END','DEL', 
                              'LEFT_ARROW','RIGHT_ARROW','UP_ARROW','DOWN_ARROW']
 
     @property
@@ -123,10 +123,17 @@ class BL_UI_Textbox(BL_UI_Button):
     def is_numeric(self, value):
         self._is_numeric = value   
 
-    def set_text_updated(self, text_updated_func):
-        self.text_updated_func = text_updated_func
+    def set_value_changed(self, value_changed_func):
+        self.value_changed_func = value_changed_func
 
-    def text_updated_func(self, widget, context, event, former_text, updated_text):
+    def value_changed_func(self, widget, context, former_text, updated_text):
+        # This must return True when function is not overriden, so that text editing is accepted
+        return True            
+
+    def set_value_updated(self, value_updated_func):
+        self.value_updated_func = value_updated_func
+
+    def value_updated_func(self, widget, context, event, former_text, updated_text):
         # This must return True when function is not overriden, so that text editing is accepted
         return True            
 
@@ -148,6 +155,9 @@ class BL_UI_Textbox(BL_UI_Button):
 
     def stop_editing(self):
         if self.__is_editing:
+            if not self.value_changed_func(self, self.context, self.__cached_text, self._text):
+                self._text = self.__cached_text
+                return False
             if self.clean_up_text():
                 # Up state
                 self.state = 0
@@ -158,6 +168,7 @@ class BL_UI_Textbox(BL_UI_Button):
                 self.state = 0                  # a different action in the case of failing to clean up the text.
                 self.__is_editing = False       # Even when failing we are exiting the edit mode, but in that case 
                 self.set_exclusive_mode(None)   # the clean_up_text() function will have restored the original text.
+        return True    
 
     def clean_up_text(self):
         if self._text != self.__cached_text:
@@ -284,15 +295,23 @@ class BL_UI_Textbox(BL_UI_Button):
 
         # Draw cursor
         if self.__is_editing:
+            # Paint the marked selection
             if self.__marked_pos[0] != self.__marked_pos[1]:
-                # Paint the marked selection
-                if self._marked_color is None:
-                    # From Preferences/Themes/User Interface/"Text"
-                    theme = bpy.context.preferences.themes[0]
-                    widget_style = getattr(theme.user_interface, "wcol_text")
-                    color = widget_style.item
+                if self._style in {'NUMBER_SLIDE','NUMBER_CLICK'}:
+                    if self._selected_color is None:
+                        theme = bpy.context.preferences.themes[0]
+                        widget_style = getattr(theme.user_interface, self.my_style())
+                        color = widget_style.item
+                    else:
+                        color = self._selected_color 
                 else:
-                    color = self._marked_color
+                    if self._marked_color is None:
+                        # From Preferences/Themes/User Interface/"Text"
+                        theme = bpy.context.preferences.themes[0]
+                        widget_style = getattr(theme.user_interface, "wcol_text")
+                        color = widget_style.item
+                    else:
+                        color = self._marked_color
 
                 self.shader_marked.bind()
                 
@@ -473,8 +492,8 @@ class BL_UI_Textbox(BL_UI_Button):
             self._text = self.__cached_text
             self.stop_editing()
 
-        if self._text != former_text and event.type != 'ESC':
-            if not self.text_updated_func(self, self.context, event, former_text, self._text):
+        if self._text != former_text and not event.type in {'ESC','RET','NUMPAD_ENTER'}:
+            if not self.value_updated_func(self, self.context, event, former_text, self._text):
                 self._text = former_text
                 self.__marked_pos = former_pos
                 
@@ -498,8 +517,7 @@ class BL_UI_Textbox(BL_UI_Button):
             else:    
                 return False
         else:    
-            self.stop_editing()
-            return False
+            return (not self.stop_editing())
             
     # Overrides base class function
     def mouse_up(self, event, x, y):
@@ -518,8 +536,7 @@ class BL_UI_Textbox(BL_UI_Button):
             else:    
                 return False
         else:    
-            self.stop_editing()
-            return False
+            return (not self.stop_editing())
 
     # Overrides base class function
     def mouse_up_over(self):

@@ -215,7 +215,7 @@ class BL_UI_Widget():
             # From Preferences/Themes/User Interface/"Option"
             style = "wcol_option"
         elif self._style == 'TOGGLE':
-            # From Preferences/Themes/User Interface/"Radio Toggle"
+            # From Preferences/Themes/User Interface/"Toggle"
             style = "wcol_toggle"
         elif self._style == 'NUMBER_CLICK':
             # From Preferences/Themes/User Interface/"Number Field"
@@ -444,9 +444,9 @@ class BL_UI_Widget():
         elif amount >= 1:
             output_color = (1,1,1,input_color[3])  # Turn it into white
         else:
-            r = 1 - ((1 - amount) * (1 - input_color[0]))
-            g = 1 - ((1 - amount) * (1 - input_color[1]))
-            b = 1 - ((1 - amount) * (1 - input_color[2]))
+            r = (1 + amount) * input_color[0]; r = 1 if r > 1 else r
+            g = (1 + amount) * input_color[1]; g = 1 if g > 1 else g
+            b = (1 + amount) * input_color[2]; b = 1 if b > 1 else b
             output_color = (r,g,b,input_color[3])
         return output_color    
 
@@ -668,11 +668,12 @@ class BL_UI_Widget():
         elif(event.type == 'LEFTMOUSE'):
             if(event.value == 'PRESS'):
                 self.tooltip_clear()
-                self.__mouse_down = True
-                return self.mouse_down(event, x, y)
+                if self._is_enabled:
+                    self.__mouse_down = True
+                    return self.mouse_down(event, x, y)
             else:
                 self.tooltip_clear()
-                if self._is_enabled:
+                if self._is_enabled and self._is_visible:
                     self.__mouse_down = False
                     return self.mouse_up(event, x, y)
                 else:
