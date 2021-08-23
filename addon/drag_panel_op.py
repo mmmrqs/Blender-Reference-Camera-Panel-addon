@@ -331,7 +331,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         getX = marginX + 220
         self.check1 = BL_UI_Checkbox(getX, newY+35, 100, 20)
         self.check1.text = "Testing"
-#        self.check1.set_state_changed(self.check1.changed)
+#        self.check1.set_value_changed(self.check1_changed)
         self.check1.description = "This is my checkbox tooltip"        
         self.check1.python_cmd = "bpy.ops.object.checkbox()"
         self.check1.is_checked = True
@@ -344,7 +344,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         self.number1.unit = "m"
         self.number1.precision = 0
         self.number1.description = "This is my click slider tooltip"        
-        self.number1.set_slider_updated(self.number1_update)
+        self.number1.set_value_updated(self.number1_update)
 
         getX = getX + 120
         self.slider1 = BL_UI_Slider(getX, newY+35, 100, 20)
