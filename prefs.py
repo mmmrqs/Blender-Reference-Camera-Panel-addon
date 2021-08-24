@@ -254,13 +254,13 @@ class ReferenceCameraPreferences(AddonPreferences):
     def ui_scale(self, value):
         if bpy.context.preferences.addons[__package__].preferences.RC_UI_BIND:
             # From Preferences/Interface/"Display"
-            return int(round(value * bpy.context.preferences.view.ui_scale))
+            return (value * bpy.context.preferences.view.ui_scale)
         else:
-            return value
+            return (value)
         
     def over_scale(self, value):
         over_scale = bpy.context.preferences.addons[__package__].preferences.RC_SCALE
-        return int(round(self.ui_scale(value) * over_scale))
+        return (self.ui_scale(value) * over_scale)
         
     def draw(self, context):
         layout = self.layout
