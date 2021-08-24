@@ -266,7 +266,7 @@ class BL_UI_Tooltip(BL_UI_Patch):
 
         # Will send these scaled values to text_wrap function to get a more precise measurement for the widest 
         # text line because the font characters do not scale so well proportionally to the supplied factor.
-        scaled_text_size = int(round(self.ui_scale(text_size)))
+        scaled_text_size = int(self.ui_scale(text_size))
         scaled_max_width = self.ui_scale(self.__max_tooltip_width)
         
         if text_kerning:
@@ -433,7 +433,7 @@ class BL_UI_Tooltip(BL_UI_Patch):
 
         # Will send this scaled value to text_wrap function to get a more precise measurement for the widest 
         # text line because the font characters do not scale so well proportionally to the supplied factor.
-        scaled_text_size = int(round(self.ui_scale(leveraged_text_size)))
+        scaled_text_size = int(self.ui_scale(leveraged_text_size))
 
         if text_kerning:
             blf.enable(0, blf.KERNING_DEFAULT)

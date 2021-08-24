@@ -51,6 +51,7 @@ class BL_UI_Patch(BL_UI_Widget):
 
         self._style = 'NONE'                    # Patch background color styles are: {HEADER,PANEL,SUBPANEL,BOX,TOOLTIP,NONE}
         self._bg_color = None                   # Patch background color (defaults to invisible)
+        self._shadow_color = None               # Panel shadow color (defaults to invisible)
         self._outline_color = None              # Panel outline color (defaults to invisible)
         self._roundness = 0                     # Patch corners roundness factor [0..1]
         self._radius = 0                        # Patch corners circular radius
@@ -68,6 +69,14 @@ class BL_UI_Patch(BL_UI_Widget):
     @bg_color.setter
     def bg_color(self, value):
         self._bg_color = value
+
+    @property
+    def shadow_color(self):
+        return self._shadow_color
+
+    @shadow_color.setter
+    def shadow_color(self, value):
+        self._shadow_color = value
 
     @property
     def outline_color(self):

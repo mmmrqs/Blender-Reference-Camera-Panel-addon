@@ -288,8 +288,8 @@ class BL_UI_Button(BL_UI_Patch):
                 color = widget_style.inner
             else:
                 color = self._bg_color 
-            # When button is disabled dark the "state 0" background color by scaling it up 20%
-            color = self.shade_color(color,0.2)
+            # Take the "state 0" background color and "dark" it by either 20% or 10%
+            color = self.shade_color(color,(0.2 if color[0] < 0.5 else 0.1))
         else:    
             # Up
             if self.__state == 0:
@@ -315,8 +315,8 @@ class BL_UI_Button(BL_UI_Patch):
                     color = widget_style.inner
                 else:
                     color = self._bg_color 
-                # Take the "state 0" background color and "tint" it by either 10% or 20%
-                color = self.tint_color(color,(0.18 if color[0] < 0.5 else 0.08))
+                # Take the "state 0" background color and "tint" it by either 20% or 10%
+                color = self.tint_color(color,(0.2 if color[0] < 0.5 else 0.1))
             # Pressed
             elif self.__state == 3:
                 if self._selected_color is None:
@@ -333,9 +333,9 @@ class BL_UI_Button(BL_UI_Patch):
                     basecolor = widget_style.inner
                 else:
                     basecolor = self._bg_color 
-                # Has to tint the color twice the same factor values used for state 2   
-                color = self.tint_color(basecolor,(0.18 if basecolor[0] < 0.5 else 0.08))
-                color = self.tint_color(color,(0.18 if basecolor[0] < 0.5 else 0.08))
+                # Has to tint the color twice the same factor values used for "state 0"   
+                color = self.tint_color(basecolor,(0.2 if basecolor[0] < 0.5 else 0.1))
+                color = self.tint_color(color,(0.2 if basecolor[0] < 0.5 else 0.1))
             # Down++ (special case used by 'NUMBER_CLICK' sliders only); this is similar to __state == 1
             elif self.__state == 5:
                 if self._selected_color is None:
@@ -344,9 +344,9 @@ class BL_UI_Button(BL_UI_Patch):
                     basecolor = widget_style.inner_sel
                 else:
                     basecolor = self._selected_color 
-                # Has to tint the color twice the same factor values used for state 2   
-                color = self.tint_color(basecolor,(0.18 if basecolor[0] < 0.5 else 0.08))
-                color = self.tint_color(color,(0.18 if basecolor[0] < 0.5 else 0.08))
+                # Has to tint the color twice the same factor values used for "state 1"
+                color = self.tint_color(basecolor,(0.2 if basecolor[0] < 0.5 else 0.1))
+                color = self.tint_color(color,(0.2 if basecolor[0] < 0.5 else 0.1))
 
         self.shader.uniform_float("color", color)
 
@@ -361,7 +361,7 @@ class BL_UI_Button(BL_UI_Patch):
         theme = bpy.context.preferences.themes[0]
         widget_style = getattr(theme.user_interface, self.my_style())
 
-        if self.button_pressed_func(self) or self.__state in [1,3,5]:
+        if self._is_enabled and (self.button_pressed_func(self) or self.__state in [1,3,5]):
             text_color = tuple(widget_style.text_sel) + (1.0,) if self._text_highlight is None else self._text_highlight
             textwo_color = tuple(widget_style.text_sel) + (1.0,) if self._textwo_highlight is None else self._textwo_highlight
         else:
@@ -377,7 +377,7 @@ class BL_UI_Button(BL_UI_Patch):
         else:
             text_size = self._text_size
             leveraged_text_size = self.leverage_text_size(text_size,"widget")
-        scaled_size = int(round(self.over_scale(leveraged_text_size)))
+        scaled_size = int(self.over_scale(leveraged_text_size))
 
         text_kerning = (widget_style.font_kerning_style == 'FITTED') if self._text_kerning is None else self._text_kerning
         if text_kerning:
@@ -397,7 +397,7 @@ class BL_UI_Button(BL_UI_Patch):
             else:
                 textwo_size = self._textwo_size
                 leveraged_text_size = self.leverage_text_size(textwo_size,"widget")
-            scaled_size = int(round(self.over_scale(leveraged_text_size)))
+            scaled_size = int(self.over_scale(leveraged_text_size))
             blf.size(0, leveraged_text_size, 72)
             normal2 = blf.dimensions(0, "W")[1]  # This is to keep a regular pattern since letters differ in height
             blf.size(0, scaled_size, 72)
@@ -461,8 +461,8 @@ class BL_UI_Button(BL_UI_Patch):
             if self._is_enabled:
                 label.text_color = text_color
             else:
-                # When button is disabled dark the text color by scaling it up 40%
-                label.text_color = self.shade_color(text_color,0.4)
+                # Take the text color and "dark" it by either 40% or 20%
+                label.text_color = self.shade_color(text_color,(0.4 if text_color[0] < 0.5 else 0.2))
 
             label.context_it(self.context)
             label.draw()
@@ -504,8 +504,8 @@ class BL_UI_Button(BL_UI_Patch):
             if self._is_enabled:
                 label.text_color = textwo_color
             else:
-                # When button is disabled dark the textwo color by scaling it up 40%
-                label.text_color = self.shade_color(textwo_color,0.4)
+                # Take the textwo color and "dark" it by either 40% or 20%
+                label.text_color = self.shade_color(textwo_color,(0.4 if textwo_color[0] < 0.5 else 0.2))
 
             label.context_it(self.context)
             label.draw()

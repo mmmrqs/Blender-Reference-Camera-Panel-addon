@@ -236,9 +236,9 @@ class BL_UI_Label(BL_UI_Widget):
             text_size = self.leverage_text_size(self._text_size, self.my_style())
 
         if self._style == 'TOOLTIP':
-            text_size = int(round(self.ui_scale(text_size)))
+            text_size = int(self.ui_scale(text_size))
         else:
-            text_size = int(round(self.over_scale(text_size)))
+            text_size = int(self.over_scale(text_size))
             
         text_kerning = (widget_style.font_kerning_style == 'FITTED') if self._text_kerning is None else self._text_kerning
 

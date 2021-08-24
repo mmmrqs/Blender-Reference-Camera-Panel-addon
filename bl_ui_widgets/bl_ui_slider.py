@@ -256,6 +256,19 @@ class BL_UI_Slider(BL_UI_Patch):
         self.__state = value
 
     @property
+    def enabled(self):
+        return self._is_enabled
+
+    @enabled.setter
+    def enabled(self, value):
+        self._is_enabled = value
+        if self._style == 'NUMBER_CLICK':
+            self.decrease._is_enabled = value
+            self.increase._is_enabled = value
+        self.slider._is_enabled = value
+        self.textbox._is_enabled = value
+
+    @property
     def selected_color(self):
         return self._selected_color
 
@@ -465,6 +478,7 @@ class BL_UI_Slider(BL_UI_Patch):
         # Enter edit mode and skip drawing the regular slider object pieces
         if self.__is_editing:
             self.textbox.draw()
+            self.draw_slide_border()
             return
 
         # Draw slider's left and right sections
@@ -474,6 +488,9 @@ class BL_UI_Slider(BL_UI_Patch):
         
         # Draw slider's middle section
         self.slider.draw()
+
+        # Draw the appropriate outline and shadow effects
+        self.draw_slide_border()
 
         # Draw slider's percentage overlay bar
         if self._style == 'NUMBER_SLIDE' and not (self._min_value is None or self._max_value is None):
@@ -492,20 +509,12 @@ class BL_UI_Slider(BL_UI_Patch):
             capped_pos_x = self.over_scale(self.slider.x_screen + capped_width - 1)
 
             if capped_width > 0: 
-                if not (self._roundness is None):
-                    roundness = self._roundness
-                else:
-                    # From Preferences/Themes/User Interface/<style>
-                    theme = bpy.context.preferences.themes[0]
-                    widget_style = getattr(theme.user_interface, self.my_style())
-                    roundness = widget_style.roundness        
 
-                scaled_radius = round(roundness * self.over_scale(self._radius))
-                
                 self.shader_slider = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
 
-                if scaled_radius > 10:  #was: scaled_radius == 0 or scaled_radius > 10 or self._rounded_corners == (0,0,0,0):
-                    vertices = self.calc_corners_for_trifan(self.slider.x_screen, self.slider.y_screen, self.slider.width, self.slider.height, scaled_radius, 'FULL')
+                if self.scaled_radius(self._radius, self.slider.height) > 10:  
+                #used to be: scaled_radius == 0 or scaled_radius > 10 or self._rounded_corners == (0,0,0,0):
+                    vertices = self.calc_corners_for_trifan(self.slider.x_screen, self.slider.y_screen, self.slider.width, self.slider.height, self._radius, 'FULL')
                     if capped_width < self.slider.width:
                         # Cap the vertices x coord at percentage of width size (that is, at capped_pos_x)
                         to_be_capped = vertices
@@ -517,7 +526,7 @@ class BL_UI_Slider(BL_UI_Patch):
                                 vertices.append((capped_pos_x, coord[1]))
                     self.batch_slider = batch_for_shader(self.shader_slider, 'TRI_FAN', {"pos" : vertices})
                 else:
-                    vertices = self.calc_corners_for_lines(self.slider.x_screen, self.slider.y_screen, self.slider.width, self.slider.height, scaled_radius, 'FULL')
+                    vertices = self.calc_corners_for_lines(self.slider.x_screen, self.slider.y_screen, self.slider.width, self.slider.height, self._radius, 'FULL')
                     if capped_width < self.slider.width:
                         # Cap the vertices x coord at percentage of width size (that is, at capped_pos_x)
                         to_be_capped = vertices
@@ -543,7 +552,11 @@ class BL_UI_Slider(BL_UI_Patch):
 
                 bgl.glEnable(bgl.GL_LINE_SMOOTH)
 
+                self.slider.set_update_shaders(True)
+                
                 self.slider.draw_outline()
+                
+                self.slider.set_update_shaders(False)
                 
                 bgl.glDisable(bgl.GL_LINE_SMOOTH)
 
@@ -551,23 +564,36 @@ class BL_UI_Slider(BL_UI_Patch):
 
                 bgl.glDisable(bgl.GL_BLEND)      
 
+    def draw_slide_border(self):
+        # This is to draw the outline and shadow from the slider widget object, 
+        # instead of the counterpart ones from textbox or button objects. 
+        bgl.glEnable(bgl.GL_BLEND)
+        
+        bgl.glEnable(bgl.GL_LINE_SMOOTH)
+        
+        self.set_update_shaders(True)
+        
+        self.draw_outline()
+        
+        self.draw_shadow()
+        
+        self.set_update_shaders(False)
+        
+        bgl.glDisable(bgl.GL_LINE_SMOOTH)
+        
+        bgl.glDisable(bgl.GL_BLEND)
+
     def set_slide_color(self):
+        if self._selected_color is None:
+            theme = bpy.context.preferences.themes[0]
+            widget_style = getattr(theme.user_interface, self.my_style())
+            color = widget_style.item
+        else:
+            color = self._selected_color 
+
         if not self._is_enabled:
-            if self._bg_color is None:
-                theme = bpy.context.preferences.themes[0]
-                widget_style = getattr(theme.user_interface, self.my_style())
-                color = widget_style.inner
-            else:
-                color = self._bg_color  
-            # When slider is disabled dark the "state 0" background color by scaling it up 40%
-            color = self.shade_color(color,0.4)
-        else:    
-            if self._selected_color is None:
-                theme = bpy.context.preferences.themes[0]
-                widget_style = getattr(theme.user_interface, self.my_style())
-                color = widget_style.item
-            else:
-                color = self._selected_color 
+            # Take the "state 0" background color and "dark" it by either 40% or 20%
+            color = self.shade_color(color,(0.4 if color[0] < 0.5 else 0.2))
 
         self.shader_slider.uniform_float("color", color)
 

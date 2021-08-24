@@ -72,8 +72,8 @@ class BL_UI_Checkbox(BL_UI_Patch):
     
     def __init__(self, x, y, width, height):
 
-        width  = 14  # Fixed size per Blender ui at 1.0 resolution scale
-        height = 14  # (ditto)
+        width  = 15     # <-- Fixed size matching Blender ui at 1.0 resolution scale
+        height = width  
     
         super().__init__(x, y, width, height)
         
@@ -87,7 +87,7 @@ class BL_UI_Checkbox(BL_UI_Patch):
         self._selected_color = None             # Checkbox face color (when pressed state == 3)
         self._outline_color = None              # Checkbox outline color
         self._roundness = None                  # Checkbox corners roundness factor [0..1]
-        self._radius = 8.5                      # Checkbox corners circular radius 
+        self._radius = round((width-1)/2) - 1   # Checkbox corners circular radius (adjusted for better fitting)
         self._rounded_corners = (1,1,1,1)       # 1=Round/0=Straight, coords:(bottomLeft,topLeft,topRight,bottomRight)
         self._has_shadow = True                 # Indicates whether a shadow must be drawn around the Checkbox 
 
@@ -229,42 +229,36 @@ class BL_UI_Checkbox(BL_UI_Patch):
 
     # Overrides base class function
     def set_colors(self):
-        if not self._is_enabled:
+        # Up
+        if self.__state == 0:
             if self._bg_color is None:
                 theme = bpy.context.preferences.themes[0]
                 widget_style = getattr(theme.user_interface, "wcol_option")
                 color = widget_style.inner
             else:
                 color = self._bg_color 
-            # When checkbox is disabled dark the "state 0" background color by scaling it up 20%
-            color = self.shade_color(color,0.2)
-        else:    
-            # Up
-            if self.__state == 0:
-                if self._bg_color is None:
-                    theme = bpy.context.preferences.themes[0]
-                    widget_style = getattr(theme.user_interface, "wcol_option")
-                    color = widget_style.inner
-                else:
-                    color = self._bg_color 
-            # Down
-            elif self.__state == 1:
-                if self._selected_color is None:
-                    theme = bpy.context.preferences.themes[0]
-                    widget_style = getattr(theme.user_interface, "wcol_option")
-                    color = widget_style.inner_sel
-                else:
-                    color = self._selected_color 
-            # Hover
-            elif self.__state == 2:
-                if self._bg_color is None:
-                    theme = bpy.context.preferences.themes[0]
-                    widget_style = getattr(theme.user_interface, "wcol_option")
-                    color = widget_style.inner
-                else:
-                    color = self._bg_color 
-                # Take the "state 0" background color and "tint" it by either 10% or 20%
-                color = self.tint_color(color,(0.2 if color[0] < 0.5 else 0.1))    
+        # Down
+        elif self.__state == 1:
+            if self._selected_color is None:
+                theme = bpy.context.preferences.themes[0]
+                widget_style = getattr(theme.user_interface, "wcol_option")
+                color = widget_style.inner_sel
+            else:
+                color = self._selected_color 
+        # Hover
+        elif self.__state == 2:
+            if self._bg_color is None:
+                theme = bpy.context.preferences.themes[0]
+                widget_style = getattr(theme.user_interface, "wcol_option")
+                color = widget_style.inner
+            else:
+                color = self._bg_color 
+            # Take the "state 0" background color and "tint" it by either 20% or 10%
+            color = self.tint_color(color,(0.2 if color[0] < 0.5 else 0.1))    
+
+        if not self._is_enabled:
+            # Take the current state background color and "dark" it by either 40% or 20%
+            color = self.shade_color(color,(0.4 if color[0] < 0.5 else 0.2))
 
         self.shader.uniform_float("color", color)
 
@@ -286,8 +280,8 @@ class BL_UI_Checkbox(BL_UI_Patch):
             color = self._mark_color
 
         if not self._is_enabled:
-            # When checkbox is disabled dark the "state 0" background color by scaling it up 20%
-            color = self.shade_color(color,0.2)
+            # Take the checkmark color and "dark" it by either 40% or 20%
+            color = self.shade_color(color,(0.4 if color[0] < 0.5 else 0.2))
 
         self.shader_mark = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
        
@@ -323,10 +317,14 @@ class BL_UI_Checkbox(BL_UI_Patch):
         theme = bpy.context.preferences.themes[0]
         widget_style = getattr(theme.user_interface, "wcol_option")
 
-        if self.__state > 0 and self._is_enabled:
-            text_color = tuple(widget_style.text_sel) + (1.0,) if self._text_highlight is None else self._text_highlight
-        else:
+        if self.__state == 0:
             text_color = tuple(widget_style.text) + (1.0,) if self._text_color is None else self._text_color
+        elif self.__state == 1:
+            text_color = tuple(widget_style.text_sel) + (1.0,) if self._text_highlight is None else self._text_highlight
+        elif self.__state == 2:
+            text_color = tuple(widget_style.text) + (1.0,) if self._text_color is None else self._text_color
+            # Take the "state 0" text color and "tint" it by either 10% or 20%
+            text_color = self.tint_color(text_color,(0.2 if text_color[0] < 0.5 else 0.1))
 
         theme = bpy.context.preferences.ui_styles[0]
         widget_style = getattr(theme, "widget")
@@ -337,7 +335,7 @@ class BL_UI_Checkbox(BL_UI_Patch):
         else:
             text_size = self._text_size
             leveraged_text_size = self.leverage_text_size(text_size,"widget")
-        scaled_size = int(round(self.over_scale(leveraged_text_size)))
+        scaled_size = int(self.over_scale(leveraged_text_size))
         
         text_kerning = (widget_style.font_kerning_style == 'FITTED') if self._text_kerning is None else self._text_kerning
         if text_kerning:
@@ -346,18 +344,24 @@ class BL_UI_Checkbox(BL_UI_Patch):
         rounded_scale = int(round(self.over_scale(1)))    
         margin_space = (" "*rounded_scale) if rounded_scale > 0 else " "
         spaced_text = margin_space + self._text + margin_space
+
+        blf.size(0, leveraged_text_size, 72)
+        normal = blf.dimensions(0, "W")[1]  # This is to keep a regular pattern since letters differ in height
             
         blf.size(0, scaled_size, 72)
         length = blf.dimensions(0, spaced_text)[0]
-        height = blf.dimensions(0, "W")[1]  # This is to keep a regular pattern since letters differ in height
+        height = blf.dimensions(0, "W")[1]  
 
         self.__label_width = length
 
         if text_kerning:
             blf.disable(0, blf.KERNING_DEFAULT)
             
-        textpos_x = self.x_screen + self.width  - 1
-        textpos_y = self.y_screen - self.height + 4
+        textpos_x = self.x_screen + self.width
+ 
+        top_margin = int((self.height - int(round(normal+0.499))) / 2.0)
+
+        textpos_y = self.y_screen - top_margin - int(round(normal+0.499)) + 1
 
         label = BL_UI_Label(textpos_x, textpos_y, length, height)
         label.style = 'CHECKBOX'
@@ -381,8 +385,8 @@ class BL_UI_Checkbox(BL_UI_Patch):
         if self._is_enabled:
             label.text_color = text_color
         else:
-            # When checkbox is disabled dark the text color by scaling it up 40%
-            label.text_color = self.shade_color(text_color,0.4)
+            # Take the text color and "dark" it by either 40% or 20%
+            label.text_color = self.shade_color(text_color,(0.4 if text_color[0] < 0.5 else 0.2))
 
         label.context_it(self.context)
         label.draw()

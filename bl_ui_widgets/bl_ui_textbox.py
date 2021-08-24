@@ -235,7 +235,7 @@ class BL_UI_Textbox(BL_UI_Button):
         else:
             text_size = self._text_size
             leveraged_text_size = self.leverage_text_size(text_size,"widget")
-        scaled_size = int(round(self.over_scale(leveraged_text_size)))
+        scaled_size = int(self.over_scale(leveraged_text_size))
 
         text_kerning = (widget_style.font_kerning_style == 'FITTED') if self._text_kerning is None else self._text_kerning
         if text_kerning:
