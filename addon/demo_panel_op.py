@@ -287,9 +287,10 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         self.buttonU = BL_UI_Button(newX, newY, btnH, btnH)
         self.buttonU.text = "UNR"
         self.buttonU.text_size = 12
+        self.buttonU.text_color = (1,1,1,1)
         self.buttonU.bg_color = (0.5,0,0,1)
         self.buttonU.outline_color = (0.6,0.6,0.6,0.8)
-        self.buttonU.corner_radius = panH/2 - 1
+        self.buttonU.corner_radius = btnH/2 - 1
         self.buttonU.roundness = 1.0
         self.buttonU.set_mouse_up(self.buttonU_click)
         self.buttonU.description = "Unregisters the Remote Control panel object and closes it"        
@@ -335,6 +336,11 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
     def button1_click(self, widget, event, x, y):
         self.button2.enabled = True
         self.button3.enabled = True
+
+        self.number1.enabled = True
+        self.slider1.enabled = True
+        self.check1.enabled = True
+
         self.press_only(1)
 
     def button2_click(self, widget, event, x, y):
@@ -350,6 +356,11 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
     def button4_click(self, widget, event, x, y):
         self.button2.enabled = False
         self.button3.enabled = False
+
+        self.number1.enabled = False
+        self.slider1.enabled = False
+        self.check1.enabled = False
+
         self.press_only(4)
 
 # I am not even obligated to create any of these functions, see?
