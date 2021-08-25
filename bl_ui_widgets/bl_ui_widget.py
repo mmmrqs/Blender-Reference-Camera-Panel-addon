@@ -46,6 +46,10 @@ bl_info = {
 #Added: 'roundness' property 
 #Added: 'calc_corners_for_trifan' internal function to calculate the vertices coordinates for a rounded corner widget. 
 #Added: 'calc_corners_for_lines' internal function to calculate the vertices coordinates for a rounded corner widget. 
+#Added: 'set_timer_event' function to allow assignment of an external function to be called by internal 'timer_event_func'.
+#Added: 'set_mouse_up' function to allow assignment of an external function to be called by internal 'mouse_up_func'.
+#Added: 'set_mouse_move' function to allow assignment of an external function to be called by internal 'mouse_move_func'.
+#Added: 'set_mouse_down' function to allow assignment of an external function to be called by internal 'mouse_down_func'.
 #Added: 'handle_event_finalize' function to call the new 'mouse_up_over' function when the widget is in a enabled state and after polling through the
 #        regular handle_event function of all widgets. The complementary function is called in the BL_UI_OT_draw_operator class (bl_ui_draw_op.py).
 #Chang: Renamed function 'text_input' to 'keyboard_press'.
@@ -159,14 +163,18 @@ class BL_UI_Widget():
     def RC_UI_BIND(self):
         """ General scaling for 'Remote Control' panel """
         package = __package__[0:__package__.find(".")]
-        return (bpy.context.preferences.addons[package].preferences.RC_UI_BIND)
+        try:    bind = bpy.context.preferences.addons[package].preferences.RC_UI_BIND
+        except: bind = True
+        return (bind)
 
     def RC_SCALE(self):
         """ Scaling to be applied on the Remote Control panel  
             over (in addition to) the interface ui_scale.
         """
         package = __package__[0:__package__.find(".")]
-        return (bpy.context.preferences.addons[package].preferences.RC_SCALE)
+        try:    scale = bpy.context.preferences.addons[package].preferences.RC_SCALE
+        except: scale = 1.0
+        return (scale)
 
     def RC_SLIDE(self):
         """ Keep Remote Control pinned when resizing viewport. 
@@ -174,7 +182,9 @@ class BL_UI_Widget():
             If (OFF): remote panel stays in place regardless of viewport resizing; 
         """
         package = __package__[0:__package__.find(".")]
-        return (bpy.context.preferences.addons[package].preferences.RC_SLIDE)
+        try:    slide = bpy.context.preferences.addons[package].preferences.RC_SLIDE
+        except: slide = True
+        return (slide)
 
     def ui_scale(self, value):
         if self.RC_UI_BIND():
@@ -304,6 +314,7 @@ class BL_UI_Widget():
             
         if self.scaled_radius(self._radius, self.height) > 10:  
         #used to be: if scaled_radius == 0 or scaled_radius > 10 or self._rounded_corners == (0,0,0,0):
+        #but unfortunately 'TRI_FAN' results in a worse smooth render 
             vertices = self.calc_corners_for_trifan(self.x_screen, self.y_screen, self.width, self.height, self._radius, 'FULL')
             self.batch_panel = batch_for_shader(self.shader, 'TRI_FAN', {"pos" : vertices})
         else:
@@ -357,7 +368,7 @@ class BL_UI_Widget():
            (widget._tooltip_python == "" or not prefs.show_tooltips_python): 
             # Widget has no tooltip message to display
             return True
-        if time.time() - widget.__tooltip_gotimer < 1:
+        if time.time() - widget.__tooltip_gotimer < 1.0:  # <-- Hard coded delay
             # Timer has not reached the threshold yet
             return True
 
@@ -390,6 +401,7 @@ class BL_UI_Widget():
         # scaled_radius = self.scaled_radius(self._radius, self.height) 
         # if scaled_radius > 10:  
         # #used to be: if scaled_radius == 0 or scaled_radius > 10 or self._rounded_corners == (0,0,0,0):
+        # #but unfortunately these kinds of smooth result in a worse smooth render 
             # bgl.glEnable(bgl.GL_POLYGON_SMOOTH)
         # else:
             # bgl.glEnable(bgl.GL_LINE_SMOOTH)
@@ -454,8 +466,6 @@ class BL_UI_Widget():
         # Turns the input color into a tinted tone per some percent amount
         if amount <= 0:
             output_color = input_color  # No changes
-        elif amount >= 1:
-            output_color = (1,1,1,input_color[3])  # Turn it into white
         else:
             r = (1 + amount) * input_color[0]; r = 1 if r > 1 else r
             g = (1 + amount) * input_color[1]; g = 1 if g > 1 else g
@@ -493,19 +503,19 @@ class BL_UI_Widget():
             return None
 
         try:
-            if self.state in {2,4,5}: # Hover, Hover++ and Down++
+            if self.state in {2,4,5}: # Hover, Hover++ and Down++ states
                 # Take the "state 0" background color and "tint" it by either 10% or 20%
                 basecolor = color
                 color = self.tint_color(basecolor,(0.2 if basecolor[0] < 0.5 else 0.1))
-                if self.state in {4,5}: # Hover++ and Down++
+                if self.state in {4,5}: # Hover++ and Down++ states
                     # Has to tint the color twice the same factor values used for "state 0"
                     color = self.tint_color(color,(0.2 if basecolor[0] < 0.5 else 0.1))
         except:
-            pass  # Not all widget types have a 'state' property
+            pass  # Because not all widget types have a 'state' property
 
         if not self._is_enabled:
-            # Take the outline color and "dark" it by either 40% or 20%
-            color = self.shade_color(color,(0.4 if color[0] < 0.5 else 0.2))
+            # Take the outline color and "dark" it by 30%
+            color = self.shade_color(color, 0.3)
 
         if self.__update_shaders:
             self.shader_outline = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
@@ -532,6 +542,7 @@ class BL_UI_Widget():
         else:
             if self.scaled_radius(self._radius, self.height) > 10: 
             #used to be: if scaled_radius == 0 or scaled_radius > 10 or self._rounded_corners == (0,0,0,0):
+            #but unfortunately 'TRI_FAN' results in a worse smooth render 
                 bgl.glLineWidth(1)
                 if self.__update_shaders:
                     vertices = self.calc_corners_for_trifan(self.x_screen, self.y_screen, self.width, self.height, self._radius, 'FULL')
@@ -569,6 +580,10 @@ class BL_UI_Widget():
         else:
             color = self._shadow_color
 
+        if color[3] == 0:
+            # Means that the drawing will be invisible, so get out of here
+            return None
+
         self.shader_shadow1.bind()
         self.shader_shadow1.uniform_float("color",color)
         
@@ -592,6 +607,7 @@ class BL_UI_Widget():
         else:
             if self.scaled_radius(self._radius, self.height) > 10: 
             #used to be: if scaled_radius == 0 or scaled_radius > 10 or self._rounded_corners == (0,0,0,0):
+            #but unfortunately 'TRI_FAN' results in a worse smooth render 
                 bgl.glLineWidth(1)
                 if self.__update_shaders:
                     vertices = self.calc_corners_for_trifan(self.x_screen, self.y_screen, self.width, self.height, self._radius, 'SHADOW')
@@ -676,7 +692,7 @@ class BL_UI_Widget():
         exclusive_widget = base_class.g_exclusive_mode
         if not exclusive_widget is None:
             if not exclusive_widget is self:
-                # While there is a widget undergoing an exclusive action (e.g: Slider/Textbox under edit action ),
+                # While there is a widget undergoing an exclusive action (e.g: Slider/Textbox under edit action),
                 # we must skip passing events to any other widget but 'exclusively' to that particular one.
                 return False
 
@@ -776,6 +792,16 @@ class BL_UI_Widget():
     def mouse_down(self, event, x, y):       
         return self.mouse_down_func(self, event, x, y)
 
+    # Mouse move handler functions
+    def set_mouse_move(self, mouse_move_func):
+        self.mouse_move_func = mouse_move_func  
+ 
+    def mouse_move_func(self, widget, event, x, y):
+        return False 
+ 
+    def mouse_move(self, event, x, y):
+        self.mouse_move_func(self, event, x, y)
+        
     # Mouse up handler functions
     def set_mouse_up(self, mouse_up_func):
         self.mouse_up_func = mouse_up_func  
@@ -809,16 +835,6 @@ class BL_UI_Widget():
     def mouse_exit(self, event, x, y):
         self.mouse_exit_func(self, event, x, y)
 
-    # Mouse move handler functions
-    def set_mouse_move(self, mouse_move_func):
-        self.mouse_move_func = mouse_move_func  
- 
-    def mouse_move_func(self, widget, event, x, y):
-        return False 
- 
-    def mouse_move(self, event, x, y):
-        self.mouse_move_func(self, event, x, y)
-        
     #-- Helper functions ---------------------------------------------------------------
         
     def calc_corners_for_trifan(self, x_screen, y_screen, width, height, radius, selection):

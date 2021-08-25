@@ -40,6 +40,7 @@ bl_info = {
 #Added: 'text_title' property that allows the highlight color to be overriden by code.
 #Added: 'text_kerning' property that allows the text kerning to be adjusted accordingly.
 #Added: 'text_rotation' property that allows the text to be painted in any direction (value must be in radians).
+#Added: 'clip' property that allows the text to be clipped (value must be a 4_coordinates tuple)
 #Added: Shadow and Kerning related properties that allow the text to be painted using these characteristics.
 #Added: Colors, Size, Shadow and Kerning attributes default to values retrieved from user theme (can be overriden).
 #Fixed: New call to verify_screen_position() so that object behaves alright when viewport is resized.
@@ -227,6 +228,14 @@ class BL_UI_Label(BL_UI_Widget):
                 text_color = (1,0,0,1)
             else:
                 text_color = self._text_color 
+                
+        if not self._is_enabled:
+            if text_color[0] > 0.5:
+                # Take the text color and "dark" it by 30%
+                text_color = self.shade_color(text_color, 0.3)
+            else:    
+                # Take the text color and "tint" it by 30%
+                text_color = self.tint_color(text_color, 0.3)
 
         theme = bpy.context.preferences.ui_styles[0]
         widget_style = getattr(theme, self.my_style())

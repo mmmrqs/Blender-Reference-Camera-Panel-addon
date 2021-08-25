@@ -47,6 +47,7 @@ bl_info = {
 #Added: 'shadow' property and coding to allow the slider to be painted with a shadow (value is boolean).
 #Added: Logic to allow a slider to be disabled (darkned out) and turned off to user interaction.
 #Added: 'set_mouse_up' function to allow assignment of an external function to be called by internal 'mouse_up_func'.
+#Added: 'set_value_display' function to allow custom formatting of the diaplayed value.
 #Added: Shadow and Kerning related properties that allow the text to be painted using these characteristics.
 #Added: Size, Shadow and Kerning attributes default to values retrieved from user theme (may be overriden by programmer).
 #Chang: Made it a subclass of 'BL_UI_Patch' instead of 'BL_UI_Widget' so that it can inherit the layout features from there.
@@ -76,7 +77,7 @@ class BL_UI_Slider(BL_UI_Patch):
         self._text = ""
         self._text_color = None                 # Slider text color
         self._text_highlight = None             # Slider text editing color 
-                                          
+
         self._style = 'NUMBER_SLIDE'            # Slider style options are: {'NUMBER_SLIDE','NUMBER_CLICK'}
         self._bg_color = None                   # Slider background color
         self._selected_color = None             # Slider selection percentage color
@@ -86,8 +87,16 @@ class BL_UI_Slider(BL_UI_Patch):
         self._radius = 8.5                      # Slider corners circular radius 
         self._rounded_corners = (1,1,1,1)       # 1=Round/0=Straight, coords:(bottomLeft,topLeft,topRight,bottomRight)
         self._has_shadow = True                 # Indicates whether a shadow must be drawn around the slider 
-                                          
-        self._text_margin = 8                   # Slider text left margin (when in Textbox edit mode)
+
+        self._value = 0                         # Current value on the slider
+        self._min_value = None                  # Minimum value to be reached by the slider
+        self._max_value = None                  # Maximum value to be reached by the slider
+        self._precision = 3                     # Number of decimal places for the displayed value
+        self._step = 1                          # Step size to increase/decrease the displayed value (in precision units)
+        self._unit = ""                         # Unit indicator for the displayed value
+        self._max_input_chars = 20              # Maximum number of characters to be input by the textbox
+
+        self._text_margin = 16                  # Slider text left/right margins (when 'NOT' in Textbox edit mode)
         self._text_size = None                  # Slider text size
         self._text_kerning = None               # Slider text kerning (True/False)
         self._text_shadow_size = None           # Slider text shadow size
@@ -96,13 +105,7 @@ class BL_UI_Slider(BL_UI_Patch):
         self._text_shadow_color = None          # Slider text shadow color [0..1] = gray tone, from dark to clear
         self._text_shadow_alpha = None          # Slider text shadow alpha value [0..1]
 
-        self._value = 0                         # Current value on the slider
-        self._min_value = None                  # Minimum value to be reached by the slider
-        self._max_value = None                  # Maximum value to be reached by the slider
-        self._precision = 3                     # Number of decimal places for the displayed value
-        self._step = 1                          # Step size to increase/decrease the displayed value (in precision units)
-        self._unit = "mm"                       # Unit indicator for the displayed value
-
+        self.__middle_margin = 3                # This margin used for 'NUMBER_CLICK' type instead of self._text_margin
         self.__is_draging = False
         self.__is_editing = False
         self.__mouse_moved = False
@@ -115,7 +118,7 @@ class BL_UI_Slider(BL_UI_Patch):
         #-- create sub element pieces that make the slider widget 
 
         if self._style == 'NUMBER_CLICK':
-            side_width = int(round(16*self.height / 20))   # Proportionally dimensioned
+            side_width = int(round(14*self.height / 20))   # Proportionally dimensioned
             self.decrease = BL_UI_Button(self.x, self.y, side_width, self.height)
             self.increase = BL_UI_Button((self.x + self.width - side_width), self.y, side_width, self.height)
             self.slider = BL_UI_Button((self.x + side_width - 2), self.y, (self.width + 4 - 2*side_width), self.height)
@@ -174,7 +177,7 @@ class BL_UI_Slider(BL_UI_Patch):
 
         self.slider.text_size = self._text_size             
         self.slider.textwo_size = self._text_size             
-        self.slider.text_margin = 2 if self._style == 'NUMBER_CLICK' else self._text_margin
+        self.slider.text_margin = self.__middle_margin if self._style == 'NUMBER_CLICK' else self._text_margin
         self.slider.text_kerning = self._text_kerning          
         self.slider.text_shadow_size = self._text_shadow_size      
         self.slider.text_shadow_offset_x = self._text_shadow_offset_x  
@@ -232,11 +235,10 @@ class BL_UI_Slider(BL_UI_Patch):
         self.textbox.rounded_corners = self._rounded_corners
         self.textbox.has_shadow = self._has_shadow                        
 
-        self.textbox.max_input_chars = 20
+        self.textbox.max_input_chars = self._max_input_chars
         self.textbox.is_numeric = True
 
         self.textbox.text_size = self._text_size
-        self.textbox.text_margin = self._text_margin
         self.textbox.text_kerning = self._text_kerning          
         self.textbox.text_shadow_size = self._text_shadow_size      
         self.textbox.text_shadow_offset_x = self._text_shadow_offset_x  
@@ -340,6 +342,14 @@ class BL_UI_Slider(BL_UI_Patch):
         self._unit = value
 
     @property
+    def max_input_chars(self):
+        return self._max_input_chars
+
+    @max_input_chars.setter
+    def max_input_chars(self, value):
+        self._max_input_chars = value
+
+    @property
     def text(self):
         return self._text
 
@@ -435,6 +445,14 @@ class BL_UI_Slider(BL_UI_Patch):
         # so that the value updated by the slider is actually committed. 
         return True
                  
+    def set_value_display(self, value_display_func):
+        self.value_display_func = value_display_func   
+
+    def value_display_func(self, widget, value):
+        # This must return None when function is not overriden, 
+        # so that the value updated by the slider is displayed by the default logic. 
+        return None
+                 
     def update_self_value(self, value, mode):
         update_value = value
         if not self._min_value is None:
@@ -449,10 +467,12 @@ class BL_UI_Slider(BL_UI_Patch):
                 self._value = round(update_value, self._precision)
         else:
             self._value = round(update_value, self._precision)
-        str_value = str(round(self._value, self._precision))
-        str_value = str_value[:len(str_value)-2] if str_value[-2:] == ".0" else str_value
-        self.slider.textwo = str_value + " " + self._unit
-        self.textbox.text = str_value
+        # Format the text display value
+        self.slider.textwo = self.value_display_func(self, self._value)
+        if self.slider.textwo is None:
+            str_value = str(round(self._value, self._precision))
+            str_value = str_value[:len(str_value)-2] if str_value[-2:] == ".0" else str_value
+            self.slider.textwo = str_value + " " + self._unit
         return self.slider.textwo
  
     # Overrides base class function
@@ -567,6 +587,10 @@ class BL_UI_Slider(BL_UI_Patch):
     def draw_slide_border(self):
         # This is to draw the outline and shadow from the slider widget object, 
         # instead of the counterpart ones from textbox or button objects. 
+        area_height = self.get_area_height()
+        
+        self.verify_screen_position(area_height)
+
         bgl.glEnable(bgl.GL_BLEND)
         
         bgl.glEnable(bgl.GL_LINE_SMOOTH)
@@ -592,8 +616,8 @@ class BL_UI_Slider(BL_UI_Patch):
             color = self._selected_color 
 
         if not self._is_enabled:
-            # Take the "state 0" background color and "dark" it by either 40% or 20%
-            color = self.shade_color(color,(0.4 if color[0] < 0.5 else 0.2))
+            # Take the "state 0" background color and "dark" it by either 20% or 10%
+            color = self.shade_color(color,(0.2 if color[0] > 0.5 else 0.1))
 
         self.shader_slider.uniform_float("color", color)
 
@@ -666,7 +690,8 @@ class BL_UI_Slider(BL_UI_Patch):
             if drag_offset_x != 0:
                 if self._style == 'NUMBER_CLICK':
                     # Proportionally change to the step coeficient
-                    new_value = self._value + (drag_offset_x * self._step)
+                    precision = 1 / (10^self._precision)
+                    new_value = self._value + (drag_offset_x * self._step * precision)
                 else:    
                     # Proportionally change to the size-range coeficient
                     new_value = self._value + ((drag_offset_x / self.width) * (self._max_value - self._min_value)) 
@@ -778,12 +803,16 @@ class BL_UI_Slider(BL_UI_Patch):
 
     def decrease_mouse_up_func(self, widget, event, x, y):    
         if not self.__mouse_moved:
-            self.update_self_value(self._value - self._step, 'UPDATE')
+            precision = 1 / (10^self._precision)
+            decr_step = self._step * precision
+            self.update_self_value(self._value - decr_step, 'UPDATE')
         return True
 
     def increase_mouse_up_func(self, widget, event, x, y):  
         if not self.__mouse_moved:
-            self.update_self_value(self._value + self._step, 'UPDATE')
+            precision = 1 / (10^self._precision)
+            incr_step = self._step * precision
+            self.update_self_value(self._value + incr_step, 'UPDATE')
         return True
 
     def slider_mouse_down_func(self, widget, event, x, y):    

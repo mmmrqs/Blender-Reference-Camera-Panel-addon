@@ -48,7 +48,7 @@ bl_info = {
 #        in the following clockwise sequence: bottom left, top left, top right, bottom right. 
 #Added: 'shadow' property and coding to allow the checkbox to be painted with a shadow (value is boolean).
 #Added: Logic to allow a checkbox to be disabled (darkned out) and turned off to user interaction.
-#Added: 'value_changed_func' function to allow assignment of an external function to be called by mouse_down function.
+#Added: 'set_value_changed' function to allow assignment of an external function to be called by mouse_down function.
 #Added: Shadow and Kerning related properties that allow the text to be painted using these characteristics.
 #Added: Size, Shadow and Kerning attributes default to values retrieved from user theme (may be overriden by programmer).
 #Chang: Design of the checkmark changed from 'cross' to a 'tick' symbol.
@@ -257,8 +257,8 @@ class BL_UI_Checkbox(BL_UI_Patch):
             color = self.tint_color(color,(0.2 if color[0] < 0.5 else 0.1))    
 
         if not self._is_enabled:
-            # Take the current state background color and "dark" it by either 40% or 20%
-            color = self.shade_color(color,(0.4 if color[0] < 0.5 else 0.2))
+            # Take the resulting state background color and "dark" it by either 40% or 20%
+            color = self.shade_color(color,(0.4 if color[0] > 0.5 else 0.2))
 
         self.shader.uniform_float("color", color)
 
@@ -281,7 +281,7 @@ class BL_UI_Checkbox(BL_UI_Patch):
 
         if not self._is_enabled:
             # Take the checkmark color and "dark" it by either 40% or 20%
-            color = self.shade_color(color,(0.4 if color[0] < 0.5 else 0.2))
+            color = self.shade_color(color,(0.4 if color[0] > 0.5 else 0.2))
 
         self.shader_mark = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
        
@@ -385,8 +385,12 @@ class BL_UI_Checkbox(BL_UI_Patch):
         if self._is_enabled:
             label.text_color = text_color
         else:
-            # Take the text color and "dark" it by either 40% or 20%
-            label.text_color = self.shade_color(text_color,(0.4 if text_color[0] < 0.5 else 0.2))
+            if text_color[0] > 0.5:
+                # Take the text color and "dark" it by 30%
+                label.text_color = self.shade_color(text_color, 0.3)
+            else:    
+                # Take the text color and "tint" it by 30%
+                label.text_color = self.tint_color(text_color, 0.3)
 
         label.context_it(self.context)
         label.draw()

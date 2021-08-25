@@ -35,10 +35,13 @@ bl_info = {
 #--- ### Change log
 
 #v0.6.5 (08.01.2021) - by Marcelo M. Marques 
-#Added: This new class to paint custom rectangles on screen. Useful for creating header and subpanel areas
+#Added: This new class to paint custom rectangles on screen. Useful for creating header and subpanel areas.
+#       It is used as a base class for the following widgets:
+#       :BL_UI_Drag_Panel, BL_UI_Button, BL_UI_Slider, BL_UI_Checkbox and BL_UI_Tooltip.
 
 #--- ### Imports
 import bpy
+import time
 
 from . bl_ui_widget import BL_UI_Widget
 
@@ -58,9 +61,12 @@ class BL_UI_Patch(BL_UI_Widget):
         self._rounded_corners = (0,0,0,0)       # 1=Round/0=Straight, coords:(bottomLeft,topLeft,topRight,bottomRight)
         self._has_shadow = False                # Indicates whether a shadow must be drawn around the patch 
         
-        self._image = None
-        self._image_size = (24, 24)
-        self._image_position = (4, 2)
+        self._image = None                      # Image file to be loaded
+        self._image_size = (24, 24)             # Image size in pixels; values are (width, height)
+        self._image_position = (4, 2)           # Image position inside the patch area; values are (x, y)
+        
+        self.__image_file = None
+        self.__image_time = 0
 
     @property
     def bg_color(self):
@@ -132,8 +138,10 @@ class BL_UI_Patch(BL_UI_Widget):
         self._image_position = image_position
 
     def set_image(self, rel_filepath):
+        self.__image_file = rel_filepath
+        self.__image_time = time.time()
         try:
-            self._image = bpy.data.images.load(rel_filepath, check_existing=True)   
+            self._image = bpy.data.images.load(self.__image_file, check_existing=True)   
             self._image.gl_load()
             self._image.pack(as_png=True)
         except:
@@ -153,3 +161,15 @@ class BL_UI_Patch(BL_UI_Widget):
             return False
         else:
             return super().is_in_rect(x,y)
+
+    # Overrides base class function
+    def draw(self):      
+        if not self._is_visible:
+            return
+            
+        # Attempt to refresh the image because it has an issue that causes it to black out after a while
+        if time.time() - self.__image_time >= 10:
+            self.set_image(self.__image_file)
+            
+        super().draw()
+        

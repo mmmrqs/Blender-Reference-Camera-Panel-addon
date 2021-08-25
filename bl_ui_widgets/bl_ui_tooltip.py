@@ -515,8 +515,8 @@ class BL_UI_Tooltip(BL_UI_Patch):
                     break
 
     # This piece of logic below would be used to merge/abbreviate the latest line to the "greatest" one
-    # when going over the configured max lines count, however it needed to take in account the actual
-    # pixels lenght of the strings instead of characters count, so it has been left out for now.
+    # when going over the configured max lines count, however it needed to take into account the actual
+    # pixel-lenght of the strings instead of characters count, so it has been left out for now.
 
     # def abbreviate_text(self, limit_chars, this_line, last_line):
         # this_line = this_line.rstrip()

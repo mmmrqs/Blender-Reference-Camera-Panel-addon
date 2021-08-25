@@ -50,17 +50,19 @@ bl_info = {
 #        Each elements is a boolean value (0 or 1) which indicates whether the corresponding corner is to be rounded or straight
 #        in the following clockwise sequence: bottom left, top left, top right, bottom right. 
 #Added: 'shadow' property and coding to allow the button to be painted with a shadow (value is boolean).
+#Added: 'alignment' property and coding to allow customization of button's text lines alignment.
 #Added: Logic to allow a button to be disabled (darkned out) and turned off to user interaction.
-#Added: An internal third state for the button to allow it to stay in a state of 'pressed' (similar to a radio button).
+#Added: A third state for the button to allow it to stay in a state of 'pressed' (similar to a radio button).
+#Added: A fourth and fifth state for special case use regarding the 'NUMBER_CLICK' slider widget type.
 #Added: 'mouse_up_over' internal function to control the button 'pressed' state. It is called by BL_UI_Widget class 
 #        and allows the wrap up of events when the user finishes clicking a button.
 #Added: 'set_button_pressed' function to allow assignment of an external function to be called by 'mouse_up_func' and 'mouse_up_over'.
-#Added: 'set_mouse_up' function to allow assignment of an external function to be called by internal 'mouse_up_func'.
 #Added: Shadow and Kerning related properties that allow the text to be painted using these characteristics.
 #Added: Size, Shadow and Kerning attributes default to values retrieved from user theme (may be overriden by programmer).
 #Chang: Made it a subclass of 'BL_UI_Patch' instead of 'BL_UI_Widget' so that it can inherit the layout features from there.
 #Chang: Instead of hardcoded logic it is now leveraging 'BL_UI_Label' to paint the button text lines.
-#Chang: Draw_text() function logic leveraged to be used by 'BL_UI_Textbox' and 'BL_UI_Slider' classes.
+#Chang: 'draw_text' function logic leveraged to be used by 'BL_UI_Textbox' and 'BL_UI_Slider' classes.
+#Added: 'set_mouse_down' function moved into 'BL_UI_Widget' super class.
 #Fixed: New call to verify_screen_position() so that object behaves alright when viewport is resized.
 #Fixed: The calculation of vertical text centering because it was varying depending on which letters presented in the text.
 
