@@ -38,7 +38,6 @@ bl_info = {
 #--- ### Imports
 
 import bpy
-import os
 
 from bpy.types import Operator
 
@@ -200,12 +199,13 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         # 
         self.slider1 = BL_UI_Slider(newX, newY, btnW, btnH)
         self.slider1.style = 'NUMBER_SLIDE'
-        self.slider1.text = "Lens"
-        self.slider1.value = 50
+        self.slider1.text = "Z Rot"
+        self.slider1.value = 1800
         self.slider1.min = 0
-        self.slider1.max = 100
-        self.slider1.unit = "m"
-        self.slider1.description = "This is my standard slider tooltip"        
+        self.slider1.max = 3600
+        self.slider1.description = "This is my standard slider tooltip.\nYou can use it to rotate the object"
+        self.slider1.set_value_updated(self.slider1_update)
+        self.slider1.set_value_display(self.slider1_display)
         #    
         self.objname = "<Press the ADD button so you can edit here>"
         self.textbox1 = BL_UI_Textbox(btnX, newY+35, 350, btnH)
@@ -336,11 +336,6 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
     def button1_click(self, widget, event, x, y):
         self.button2.enabled = True
         self.button3.enabled = True
-
-        self.number1.enabled = True
-        self.slider1.enabled = True
-        self.check1.enabled = True
-
         self.press_only(1)
 
     def button2_click(self, widget, event, x, y):
@@ -356,11 +351,6 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
     def button4_click(self, widget, event, x, y):
         self.button2.enabled = False
         self.button3.enabled = False
-
-        self.number1.enabled = False
-        self.slider1.enabled = False
-        self.check1.enabled = False
-
         self.press_only(4)
 
 # I am not even obligated to create any of these functions, see?
@@ -447,10 +437,21 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
             # By returning True the 'value' argument will be committed to the widget.value property
             return True
 
-    def check1_changed(self, widget, event, x, y):
-        self.buttonU.visible = not self.check1.is_checked
+    def slider1_update(self, widget, value):
+        import math
+        try:
+            rc = bpy.context.scene.collection
+            for obj in rc.objects:
+                if obj.type == 'MESH': 
+                    obj.rotation_euler[2] = math.radians(value/10)
+                    break
+        except:
+            pass
         return True
-
+    
+    def slider1_display(self, widget, value):
+        return str(int(round(value/10)))
+    
     def textbox1_changed(self, widget, context, former_text, updated_text):
         if updated_text != self.objname:
             if updated_text.strip() == "":
@@ -463,11 +464,16 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
                     if obj.type == 'MESH' and obj.name == self.objname: 
                         obj.name = updated_text
                         self.objname = obj.name
+                        break
             except:
                 self.objname = "<Error trying to assign this name to object>"
                 widget.text = self.objname
         return True
         
+    def check1_changed(self, widget, event, x, y):
+        self.buttonU.visible = not self.check1.is_checked
+        return True
+
 
     #-- Helper functions 
 
