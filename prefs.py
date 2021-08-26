@@ -421,7 +421,6 @@ class ReferenceCameraPreferences(AddonPreferences):
         box.label(text=" Special thanks to: @batFINGER, Shane Ambler (sambler), vananders, and many others,")
         box.label(text=" for their posts on the community forums, which have been crucial for making this addon.")
         box.label(text="")
-        layout.separator()
 
 class Reset_Coords(bpy.types.Operator):
     bl_idname = "object.reset_coords" 
