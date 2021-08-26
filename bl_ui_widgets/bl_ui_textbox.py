@@ -151,6 +151,7 @@ class BL_UI_Textbox(BL_UI_Button):
             self.__marked_pos = [0, len(self._text)]
             self.__ui_scale = self.over_scale(1)
             self.update_cursor()
+            bpy.context.window.cursor_set('TEXT')
             self.set_exclusive_mode(self)
 
     def stop_editing(self):
@@ -168,6 +169,7 @@ class BL_UI_Textbox(BL_UI_Button):
                 self.state = 0                  # a different action in the case of failing to clean up the text.
                 self.__is_editing = False       # Even when failing we are exiting the edit mode, but in that case 
                 self.set_exclusive_mode(None)   # the clean_up_text() function will have restored the original text.
+        bpy.context.window.cursor_set('DEFAULT')
         return True    
 
     def clean_up_text(self):
@@ -283,11 +285,12 @@ class BL_UI_Textbox(BL_UI_Button):
         
     # Overrides base class function
     def draw(self):
+
+        super().draw()
+
         if not self._is_visible:
             return
             
-        super().draw()
-
         # Get out of edit mode if user has changed the ui_scaling in the meantime
         if self.__ui_scale != self.over_scale(1):
             self.__ui_scale = self.over_scale(1)

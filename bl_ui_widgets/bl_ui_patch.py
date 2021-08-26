@@ -164,12 +164,14 @@ class BL_UI_Patch(BL_UI_Widget):
 
     # Overrides base class function
     def draw(self):      
+
+        super().draw()
+
         if not self._is_visible:
             return
             
         # Attempt to refresh the image because it has an issue that causes it to black out after a while
-        if time.time() - self.__image_time >= 10:
-            self.set_image(self.__image_file)
-            
-        super().draw()
+        if self._image is not None:
+            if time.time() - self.__image_time >= 10:
+                self.set_image(self.__image_file)
         

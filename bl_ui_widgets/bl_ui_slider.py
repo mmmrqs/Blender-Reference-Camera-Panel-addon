@@ -106,9 +106,10 @@ class BL_UI_Slider(BL_UI_Patch):
         self._text_shadow_alpha = None          # Slider text shadow alpha value [0..1]
 
         self.__middle_margin = 3                # This margin used for 'NUMBER_CLICK' type instead of self._text_margin
-        self.__is_draging = False
+        self.__is_dragging = False
         self.__is_editing = False
         self.__mouse_moved = False
+        self.__drag_origin = (0,0,0,0)          # Represents (mouse_x, mouse_y, mouse_region_x, mouse_region_y)
         self.__drag_start_x = 0
         
     # Overrides base class function
@@ -475,6 +476,21 @@ class BL_UI_Slider(BL_UI_Patch):
             self.slider.textwo = str_value + " " + self._unit
         return self.slider.textwo
  
+    def calc_slider_bar(self, value):
+        if value < self._min_value or value > self._max_value:
+            percentage = 0  
+        elif self._min_value == self._max_value:    
+            percentage = 1
+        else:    
+            dividend = value - self._min_value
+            divisor = self._max_value - self._min_value
+            percentage = abs(dividend) / abs(divisor)
+            percentage = 0 if percentage < 0 else percentage
+            percentage = 1 if percentage > 1 else percentage
+        slider_bar_width = int(round(self.slider.width * percentage))
+        slider_bar_pos_x = self.over_scale(self.slider.x_screen + slider_bar_width - 1)
+        return [slider_bar_width, slider_bar_pos_x]
+
     # Overrides base class function
     def update(self, x, y):      
         # Here we need to update the x position for the sub elements separately 
@@ -493,12 +509,21 @@ class BL_UI_Slider(BL_UI_Patch):
     # Overrides base class function
     def draw(self):      
         if not self._is_visible:
+            area_height = self.get_area_height()
+            if self._style == 'NUMBER_CLICK':
+                self.decrease.verify_screen_position(area_height)
+                self.increase.verify_screen_position(area_height)
+            self.slider.verify_screen_position(area_height)
+            self.textbox.verify_screen_position(area_height)
+            # The following one must be the latest 'verify_screen_position' processed 
+            # otherwise it causes a weird displacement on the other component widgets.
+            self.verify_screen_position(area_height)
             return
             
         # Enter edit mode and skip drawing the regular slider object pieces
         if self.__is_editing:
             self.textbox.draw()
-            self.draw_slide_border()
+            self.draw_slider_border()
             return
 
         # Draw slider's left and right sections
@@ -510,24 +535,13 @@ class BL_UI_Slider(BL_UI_Patch):
         self.slider.draw()
 
         # Draw the appropriate outline and shadow effects
-        self.draw_slide_border()
+        self.draw_slider_border()
 
         # Draw slider's percentage overlay bar
         if self._style == 'NUMBER_SLIDE' and not (self._min_value is None or self._max_value is None):
-            if self._value < self._min_value or self._value > self._max_value:
-                percentage = 0  # wrong values, get out and do not display bar
-            elif self._min_value == self._max_value:    
-                percentage = 1
-            else:    
-                dividend = self._value - self._min_value
-                divisor = self._max_value - self._min_value
-                percentage = abs(dividend) / abs(divisor)
-                percentage = 0 if percentage < 0 else percentage
-                percentage = 1 if percentage > 1 else percentage
-                
-            capped_width = int(round(self.slider.width * percentage))
-            capped_pos_x = self.over_scale(self.slider.x_screen + capped_width - 1)
-
+            slider_bar = self.calc_slider_bar(self._value)
+            capped_width = slider_bar[0]
+            capped_pos_x = slider_bar[1]
             if capped_width > 0: 
 
                 self.shader_slider = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
@@ -564,7 +578,7 @@ class BL_UI_Slider(BL_UI_Patch):
 
                 self.shader_slider.bind()
                 
-                self.set_slide_color()
+                self.set_slider_color()
                 
                 bgl.glEnable(bgl.GL_BLEND)
 
@@ -584,7 +598,7 @@ class BL_UI_Slider(BL_UI_Patch):
 
                 bgl.glDisable(bgl.GL_BLEND)      
 
-    def draw_slide_border(self):
+    def draw_slider_border(self):
         # This is to draw the outline and shadow from the slider widget object, 
         # instead of the counterpart ones from textbox or button objects. 
         area_height = self.get_area_height()
@@ -607,7 +621,7 @@ class BL_UI_Slider(BL_UI_Patch):
         
         bgl.glDisable(bgl.GL_BLEND)
 
-    def set_slide_color(self):
+    def set_slider_color(self):
         if self._selected_color is None:
             theme = bpy.context.preferences.themes[0]
             widget_style = getattr(theme.user_interface, self.my_style())
@@ -628,6 +642,7 @@ class BL_UI_Slider(BL_UI_Patch):
         self.slider.state = widget.state
         
     def stop_editing(self):
+        bpy.context.window.cursor_set('DEFAULT')
         self.update_self_value(float(self.textbox.text),'FINAL')
         self.__is_editing = False
 
@@ -658,9 +673,11 @@ class BL_UI_Slider(BL_UI_Patch):
                 if self.textbox.mouse_down(event, x, y):
                     return True
             else:
-                self.__is_draging = True
+                self.__is_dragging = True
                 self.__drag_start_x = x
+                self.__drag_origin = (event.mouse_x, event.mouse_y, x, y, self._value)
                 self.__mouse_moved = False
+                bpy.context.window.cursor_set('NONE')
                 if self._style == 'NUMBER_CLICK':
                     if self.button_mouse_down(self.decrease, event, x, y):
                         return True
@@ -683,8 +700,8 @@ class BL_UI_Slider(BL_UI_Patch):
 
         if self.__is_editing:
             return False
-        #---------------------
-        if self.__is_draging:
+        
+        if self.__is_dragging:
             # Update the value according to direction of x_drag
             drag_offset_x = x - self.__drag_start_x
             if drag_offset_x != 0:
@@ -705,6 +722,10 @@ class BL_UI_Slider(BL_UI_Patch):
             if self.is_in_rect(x,y):
                 self.decrease.text = "<"
                 self.increase.text = ">"
+                if self.slider.is_in_rect(x,y):
+                    bpy.context.window.cursor_set('MOVE_X')
+                else:    
+                    bpy.context.window.cursor_set('DEFAULT')
             else:
                 self.decrease.text = ""
                 self.increase.text = ""
@@ -724,12 +745,29 @@ class BL_UI_Slider(BL_UI_Patch):
         if not self._is_enabled: 
             # Consume the mouse event to avoid the camera/target be unselected
             return True
+            
+        if self.__is_editing:
+            pass
+            
+        if self.__is_dragging:
+            cursor = 'DEFAULT'
+            if self._style == 'NUMBER_CLICK':
+                bpy.context.window.cursor_warp(self.__drag_origin[0], self.__drag_origin[1])
+                if self.slider.is_in_rect(self.__drag_origin[2],self.__drag_origin[3]):
+                    cursor = 'MOVE_X'
+            else:
+                offset_x = self.__drag_origin[0] - self.__drag_origin[2]
+                capped_pos_x = self.calc_slider_bar(self._value)[1]
+                bpy.context.window.cursor_warp(capped_pos_x - offset_x, self.__drag_origin[1])
+            bpy.context.window.cursor_set(cursor)
+
+
         if self.is_in_rect(x,y):
             if self.__is_editing:
                 if self.textbox.mouse_up(event, x, y):
                     return True
             else:
-                self.__is_draging = False
+                self.__is_dragging = False
                 if self._style == 'NUMBER_CLICK':
                     if self.decrease.mouse_up(event, x, y):
                         self.equalize_states(self.decrease)
@@ -744,8 +782,8 @@ class BL_UI_Slider(BL_UI_Patch):
             if self.__is_editing:
                 self.textbox_mouse_up_func(self, event, x, y)
             else:
-                if self.__is_draging:
-                    self.__is_draging = False
+                if self.__is_dragging:
+                    self.__is_dragging = False
                     self.slider.mouse_up(event, x, y)
                     # As we are in the 'self.is_in_rect(x,y)=False' section the following function has not been 
                     # called by self.slider.mouse_up() so I need to manually call it now in the statement below.
@@ -759,6 +797,19 @@ class BL_UI_Slider(BL_UI_Patch):
     # Overrides base class function
     def mouse_up_over(self):
         pass
+
+    # Overrides base class function
+    # def mouse_enter(self, event, x, y):                     # Blender currently does not do this, but I've left
+        # if self._style == 'NUMBER_SLIDE':                   # this here just in case we want to do it in the future.
+            # if not (self.__is_editing or self.__is_dragging):
+            #     bpy.context.window.cursor_set('MOVE_X')
+        # return self.mouse_enter_func(self, event, x, y)
+
+    # Overrides base class function
+    def mouse_exit(self, event, x, y):
+        if not (self.__is_editing or self.__is_dragging):
+            bpy.context.window.cursor_set('DEFAULT')
+        return self.mouse_exit_func(self, event, x, y)
 
     # Emulates the mouse_down function of 'BL_UI_Button' class
     def button_mouse_down(self, widget, event, x, y):

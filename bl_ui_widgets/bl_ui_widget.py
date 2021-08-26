@@ -118,6 +118,11 @@ class BL_UI_Widget():
 
     @visible.setter
     def visible(self, value):
+        # if value and not self._is_visible:
+            # area_height = self.get_area_height()
+            # self.__ui_scale = 0
+            # self.__area_height = area_height
+            # self.verify_screen_position(area_height)
         self._is_visible = value
 
     @property
@@ -376,10 +381,15 @@ class BL_UI_Widget():
         
     def draw(self):
         ''' Note: 
-            This function is used by BL_UI_Drag_Panel, BL_UI_Patch, BL_UI_Button and BL_UI_Tooltip classes.
-            All other classes do have an overriding draw function in their own module coding.  
+            This function is used by BL_UI_Drag_Panel, BL_UI_Button and BL_UI_Tooltip classes.
+            All other classes do have an overriding 'draw' function in their own module coding,
+            which eventually can call this function if they have got a super.draw() statement.
         '''
         if not self._is_visible:
+            if not self._is_tooltip:
+                # Need to keep all other widget types in sync even when invisible
+                area_height = self.get_area_height()
+                self.verify_screen_position(area_height)
             return
 
         if self._is_tooltip:
@@ -800,7 +810,7 @@ class BL_UI_Widget():
         return False 
  
     def mouse_move(self, event, x, y):
-        self.mouse_move_func(self, event, x, y)
+        return self.mouse_move_func(self, event, x, y)
         
     # Mouse up handler functions
     def set_mouse_up(self, mouse_up_func):
@@ -810,7 +820,7 @@ class BL_UI_Widget():
         return False 
  
     def mouse_up(self, event, x, y):
-        self.mouse_up_func(self, event, x, y)
+        return self.mouse_up_func(self, event, x, y)
         
     def mouse_up_over(self):
         pass
@@ -823,7 +833,7 @@ class BL_UI_Widget():
         return False 
  
     def mouse_enter(self, event, x, y):
-        self.mouse_enter_func(self, event, x, y)
+        return self.mouse_enter_func(self, event, x, y)
 
     # Mouse exit handler functions
     def set_mouse_exit(self, mouse_exit_func):
@@ -833,7 +843,7 @@ class BL_UI_Widget():
         return False 
  
     def mouse_exit(self, event, x, y):
-        self.mouse_exit_func(self, event, x, y)
+        return self.mouse_exit_func(self, event, x, y)
 
     #-- Helper functions ---------------------------------------------------------------
         

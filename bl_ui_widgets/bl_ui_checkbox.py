@@ -264,11 +264,12 @@ class BL_UI_Checkbox(BL_UI_Patch):
 
     # Overrides base class function
     def draw(self):
-        if not self._is_visible:
-            return
 
         super().draw()
 
+        if not self._is_visible:
+            return
+            
         if self.__state != 1:
             return None
 

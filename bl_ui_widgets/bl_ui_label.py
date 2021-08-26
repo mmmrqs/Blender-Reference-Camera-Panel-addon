@@ -194,6 +194,8 @@ class BL_UI_Label(BL_UI_Widget):
     # Overrides base class function
     def draw(self):
         if not self._is_visible:
+            area_height = self.get_area_height()
+            self.verify_screen_position(area_height)
             return
 
         if self._style == 'REGULAR' or self._style == 'TOOLTIP':

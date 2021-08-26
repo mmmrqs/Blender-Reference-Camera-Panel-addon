@@ -63,7 +63,6 @@ bl_info = {
 #Chang: Instead of hardcoded logic it is now leveraging 'BL_UI_Label' to paint the button text lines.
 #Chang: 'draw_text' function logic leveraged to be used by 'BL_UI_Textbox' and 'BL_UI_Slider' classes.
 #Added: 'set_mouse_down' function moved into 'BL_UI_Widget' super class.
-#Fixed: New call to verify_screen_position() so that object behaves alright when viewport is resized.
 #Fixed: The calculation of vertical text centering because it was varying depending on which letters presented in the text.
 
 #--- ### Imports
