@@ -38,6 +38,7 @@ bl_info = {
 #--- ### Imports
 
 import bpy
+import os
 
 from bpy.types import Operator
 
@@ -329,7 +330,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
             When 'True" is returned below the execution is auto terminated and the 'Remote Control' panel closes itself.
         '''    
         return (bpy.context.scene.var.RemoVisible == False)
-        
+
 
     #-- Button press handlers    
     
@@ -483,7 +484,6 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         var.OpState2 = (button == 2)
         var.OpState3 = (button == 3)
         var.OpState4 = (button == 4)
-        
 
 
 ##-Register/unregister processes 

@@ -41,8 +41,7 @@ bl_info = {
 #--- ### Imports
 
 import bpy
-import time
-import os
+#import os
 
 from bpy.types import Operator
 
