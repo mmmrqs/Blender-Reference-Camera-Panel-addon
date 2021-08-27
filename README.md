@@ -69,3 +69,4 @@ Good to adjust 'Angle'
 **Perspective**: combination of Camera's Translation with Elevation/Rotation (as per G + X/Y/Z + mouse move)
 Good to adjust 'Point of View'
 *Characteristics - Selected: Camera; Transformation: Global; Pivot: Active Element (=Target)*
+
