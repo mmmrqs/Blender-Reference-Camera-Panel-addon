@@ -31,7 +31,7 @@ Feel free to create issues, file requests etc but be aware of that I may not fin
 
 ## Tutorial
 
-Please visit Witold's fabulous [Virtual Aircraft](http://airplanes3d.net/scripts-257_e.xml) site to learn **how to use** this tool and see its benefits. Also check all the awesome stuff that Witold has gotten for you in his site.
+Please visit Witold's fabulous [Airplanes in 3D Virtual Aircraft](http://airplanes3d.net/scripts-257_e.xml) site to learn **how to use** this tool and see its benefits. Also check all the awesome stuff that Witold has gotten for you in his site.
 
 
 ## Installation
