@@ -10,6 +10,7 @@ Feel free to create issues, file requests etc but be aware of that I may not fin
 
 ![floating panel](https://github.com/mmmrqs/Blender-Reference-Camera-Panel-addon/blob/main/media/fpanel_sample.png)
 
+
 ## Main features
 
 - Can be accessed via Blender's side N-Panel or via a standalone remote control **floating panel**, which can be dragged around the screen at will.
@@ -27,6 +28,7 @@ Feel free to create issues, file requests etc but be aware of that I may not fin
 
 > Note: Some functions (buttons) only appear when the 'Extended' layout option is selected in Preferences.
 
+
 ## Tutorial
 
 Please visit Witold's fabulous [Virtual Aircraft](http://airplanes3d.net/scripts-257_e.xml) site to learn **how to use** this tool and see its benefits. Also check all the awesome stuff that Witold has gotten for you in his site.
@@ -34,6 +36,7 @@ Please visit Witold's fabulous [Virtual Aircraft](http://airplanes3d.net/scripts
 
 ## Installation
 First get the addon by clicking the green "Code" button (top right of files list above) and select the "**Download ZIP**" option, then use Blender's own "Install..." (button) option after navigating to Blender's Main Menu --> Edit --> Preferences... --> Add-ons.
+
 
 ## Camera modes
 
