@@ -1,4 +1,4 @@
-# Reference Cameras Control Panel
+# Reference Cameras Control Panel Blender Addon
 
 This add-on adds a new tab to Blender's N-Panel which groups many utilities for managing cameras that can be used for “fitting” the 3D models into reference photos. With it the user can easily operate multiple reference camera setups containing real world object photos taken from different directions. 
 
@@ -22,7 +22,7 @@ Feel free to create issues, file requests etc but be aware of that I may not fin
 - Buttons to add to the scene new 'camera/target sets' already configured to work with the addon.
 - Camera sets can be automatically organized in distinct subgroups (per folder name, alphabetically sorted and collapsible), for easier operation.
 - Buttons to temporarily remove (hide) cameras from the N-Panel group of buttons (so that it became less cluttered).
-- Addon preferences for customization of various behaviors and elements default values.
+- Addon preferences panel for customization of various behaviors and elements default values.
 
 ![n-side panel](https://github.com/mmmrqs/Blender-Reference-Camera-Panel-addon/blob/main/media/npanel_sample.png)
 
