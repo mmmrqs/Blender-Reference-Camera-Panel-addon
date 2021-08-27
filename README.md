@@ -44,8 +44,8 @@ The standard 'adjustment camera modes' available to user selection are as follow
 
 **Zoom**: Dolly moves only back and forth on camera's axis (as per G + Z + move mouse)
 
-- [x] Good to adjust 'Distance/Size'
- - [x] *Characteristics - Selected: Camera; Transformation: Local; Pivot: Active Element (=Camera)*
+[x] Good to adjust 'Distance/Size'
+[x] *Characteristics - Selected: Camera; Transformation: Local; Pivot: Active Element (=Camera)*
 
 **Horizontal Orbit**: The camera rotates around the target which stays in place (as per R + Z + move mouse)
 [x] Good to adjust 'Rotation'
