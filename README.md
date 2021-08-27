@@ -8,6 +8,8 @@ Feel free to create issues, file requests etc but be aware of that I may not fin
 
 > This fork is intended to serve as a tool set for managing the perspective view cameras in **Blender**.
 
+![n-side panel](https://github.com/mmmrqs/Blender-Reference-Camera-Panel-addon/blob/main/media/npanel_sample.png)
+
 ## Main features
 
 - Can be accessed via Blender's side N-Panel or via a standalone remote control **floating panel**, which can be dragged around the screen at will.
@@ -21,15 +23,17 @@ Feel free to create issues, file requests etc but be aware of that I may not fin
 - Buttons to temporarily remove (hide) cameras from the N-Panel group of buttons (so that it became less cluttered);
 - Addon preferences for customization of various behaviors and elements default values.
 
-> Note: Some functions (buttons) only appear when the 'Extended' layout option is selected in Preferences.
-
 ![floating panel](https://github.com/mmmrqs/Blender-Reference-Camera-Panel-addon/blob/main/media/fpanel_sample.png)
+
+> Note: Some functions (buttons) only appear when the 'Extended' layout option is selected in Preferences.
 
 ## Tutorial
 
 Please visit Witold's fabulous [Virtual Aircraft](http://airplanes3d.net/scripts-257_e.xml) site to learn **how to use** this tool and see its benefits. Also check all the awesome stuff that Witold has gotten for you in his site.
 
 
+## Installation
+First get the addon by clicking the green "Code" button (top right of files list above) and select the "**Download ZIP**" option, then use Blender's own "Install..." (button) option after navigating to Blender's Main Menu --> Edit --> Preferences... --> Add-ons.
 
 ## Camera modes
 
@@ -49,16 +53,16 @@ Good to adjust 'Elevation/Azimuth'
 
 **Tilt**: Camera stays still, moves from up and down (as per R + Y + move mouse)
 Good to adjust 'Inclination'
-*Characteristics - Selected: Target; Transformation: Local; Pivot: Active Element (:Target)*
+*Characteristics - Selected: Target; Transformation: Local; Pivot: Active Element (=Target)*
 
 **Translation**: Truck/Pedestal moves only from left to right on camera's axis (as per G + X/Y/Z + move mouse)
 Good to adjust 'Position'
-*Characteristics - Selected: Camera+Target; Transformation: Global; Pivot: Active Element (:Target)*
+*Characteristics - Selected: Camera+Target; Transformation: Global; Pivot: Active Element (=Target)*
 
 **Roll**: Camera stays still, lean from left to right (as per R + X/Y + move mouse)
 Good to adjust 'Angle'
-*Characteristics - Selected: Camera+Target; Transformation: Global; Pivot: Active Element (:Target)*
+*Characteristics - Selected: Camera+Target; Transformation: Global; Pivot: Active Element (=Target)*
 
 **Perspective**: combination of Camera's Translation with Elevation/Rotation (as per G + X/Y/Z + mouse move)
 Good to adjust 'Point of View'
-*Characteristics - Selected: Camera; Transformation: Global; Pivot: Active Element (:Target)*
+*Characteristics - Selected: Camera; Transformation: Global; Pivot: Active Element (=Target)*
