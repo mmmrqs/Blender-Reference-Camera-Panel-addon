@@ -44,29 +44,34 @@ The standard 'adjustment camera modes' available to user selection are as follow
 
 **Zoom**: Dolly moves only back and forth on camera's axis (as per G + Z + move mouse)
 
-[x] Good to adjust 'Distance/Size'
-[x] *Characteristics - Selected: Camera; Transformation: Local; Pivot: Active Element (=Camera)*
+- [x] Good to adjust 'Distance/Size'
+- [x] *Characteristics - Selected: Camera; Transformation: Local; Pivot: Active Element (=Camera)*
 
 **Horizontal Orbit**: The camera rotates around the target which stays in place (as per R + Z + move mouse)
-[x] Good to adjust 'Rotation'
-[x] *Characteristics - Selected: Camera; Transformation: Global; Pivot: 3D Cursor (which is moved to 'Target' origin)*
+- [x] Good to adjust 'Rotation'
+- [x] *Characteristics - Selected: Camera; Transformation: Global; Pivot: 3D Cursor (which is moved to 'Target' origin)*
 
 **Vertical Orbit**: The camera rotates around the target which stays in place (as per R + X + move mouse)
-[x] Good to adjust 'Elevation/Azimuth'
-[x] *Characteristics - Selected: Camera; Transformation: Local; Pivot: 3D Cursor (which is moved to 'Target' origin)*
+
+- [x] Good to adjust 'Elevation/Azimuth'
+- [x] *Characteristics - Selected: Camera; Transformation: Local; Pivot: 3D Cursor (which is moved to 'Target' origin)*
 
 **Tilt**: Camera stays still, moves from up and down (as per R + Y + move mouse)
-[x] Good to adjust 'Inclination'
-[x] *Characteristics - Selected: Target; Transformation: Local; Pivot: Active Element (=Target)*
+- [x] Good to adjust 'Inclination'
+
+- [x] *Characteristics - Selected: Target; Transformation: Local; Pivot: Active Element (=Target)*
 
 **Translation**: Truck/Pedestal moves only from left to right on camera's axis (as per G + X/Y/Z + move mouse)
-[x] Good to adjust 'Position'
-[x] *Characteristics - Selected: Camera+Target; Transformation: Global; Pivot: Active Element (=Target)*
+
+- [x] Good to adjust 'Position'
+- [x] *Characteristics - Selected: Camera+Target; Transformation: Global; Pivot: Active Element (=Target)*
 
 **Roll**: Camera stays still, lean from left to right (as per R + X/Y + move mouse)
-[x] Good to adjust 'Angle'
-[x] *Characteristics - Selected: Camera+Target; Transformation: Global; Pivot: Active Element (=Target)*
+
+- [x] Good to adjust 'Angle'
+- [x] *Characteristics - Selected: Camera+Target; Transformation: Global; Pivot: Active Element (=Target)*
 
 **Perspective**: combination of Camera's Translation with Elevation/Rotation (as per G + X/Y/Z + mouse move)
-[x] Good to adjust 'Point of View'
-[x] *Characteristics - Selected: Camera; Transformation: Global; Pivot: Active Element (=Target)*
+
+- [x] Good to adjust 'Point of View'
+- [x] *Characteristics - Selected: Camera; Transformation: Global; Pivot: Active Element (=Target)*
