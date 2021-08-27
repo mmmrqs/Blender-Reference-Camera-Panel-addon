@@ -22,6 +22,7 @@ Feel free to create issues, file requests etc but be aware of that I may not fin
 - Addon preferences for customization of various behaviors and elements default values.
 
 > Note: Some functions (buttons) only appear when the 'Extended' layout option is selected in Preferences.
+
 ![floating panel](https://github.com/mmmrqs/Blender-Reference-Camera-Panel-addon/blob/main/media/fpanel_sample.png)
 
 ## Tutorial
