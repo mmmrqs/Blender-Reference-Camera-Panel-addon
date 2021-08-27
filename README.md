@@ -8,7 +8,7 @@ Feel free to create issues, file requests etc but be aware of that I may not fin
 
 > This fork is intended to serve as a tool set for managing the perspective view cameras in **Blender**.
 
-![n-side panel](https://github.com/mmmrqs/Blender-Reference-Camera-Panel-addon/blob/main/media/npanel_sample.png)
+![floating panel](https://github.com/mmmrqs/Blender-Reference-Camera-Panel-addon/blob/main/media/fpanel_sample.png)
 
 ## Main features
 
@@ -23,7 +23,7 @@ Feel free to create issues, file requests etc but be aware of that I may not fin
 - Buttons to temporarily remove (hide) cameras from the N-Panel group of buttons (so that it became less cluttered);
 - Addon preferences for customization of various behaviors and elements default values.
 
-![floating panel](https://github.com/mmmrqs/Blender-Reference-Camera-Panel-addon/blob/main/media/fpanel_sample.png)
+![n-side panel](https://github.com/mmmrqs/Blender-Reference-Camera-Panel-addon/blob/main/media/npanel_sample.png)
 
 > Note: Some functions (buttons) only appear when the 'Extended' layout option is selected in Preferences.
 
