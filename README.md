@@ -1,4 +1,4 @@
-# Reference Cameras Control Panel Blender Addon
+# Reference Cameras Control Panel addon for Blender 3D
 
 This add-on adds a new tab to Blender's N-Panel which groups many utilities for managing cameras that can be used for “fitting” the 3D models into reference photos. With it the user can easily operate multiple reference camera setups containing real world object photos taken from different directions. 
 
