@@ -6,7 +6,7 @@ This add-on was [originally created](http://airplanes3d.net/scripts-257_e.xml) b
 
 Feel free to create issues, file requests etc but be aware of that I may not find time to work on this as much as I'd probably like to. Note: This has been tested in Blender 2.9 (but may be back compatible to at least version 2.8)
 
-> This fork is intended to serve as a tool set for managing the perspective view cameras in **Blender**.
+> This fork is intended to serve as a tool set for managing the perspective view cameras in **Blender**.  This addon is for **Blender 2.8** and newer versions.
 
 ![floating panel](https://github.com/mmmrqs/Blender-Reference-Camera-Panel-addon/blob/main/media/fpanel_sample.png)
 
