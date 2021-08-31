@@ -20,14 +20,16 @@
 bl_info = {
     "name": "BL UI Widgets",
     "description": "UI Widgets to draw in the 3D view",
-    "author": "Jayanam (enhancements by Marcelo M. Marques)",
-    "version": (0, 6, 5, 0),
-    "blender": (2, 80, 3),
-    "location": "View3D",
+    "author": "Marcelo M. Marques",
+    "version": (1, 0, 0),
+    "blender": (2, 80, 75),
+    "location": "View3D > side panel ([N]), [BL_UI_Widget] tab",
     "support": "COMMUNITY",
     "category": "3D View",
-    "warning": ""
-    }
+    "warning": "",
+    "doc_url": "https://github.com/mmmrqs/bl_ui_widgets",
+    "tracker_url": "https://github.com/mmmrqs/bl_ui_widgets/issues"
+    }    
 
 import bpy
 from bpy.props import StringProperty, BoolProperty
@@ -81,7 +83,7 @@ class OBJECT_PT_Demo(bpy.types.Panel):
     bl_space_type = 'VIEW_3D' 
     bl_region_type = 'UI' 
     bl_category = "BL_UI_Widget"
-    bl_label = "Current"
+    bl_label = "BL_UI_Widget"
        
     @classmethod
     def poll(cls, context):

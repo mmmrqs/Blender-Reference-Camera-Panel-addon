@@ -22,16 +22,16 @@ Reference Cameras add-on
 #--- ### Header
 bl_info = {
     "name": "Reference Cameras",
-    "description": "Handles cameras associated with a reference photo",
-    "author": "Witold Jaworski (enhancements by Marcelo M. Marques)",
-    "version": (2, 1, 0),
-    "blender": (2, 80, 3),
+    "description": "Handles cameras associated with reference photos",
+    "author": "Marcelo M. Marques (fork of Witold Jaworski's project)",
+    "version": (1, 0, 0),
+    "blender": (2, 80, 75),
     "location": "View3D > side panel ([N]), [Cameras] tab",
     "support": "COMMUNITY",
     "category": "3D View",
-    "warning": "",
+    "warning": "Version numbering diverges from Witold's original project",
     "doc_url": "http://airplanes3d.net/scripts-257_e.xml",
-    "tracker_url": "http://airplanes3d.net/track-257_e.xml"
+    "tracker_url": "https://github.com/mmmrqs/Blender-Reference-Camera-Panel-addon/issues"
     }
 
 #--- ### Change log
@@ -48,6 +48,7 @@ bl_info = {
 #Chang: Replaced constants by functions that retrieve the values from the addon preferences
 
 #--- ### Imports
+import functools
 import math
 import bpy
 import os
@@ -386,13 +387,14 @@ class Variables(bpy.types.PropertyGroup):
     RemoVisible: BoolProperty(default=False)
     btnRemoText: StringProperty(default="Open Remote Control")
     btnRemoIcon: StringProperty(default="") #place holder only, not used for now
+    timerObject: StringProperty(default="")
 
 class RC_memory_slot(bpy.types.PropertyGroup):
-    CameraLens: bpy.props.FloatProperty(default=0)
-    CameraLocation: bpy.props.FloatVectorProperty(size=3,default=(0,0,0),subtype='COORDINATES')
-    CameraRotation: bpy.props.FloatVectorProperty(size=3,default=(0,0,0),subtype='EULER')
-    TargetLocation: bpy.props.FloatVectorProperty(size=3,default=(0,0,0),subtype='COORDINATES')
-    TargetRotation: bpy.props.FloatVectorProperty(size=3,default=(0,0,0),subtype='EULER')
+    CameraLens: FloatProperty(default=0)
+    CameraLocation: FloatVectorProperty(size=3,default=(0,0,0),subtype='TRANSLATION')  
+    CameraRotation: FloatVectorProperty(size=3,default=(0,0,0),subtype='EULER')
+    TargetLocation: FloatVectorProperty(size=3,default=(0,0,0),subtype='TRANSLATION')  
+    TargetRotation: FloatVectorProperty(size=3,default=(0,0,0),subtype='EULER')
     
 class CustomSceneList(bpy.types.PropertyGroup):
     # name = StringProperty() # this is inherited from bpy.types.PropertyGroup
@@ -599,52 +601,74 @@ class RefCameraPanelbutton_LROT(bpy.types.Operator):
 
 def blink_mesh_objects():
     context = bpy.context
-    rc = find_collection(context.scene.collection, RC_MESHES())
-    if rc:
-        if not context.view_layer.layer_collection.children[RC_MESHES()].hide_viewport:
-            for obj in rc.objects:
-                if not obj.type == 'MESH': 
-                    continue
-                thisObjWasMadeHidden = obj.hide_get()
-                thisObjFound = False
-                for stateListed in context.scene.lastObjectSet:
-                    if obj.name == stateListed.name:
+    try:
+        rc = find_collection(context.scene.collection, RC_MESHES())
+        if rc:
+            if not context.view_layer.layer_collection.children[RC_MESHES()].hide_viewport:
+                for obj in rc.objects:
+                    if not obj.type == 'MESH': 
+                        continue
+                    thisObjWasMadeHidden = obj.hide_get()
+                    thisObjFound = False
+                    for stateListed in context.scene.lastObjectSet:
+                        if obj.name == stateListed.name:
+                            obj.hide_set(context.scene.var.MeshVisible)
+                            thisObjFound = True
+                            break
+                    if thisObjFound == False and thisObjWasMadeHidden == False:
+                        #-this is a workaround to add to the list those meshes that
+                        # the user has manually unhidden directly on the outliner's collection 
                         obj.hide_set(context.scene.var.MeshVisible)
-                        thisObjFound = True
-                        break
-                if thisObjFound == False and thisObjWasMadeHidden == False:
-                    #-this is a workaround to add to the list those meshes that
-                    # the user has manually unhidden directly on the outliner's collection 
-                    obj.hide_set(context.scene.var.MeshVisible)
-                    newItem = context.scene.lastObjectSet.add()
-                    newItem.name = obj.name
-                if thisObjFound == True and thisObjWasMadeHidden == True and context.scene.var.MeshVisible == True:
-                    #-this is a workaround to remove from the list those meshes that
-                    # the user has manually hidden directly on the outliner's collection 
-                    itemID = context.scene.lastObjectSet.find(obj.name)
-                    context.scene.lastObjectSet.remove(itemID)
-            return True        
+                        newItem = context.scene.lastObjectSet.add()
+                        newItem.name = obj.name
+                    if thisObjFound == True and thisObjWasMadeHidden == True and context.scene.var.MeshVisible == True:
+                        #-this is a workaround to remove from the list those meshes that
+                        # the user has manually hidden directly on the outliner's collection 
+                        itemID = context.scene.lastObjectSet.find(obj.name)
+                        context.scene.lastObjectSet.remove(itemID)
+                return True        
+    except:
+        pass
     return False
 
-def blink_mesh_timer():
+def blink_mesh_timer(idx):
     context = bpy.context
     has_error = True
+    break_out = False
     try:
         if context.mode == 'OBJECT':
-            areas = context.window.screen.areas
+            if bpy.app.version >= (2, 90, 0):    
+                areas = context.window.screen.areas
+            else:
+                areas = context.window_manager.windows[idx].screen.areas
+            #
             for area in areas:
                 if area.type == 'VIEW_3D':
-                    #if area.regions[-1].data.view_perspective == 'CAMERA': # <-- Could've done just this instead
-                    #    has_error = not blink_mesh_objects()               #     but I didn't trust it for production.
-                    #break                                                  #
-                    for region in area.regions:
-                        if region.type == 'WINDOW':
-                            if region.data.view_perspective == 'CAMERA':
-                                has_error = not blink_mesh_objects()
+                    # The following code is better for Blender 2.90 and greater
+                    if bpy.app.version >= (2, 90, 0):    
+                        #if area.regions[-1].data.view_perspective == 'CAMERA': # <-- Could've done just this instead
+                            #has_error = not blink_mesh_objects()               #     but I didn't trust it for production.
+                        #break                                                  #
+                        for region in area.regions:
+                            if region.type == 'WINDOW':
+                                if region.data.view_perspective == 'CAMERA':    # 2.80 issue: '.data' does not exist here
+                                    has_error = not blink_mesh_objects()
+                                    break_out = True
+                                    break
+                    else:
+                    # The following code is needed for Blender 2.80 thru 2.83
+                        for space_data in area.spaces:
+                            if space_data.type == 'VIEW_3D': # This is a SpeceView3D
+                                if space_data.region_3d.view_perspective == 'CAMERA': # This is a RegionView3D
+                                    has_error = not blink_mesh_objects()
+                                    break_out = True
                                 break
-                    break
+                # Found one that works, so get out of external "For-loop"
+                if break_out:
+                    break        
     except: 
         pass
+
     if len(context.scene.lastObjectSet.items()) > 0 and not has_error:
         context.scene.var.MeshVisible = not context.scene.var.MeshVisible
         package = __package__[0:__package__.find(".")]
@@ -682,7 +706,8 @@ class RefCameraPanelbutton_FLSH(bpy.types.Operator):
         return self.execute(context)
             
     def execute(self, context):
-        if blink_mesh_timer() is None:
+        idx = bpy.context.window_manager.windows[:].index(bpy.context.window)
+        if blink_mesh_timer(idx) is None:
             if self.mode == 'NPANEL':
                 self.report(type={'ERROR'}, message="Collection '" + RC_MESHES() + "' not found or all meshes are hidden")
             return {'CANCELLED'}
@@ -690,10 +715,12 @@ class RefCameraPanelbutton_FLSH(bpy.types.Operator):
             context.scene.var.OpStateA = not context.scene.var.OpStateA
             if context.scene.var.OpStateA:
                 if not bpy.app.timers.is_registered(blink_mesh_timer):
-                    bpy.app.timers.register(blink_mesh_timer, first_interval=0, persistent=False)
+                    bpy.types.Scene.timerObject = functools.partial(blink_mesh_timer, idx)
+                    bpy.app.timers.register(bpy.types.Scene.timerObject, first_interval=0, persistent=False)
             else:
-                if bpy.app.timers.is_registered(blink_mesh_timer):
-                    bpy.app.timers.unregister(blink_mesh_timer)
+                if bpy.app.timers.is_registered(bpy.types.Scene.timerObject):
+                    bpy.app.timers.unregister(bpy.types.Scene.timerObject)
+                    bpy.types.Scene.timerObject = None
                 if not context.scene.var.MeshVisible:
                     # Call it one last time if needed to leave the mesh(es) turned on
                     context.scene.var.MeshVisible = blink_mesh_objects()
@@ -1033,7 +1060,8 @@ class SetReferenceCamera(bpy.types.Operator):
         #Calls the adjustment mode class in its default mode to keep current mode
         SetAdjustmentMode() 
         #Calls the memory slot clear operator
-        bpy.ops.object.ref_camera_panelbutton_mc()
+        if bpy.ops.object.ref_camera_panelbutton_mc.poll():        
+            bpy.ops.object.ref_camera_panelbutton_mc()
         return {'FINISHED'}
 
 class AddCollectionSet(bpy.types.Operator):
@@ -1356,7 +1384,7 @@ class OBJECT_PT_RefCameras(bpy.types.Panel):
     bl_space_type = 'VIEW_3D' 
     bl_region_type = 'UI' 
     bl_category = "Cameras"
-    bl_label = "" #"Ref Cameras"
+    bl_label = " " #"Ref Cameras"
     #bl_options = {'HIDE_HEADER'}
     
     #--- methods    
@@ -1576,6 +1604,7 @@ def register():
     bpy.types.Scene.var = bpy.props.PointerProperty(type=Variables)
     bpy.types.Scene.lastObjectSet = bpy.props.CollectionProperty(type=CustomSceneList)
     bpy.types.Scene.memory_slots_collection = bpy.props.CollectionProperty(type=RC_memory_slot)
+    bpy.types.Scene.timerObject = PointerProperty(type=bpy.types.Object)
     for i in range(RC_SUBPANELS()):
         propSubPanel = f"panel_switch_{i+1:03d}"
         setattr(bpy.types.Scene, propSubPanel, bpy.props.BoolProperty(name=propSubPanel,default=True,description="Collapse/Expand this subpanel"))
@@ -1594,6 +1623,7 @@ def unregister():
     del bpy.types.Scene.var
     del bpy.types.Scene.lastObjectSet
     del bpy.types.Scene.memory_slots_collection
+    del bpy.types.Scene.timerObject
     bpy.app.handlers.depsgraph_update_post.remove(after_update)    
     for i in range(RC_SUBPANELS()):
         propSubPanel = f"panel_switch_{i+1:03d}"
