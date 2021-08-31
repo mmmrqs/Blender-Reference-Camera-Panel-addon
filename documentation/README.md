@@ -13,7 +13,7 @@ The widgets are also fully scalable, bound to Blender's Resolution Scale configu
 
 Not much documentation is available for now, but the code has a lot of annotations to help you out and each module has its mod log listing all added features.  Also, at each module's init method you can find all available attributes described with detailed information.
 
-The GPU module of Blender 2.8 is used for drawing.  This package has a **demo panel** to showcase all available widgets so that you can install it and have a quick testing.  It also serves as a template or a baseline for creating **your own addons**.  I attempted to add a little bit of each feature to the demo code in order to help starters. You can have it installed by using the alternate **\_\_init\_\_.py** file available in the '\_\_init\_\_backups' folder, so check that out please. 
+The GPU module of Blender 2.8 is used for drawing.  This package has a demo panel to showcase all available widgets so that you can install it and have a quick testing.  It also serves as a template or a baseline for creating **your own addons**.  I attempted to add a little bit of each feature to the demo code in order to help starters. You can have it installed by using the alternate **\_\_init\_\_.py** file available in the '\_\_init\_\_backups' folder, so check that out please. 
 
 ## Classes relationships for the Remote Control draggable panel
 ![BL_UI_Widgets UML](https://github.com/mmmrqs/Blender-Reference-Camera-Panel-addon/blob/main/media/Classes_UML1.png)
