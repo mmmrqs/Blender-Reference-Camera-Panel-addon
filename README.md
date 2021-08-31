@@ -4,7 +4,7 @@ This add-on adds a new tab to Blender's N-Panel which groups many utilities for 
 
 This add-on was [originally created](http://airplanes3d.net/scripts-257_e.xml) by ***Witold Jaworsky*** and has been enhanced by me with additional features and a handy floating "cameras remote control" panel built upon the [BL UI Widgets](https://github.com/jayanam/bl_ui_widgets) add-on created by ***Jayanam***. 
 
-Feel free to create issues, file requests etc but be aware of that I may not find time to work on this as much as I'd probably like to. Note: This has been tested in Blender 2.9 (but may be back compatible to at least version 2.8)
+Feel free to create issues, file requests etc but be aware of that I may not find time to work on this as much as I'd probably like to. 
 
 > This fork is intended to serve as a tool set for managing the perspective view cameras in **Blender 2.8** and newer versions.
 
