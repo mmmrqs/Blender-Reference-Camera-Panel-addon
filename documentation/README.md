@@ -5,7 +5,7 @@
 
 # Blender UI Widgets
 
-The Reference Cameras Panel addon uses my fork of **Jayanam's Blender UI Widgets** for displaying a floating 'Remote Control' panel. This is a collection of UI Widgets that allows the creation of addons with a persistent (modal) draggable floating panel, textboxes, checkboxes, buttons or sliders for **Blender 2.8** and newer versions.
+The Reference Cameras Panel addon uses my fork of **Jayanam's Blender UI Widgets** for displaying a floating 'Remote Control' panel. This is a collection of UI Widgets that allows the creation of addons with a persistent (modal) draggable floating panel, textboxes, checkboxes, buttons and sliders for **Blender 2.8** and newer versions.
 
 Each widget object has many attributes that can be set by the programmer to customize its appearance and behavior.  One can opt to let the widgets automatically take the appearance of the selected Blender's Theme or can override any of those characteristics individually, and per widget.
 
