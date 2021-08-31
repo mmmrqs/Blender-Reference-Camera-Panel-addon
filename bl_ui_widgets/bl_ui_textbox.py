@@ -23,14 +23,16 @@ Reference Cameras add-on
 bl_info = {
     "name": "BL UI Widgets",
     "description": "UI Widgets to draw in the 3D view",
-    "author": "Jayanam (enhancements by Marcelo M. Marques)",
-    "version": (0, 6, 5, 0),
-    "blender": (2, 80, 3),
-    "location": "View3D",
+    "author": "Marcelo M. Marques (fork of Jayanam's original project)",
+    "version": (1, 0, 0),
+    "blender": (2, 80, 75),
+    "location": "View3D > viewport area",
     "support": "COMMUNITY",
     "category": "3D View",
-    "warning": ""
-    }
+    "warning": "Version numbering diverges from Jayanam's original project",
+    "doc_url": "https://github.com/mmmrqs/bl_ui_widgets",
+    "tracker_url": "https://github.com/mmmrqs/bl_ui_widgets/issues"
+    }    
     
 #--- ### Change log
 
@@ -47,7 +49,6 @@ import blf
 from gpu_extras.batch import batch_for_shader
 
 from . bl_ui_button import BL_UI_Button
-from . bl_ui_label import BL_UI_Label
 
 class BL_UI_Textbox(BL_UI_Button):
 
@@ -332,8 +333,11 @@ class BL_UI_Textbox(BL_UI_Button):
             if self._cursor_color is None:
                 # From Preferences/Themes/User Interface/"Styles"
                 theme = bpy.context.preferences.themes[0]
-                widget_style = theme.user_interface              
-                color = tuple(widget_style.widget_text_cursor) + (1.0,) 
+                if bpy.app.version >= (2, 90, 0):
+                    widget_style = theme.user_interface             
+                    color = tuple(widget_style.widget_text_cursor) + (1.0,) 
+                else:
+                    color = (0.2, 0.6, 0.9, 1.0)     # 2.80 issue: widget_text_cursor does not exist, color value was hard coded
             else:
                 color = self._cursor_color
 

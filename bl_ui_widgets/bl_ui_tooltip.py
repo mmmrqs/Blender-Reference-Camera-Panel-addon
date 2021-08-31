@@ -24,13 +24,15 @@ bl_info = {
     "name": "BL UI Widgets",
     "description": "UI Widgets to draw in the 3D view",
     "author": "Marcelo M. Marques",
-    "version": (0, 6, 5, 0),
-    "blender": (2, 80, 3),
-    "location": "View3D",
+    "version": (1, 0, 0),
+    "blender": (2, 80, 75),
+    "location": "View3D > viewport area",
     "support": "COMMUNITY",
     "category": "3D View",
-    "warning": ""
-    }
+    "warning": "",
+    "doc_url": "https://github.com/mmmrqs/bl_ui_widgets",
+    "tracker_url": "https://github.com/mmmrqs/bl_ui_widgets/issues"
+    }    
     
 #--- ### Change log
 
