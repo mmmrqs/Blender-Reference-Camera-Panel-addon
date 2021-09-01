@@ -19,15 +19,15 @@
 bl_info = {
     "name": "Reference Cameras Control Panel",
     "description": "Handles cameras associated with reference photos",
-    "author": "Witold Jaworski & Jayanam (enhancements by Marcelo M. Marques)",
-    "version": (2, 1, 0),
-    "blender": (2, 80, 3),
+    "author": "Marcelo M. Marques (fork of Witold Jaworski's & Jayanam's projects)",
+    "version": (1, 0, 0),
+    "blender": (2, 80, 75),
     "location": "View3D > side panel ([N]), [Cameras] tab",
     "support": "COMMUNITY",
     "category": "3D View",
-    "warning": "",
+    "warning": "Version numbering diverges from Witold's original project",
     "doc_url": "http://airplanes3d.net/scripts-257_e.xml",
-    "tracker_url": "http://airplanes3d.net/track-257_e.xml"
+    "tracker_url": "https://github.com/mmmrqs/Blender-Reference-Camera-Panel-addon/issues"
     }
 
 import bpy
