@@ -21,22 +21,22 @@ Reference Cameras add-on
 '''
 #--- ### Header
 bl_info = {
-    "name": "Reference Cameras",
-    "description": "Handles cameras associated with a reference photo",
-    "author": "Witold Jaworski (enhancements by Marcelo M. Marques)",
-    "version": (2, 1, 0),
-    "blender": (2, 80, 3),
+    "name": "Reference Cameras Control Panel",
+    "description": "Handles cameras associated with reference photos",
+    "author": "Marcelo M. Marques (fork of Witold Jaworski's & Jayanam's projects)",
+    "version": (1, 0, 0),
+    "blender": (2, 80, 75),
     "location": "View3D > side panel ([N]), [Cameras] tab",
     "support": "COMMUNITY",
     "category": "3D View",
-    "warning": "mmmrqs@gmail.com",
+    "warning": "Version numbering diverges from Witold's original project",
     "doc_url": "http://airplanes3d.net/scripts-257_e.xml",
-    "tracker_url": "http://airplanes3d.net/track-257_e.xml"
+    "tracker_url": "https://github.com/mmmrqs/Blender-Reference-Camera-Panel-addon/issues"
     }
 
 #--- ### Change log
 
-#v2.1.0 (08.01.2021) - by Marcelo M. Marques 
+#v1.0.0 (09.01.2021) - by Marcelo M. Marques 
 #Added: initial creation
 
 #--- ### Imports
@@ -109,7 +109,7 @@ class ReferenceCameraPreferences(AddonPreferences):
         step=100,
         precision=2,
         unit='CAMERA',
-        subtype='DISTANCE_CAMERA'
+        subtype= ('DISTANCE_CAMERA' if bpy.app.version >= (2, 90, 0) else 'DISTANCE')   # 2.80 issue: 'DISTANCE_CAMERA' subtype unknown
     )
 
     RC_SENSOR: FloatProperty(
@@ -191,7 +191,7 @@ class ReferenceCameraPreferences(AddonPreferences):
 
     RC_BLINK_ON: FloatProperty(
         name="",
-        description="Time duration for the 'ON' stage of the blinking mesh cycle, in units of 1/10th of a second",
+        description= "Time duration for the 'ON' stage of the blinking mesh cycle, in units of 1/10th of a second",
         default=0.4,
         max=1.0,
         min=0.1,
@@ -204,7 +204,7 @@ class ReferenceCameraPreferences(AddonPreferences):
 
     RC_BLINK_OFF: FloatProperty(
         name="",
-        description="Time duration for the 'OFF' stage of the blinking mesh cycle, in units of 1/10th of a second",
+        description= "Time duration for the 'OFF' stage of the blinking mesh cycle, in units of 1/10th of a second",
         default=0.3,
         max=1.0,
         min=0.1,
