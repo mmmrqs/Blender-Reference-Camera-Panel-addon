@@ -352,7 +352,7 @@ def view_is_camera():
            for region in area.regions:
                if region.type == 'WINDOW':
                    region3d = area.spaces[0].region_3d
-                   if region3d.view_perspective == "CAMERA":
+                   if region3d.view_perspective == 'CAMERA':
                        return True
     return False
    
@@ -388,6 +388,7 @@ class Variables(bpy.types.PropertyGroup):
     btnRemoText: StringProperty(default="Open Remote Control")
     btnRemoIcon: StringProperty(default="") #place holder only, not used for now
     timerObject: StringProperty(default="")
+    addon_ident: StringProperty(default="RC_CAMERA")
 
 class RC_memory_slot(bpy.types.PropertyGroup):
     CameraLens: FloatProperty(default=0)

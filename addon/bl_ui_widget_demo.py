@@ -45,15 +45,23 @@ class Variables(bpy.types.PropertyGroup):
     RemoVisible: bpy.props.BoolProperty(default=False)
     btnRemoText: bpy.props.StringProperty(default="Open Demo Panel")
 
-def is_object_mode(context = None):
-    """Returns True, when Blender is in the Object Mode
+def is_desired_mode(context = None):
+    """Returns True, when Blender is in one of the desired Modes
         Arguments:
-            @context (Context):    current context (optional - as received by the operator)
+            @context (Context):  current context (optional - as received by the operator)
+
+       Possible desired mode options (as of Blender 2.8): 
+            'EDIT_MESH', 'EDIT_CURVE', 'EDIT_SURFACE', 'EDIT_TEXT', 'EDIT_ARMATURE', 'EDIT_METABALL', 
+            'EDIT_LATTICE', 'POSE', 'SCULPT', 'PAINT_WEIGHT', 'PAINT_VERTEX', 'PAINT_TEXTURE', 'PARTICLE', 
+            'OBJECT', 'PAINT_GPENCIL', 'EDIT_GPENCIL', 'SCULPT_GPENCIL', 'WEIGHT_GPENCIL', 
+       Additional desired mode option (as of Blender 2.9): 
+            'VERTEX_GPENCIL'    
     """
+    desired_modes = ['OBJECT','EDIT_MESH','POSE',]
     if context:
-        return context.mode == 'OBJECT'
+        return (context.mode in desired_modes)
     else:
-        return bpy.context.mode == 'OBJECT'
+        return (bpy.context.mode in desired_modes)
 
 class Set_Demo_Panel(bpy.types.Operator):
     ''' Opens/Closes the remote control demo panel '''
@@ -63,7 +71,7 @@ class Set_Demo_Panel(bpy.types.Operator):
     #--- Blender interface methods
     @classmethod
     def poll(cls,context):
-        return (is_object_mode(context))
+        return is_desired_mode(context)
         
     def invoke(self, context, event):
         #input validation: 
@@ -87,11 +95,10 @@ class OBJECT_PT_Demo(bpy.types.Panel):
        
     @classmethod
     def poll(cls, context):
-        #show this panel in Object Mode, only:
-        return (context.mode == 'OBJECT')
+        return is_desired_mode()
    
     def draw(self, context):
-        if context.space_data.type == 'VIEW_3D' and context.mode == 'OBJECT':
+        if context.space_data.type == 'VIEW_3D' and is_desired_mode(): 
             #-- remote control switch button
             op = self.layout.operator(Set_Demo_Panel.bl_idname, text=context.scene.var.btnRemoText)
         return None

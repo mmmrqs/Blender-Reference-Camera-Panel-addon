@@ -36,28 +36,22 @@ bl_info = {
     
 #--- ### Change log
 
-#v0.6.5 (08.01.2021) - by Marcelo M. Marques 
+#v1.0.0 (09.01.2021) - by Marcelo M. Marques 
 #Added: 'terminate_execution' function that can be overriden by programmer to command termination of the 'Remote Panel' widget.
-#Added: New properties and functions to all widgets (check their corresponding modules for more information). 
+#Added: New properties and functions in all widgets (check their corresponding modules for more information). 
 
 #--- ### Imports
 
 import bpy
-#import os
 
 from bpy.types import Operator
 
-from ..bl_ui_widgets.bl_ui_label import BL_UI_Label        # <-- not needed for now but left as example
-from ..bl_ui_widgets.bl_ui_patch import BL_UI_Patch        # <-- not needed for now but left as example
-from ..bl_ui_widgets.bl_ui_checkbox import BL_UI_Checkbox  # <-- not needed for now but left as example
-from ..bl_ui_widgets.bl_ui_slider import BL_UI_Slider      # <-- not needed for now but left as example
-from ..bl_ui_widgets.bl_ui_textbox import BL_UI_Textbox    # <-- not needed for now but left as example
 from ..bl_ui_widgets.bl_ui_button import BL_UI_Button
 from ..bl_ui_widgets.bl_ui_tooltip import BL_UI_Tooltip
 from ..bl_ui_widgets.bl_ui_draw_op import BL_UI_OT_draw_operator
 from ..bl_ui_widgets.bl_ui_drag_panel import BL_UI_Drag_Panel
 
-#from . reference_cameras import get_target                # <-- not needed anymore but left as example
+#from . reference_cameras import get_target   # <-- not needed anymore but left as example
 
 #----- Diagnostic flag 
 DEBUG = 0 # Set it to 0 in the production version; 1 to see diagnostic messages; 2 to enable PyDev debugger
@@ -100,16 +94,10 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
 
         package = __package__[0:__package__.find(".")]
 
-        # From Preferences/Themes/"Text Style"
-        # theme = bpy.context.preferences.themes[0]
-        # ui = theme.user_interface
-        # widget_style = getattr(ui, "wcol_state")
-        # status_color = tuple(widget_style.inner_changed) + (0.3,)
-
         # Panel Layout:
-        #   
-        # |ZOOM||H ORB||V ORB||TILT||MOVE||ROLL||POV |   |Reset Target||Lock Position|
-        # | GZ ||  RZ ||  RX || RY ||GXYZ|| RXY||GXYZ|   |Display Mesh||Lock Rotation|
+           
+        # |ZOOM||H ORB||V ORB||TILT||MOVE||ROLL||POV |   |Reset Target||Lock Position|   |M1|M2|M3| #
+        # | GZ ||  RZ ||  RX || RY ||GXYZ|| RXY||GXYZ|   |Display Mesh||Lock Rotation|   |MSave|MC| #
 
         btnC = 0            # Element counter
         btnS = 4            # Button separation (for the smaller ones) 
@@ -250,7 +238,6 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         # Lock Position: Locks Target Position fields and disables impacted buttons
         self.button8 = BL_UI_Button(newX, btnY, btnW, btnH)
         self.button8.style = 'TOGGLE'
-        #self.button8.selected_color = status_color
         self.button8.text = "Lock Position"
         self.button8.set_mouse_up(self.button8_click)
         self.button8.set_button_pressed(self.button8_pressed)
@@ -261,7 +248,6 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         # Lock Rotation: Locks Target Rotation fields and disables impacted buttons
         self.button9 = BL_UI_Button(newX, newY, btnW, btnH)
         self.button9.style = 'TOGGLE'
-        #self.button9.selected_color = status_color
         self.button9.text = "Lock Rotation"
         self.button9.set_mouse_up(self.button9_click)
         self.button9.set_button_pressed(self.button9_pressed)
@@ -322,41 +308,6 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         self.memtrim.python_cmd = "bpy.ops.object.ref_camera_panelbutton_mc()"
         #-----------
 
-        self.textbox1 = BL_UI_Textbox(marginX, newY+35, 200, btnH)
-        self.textbox1.text = "My editing text"
-        self.textbox1.max_input_chars = 5
-        self.textbox1.text = "100"
-        self.textbox1.is_numeric = True
-        self.textbox1.description = "Textbox editing entry field"
-
-        getX = marginX + 220
-        self.check1 = BL_UI_Checkbox(getX, newY+35, 100, 20)
-        self.check1.text = "Testing"
-#        self.check1.set_value_changed(self.check1_changed)
-        self.check1.description = "This is my checkbox tooltip"        
-        self.check1.python_cmd = "bpy.ops.object.checkbox()"
-        self.check1.is_checked = True
-
-        getX = getX + 120
-        self.number1 = BL_UI_Slider(getX, newY+35, 100, 20)
-        self.number1.style = 'NUMBER_CLICK'
-        self.number1.value = 500
-        self.number1.step = 100
-        self.number1.unit = "m"
-        self.number1.precision = 0
-        self.number1.description = "This is my click slider tooltip"        
-        self.number1.set_value_updated(self.number1_update)
-
-        getX = getX + 120
-        self.slider1 = BL_UI_Slider(getX, newY+35, 100, 20)
-        self.slider1.style = 'NUMBER_SLIDE'
-        self.slider1.text = "Lens"
-        self.slider1.value = 50
-        self.slider1.min = 0
-        self.slider1.max = 100
-        self.slider1.unit = "m"
-        self.slider1.description = "This is my standard slider tooltip"        
-
         panW = newX+btnW+marginX+btnS  # Panel desired width  (beware: this math is good for my setup only)
         panH = newY+btnH+marginY       # Panel desired height (ditto)
 
@@ -380,19 +331,6 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         self.panel.style = 'PANEL'         # Options are: {HEADER,PANEL,SUBPANEL,TOOLTIP,NONE}
 
         self.tooltip = BL_UI_Tooltip()     # This is for displaying any tooltips
-
-        # self.patch = BL_UI_Patch(0,0,panW,17)
-        # self.patch.style = 'HEADER'
-        
-        #self.label = BL_UI_Label(0,0,panW,17)
-        #self.label.style = "TITLE"
-        #self.label.text = "Panel Title For Example"
-        #self.label.size = 12
-        
-        # script_file = os.path.realpath(__file__)
-        # directory = os.path.dirname(script_file)
-        # imagePath = directory + "\\..\\img\\scale_24.png" 
-        # self.patch.set_image(imagePath)
 
         #-----------
         if DEBUG:
@@ -422,7 +360,6 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
                          self.button1, self.button2, self.button3, self.button4, self.button5, self.button6, 
                          self.button7, self.button8, self.button9, self.buttonA, self.buttonR, 
                          self.slotbox, self.memory1, self.memory2, self.memory3, self.memsave, self.memtrim, 
-                         self.slider1, self.number1, self.check1, self.textbox1, 
                          self.tooltip, # <-- If there is a tooltip object, it must be the last in this list
                         ]
 
@@ -565,53 +502,6 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
     def buttonU_click(self, widget, event, x, y):
         self.finish()
 
-    def number1_update(self, widget, value):
-        # Example of a dynamic unit conversion with dynamic min/max limits
-        converted = False
-        if widget.unit == "mm" and value >= 1000:
-            # Upscale to meters
-            value = value / 1000
-            widget.unit = "m" 
-            widget.step = 10
-            widget.precision = 0
-            converted = True
-        if widget.unit == "m" and value >= 1000:
-            # Upscale to kilometers
-            value = value / 1000
-            widget.unit = "km" 
-            widget.step = 0.1
-            widget.precision = 1
-            converted = True
-        if widget.unit == "km" and value >= 10:
-            # I want my hardcoded max limit to be 10 km
-            value = 10
-            converted = True
-        if widget.unit == "km" and value < 1:
-            # Downscale to meters
-            value = value * 1000
-            widget.unit = "m"
-            widget.step = 10
-            widget.precision = 0
-            converted = True
-        if widget.unit == "m" and value < 1:
-            # Downscale to millimeters
-            value = value * 1000
-            widget.unit = "mm"
-            widget.step = 10
-            widget.precision = 0
-            converted = True
-        if widget.unit == "mm" and value < 1:
-            # I want my hardcoded min limit to be 1 mm
-            value = 1
-            converted = True
-
-        if converted:
-            widget.value = round(value, widget.precision)
-            return False
-        else:
-            # By returning True the 'value' argument will be committed to the widget.value property
-            return True
-    
     def memory1_click(self, widget, event, x, y):
         # Memory Switch 1: Switches the Camera+Target set configuration with memory slot 1"
         bpy.ops.object.ref_camera_panelbutton_m1()
@@ -659,4 +549,7 @@ def register():
  
 def unregister():
     bpy.utils.unregister_class(DP_OT_draw_operator)           
+
+if __name__ == '__main__':
+    register()
     

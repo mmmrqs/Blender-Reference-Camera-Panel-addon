@@ -33,8 +33,8 @@ bl_info = {
     
 #--- ### Change log
 
-#v0.6.5 (08.01.2021) - by Marcelo M. Marques 
-#Added: 'terminate_execution' function that can be overriden by programmer to command termination of the 'Remote Panel'.
+#v1.0.0 (09.01.2021) - by Marcelo M. Marques 
+#Added: 'terminate_execution' function that can be overriden by programmer to command termination of the 'Floating Panel'.
 #Added: New properties and functions to all widgets (check their corresponding modules for more information). 
 
 #--- ### Imports
@@ -84,7 +84,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
     @classmethod
     def poll(cls, context):
         # Show this panel in View_3D only:
-        return (context.space_data.type == 'VIEW_3D' and context.mode == 'OBJECT')
+        return (context.space_data.type == 'VIEW_3D')
 
     def __init__(self):
 
@@ -119,10 +119,12 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         self.button1.rounded_corners = (1,1,0,0)
         self.button1.set_mouse_up(self.button1_click)
         self.button1.set_button_pressed(self.button1_pressed)
-        self.button1.description = "Press this button to unlock its brothers. {Let me type a very large description here "+\
-                                   "so that the tooltip text ends up being wrapped around very hard causing the entire "+\
-                                   "text to be ellipsised (that is, to be dot-dot-dotted) when it flows over the hardcoded "+\
-                                   "limit of 3 maximum lines}"
+        self.button1.description = "Press this button to unlock its brothers. {Let me "+ \
+                                   "type a very large description here to showcase a "+ \
+                                   "tooltip text automatically being wrapped around "+ \
+                                   "multiple lines inside its containing box}. Whatever "+ \
+                                   "comes beyond the defined limit of maximum lines "+ \
+                                   "will be left out!"
         self.button1.shortcut = "Shortcut: None"
         self.button1.python_cmd = "bpy.ops.object.dp_ot_draw_operator.button1_click()"
         if self.button1_pressed(self.button1): self.button1.state = 3
@@ -358,6 +360,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
 
 # I am not even obligated to create any of these functions, see?
 # button5 does not have an active function tied to it at all.
+#
 #    def button5_click(self, widget, event, x, y):
 #        # Miss Me
 
@@ -383,6 +386,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         
 # I am not even obligated to create any of these functions, see?
 # button5 does not have an active function tied to it at all.
+#
 #    def button5_pressed(self, widget):
 #        return (bpy.context.scene.var.OpState5)
         
@@ -494,3 +498,6 @@ def register():
  
 def unregister():
     bpy.utils.unregister_class(DP_OT_draw_operator)            
+
+if __name__ == '__main__':
+    register()
