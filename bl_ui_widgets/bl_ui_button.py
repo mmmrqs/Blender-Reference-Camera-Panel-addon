@@ -36,7 +36,7 @@ bl_info = {
     
 #--- ### Change log
 
-#v0.6.5 (08.01.2021) - by Marcelo M. Marques 
+#v1.0.0 (09.01.2021) - by Marcelo M. Marques 
 #Added: Logic to scale the button according to both Blender's ui scale configuration and this addon 'preferences' setup
 #Added: 'textwo' property and coding to allow a second line of text in the button's caption (value is string). 
 #        The 1 line or 2 lines are always centered both in horizontal and vertical dimensions.

@@ -36,7 +36,7 @@ bl_info = {
     
 #--- ### Change log
 
-#v0.6.5 (08.01.2021) - by Marcelo M. Marques 
+#v1.0.0 (09.01.2021) - by Marcelo M. Marques 
 #Chang: Renamed function 'text_input' to 'keyboard_press'.
 
 

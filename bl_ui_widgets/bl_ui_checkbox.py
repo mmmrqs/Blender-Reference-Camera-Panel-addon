@@ -36,7 +36,7 @@ bl_info = {
     
 #--- ### Change log
 
-#v0.6.5 (08.01.2021) - by Marcelo M. Marques 
+#v1.0.0 (09.01.2021) - by Marcelo M. Marques 
 #Added: Logic to scale the checkbox according to both Blender's ui scale configuration and this addon 'preferences' setup
 #Added: 'text_highlight' property to allow different text color on the selected checkbox.
 #Added: 'outline_color' property to allow different color on the checkbox outline (value is standard color tuple). 

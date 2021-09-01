@@ -36,7 +36,7 @@ bl_info = {
     
 #--- ### Change log
 
-#v0.6.5 (08.01.2021) - by Marcelo M. Marques 
+#v1.0.0 (09.01.2021) - by Marcelo M. Marques 
 #Added: 'terminate_execution' function that can be overriden by programmer in its subclass to command termination of the panel widget.
 #Added: A call to a new 'handle_event_finalize' function in the widgets so that after finishing processing of all the widgets primary 'handle_event' 
 #       function, a final pass is done one more time to wrap up any pending change of state for prior widgets already on the widgets list. Without 
@@ -49,6 +49,7 @@ bl_info = {
 
 #--- ### Imports
 import bpy
+import sys
 
 from bpy.types import Operator
 
@@ -192,20 +193,26 @@ class BL_UI_OT_draw_operator(Operator):
             bpy.context.scene.var.btnRemoText = "Open Remote Control"
             return        
 
+        success = True
+
         ##-- personalized criteria for the Reference Cameras addon --
         # This is an ugly workaround till I figure out how to signal to the N-panel coding that this remote control panel has been finished.
         # This is to detect when user changed workspace
         try: testing = context.space_data.type  
         except: self.finish()
-        ##-- end of the personalized criteria for the given addon --
 
-        success = False
         try:
-            if context.space_data.type == 'VIEW_3D' and context.mode == 'OBJECT':
-                if context.region_data.view_perspective == 'CAMERA':
-                    success = True
+            if context.space_data.type == 'VIEW_3D':
+                if hasattr(context.scene.var, 'addon_ident'):
+                    if context.scene.var.addon_ident == 'RC_CAMERA':
+                        # The above "marker" is generated in the 'reference_camera.py' module 
+                        success = (context.mode == 'OBJECT' and context.region_data.view_perspective == 'CAMERA')
+            else:        
+                success = False
         except:
-            pass
+            success = False
+
+        ##-- end of the personalized criteria for the given addon --
             
         if success:
             for widget in self.widgets:

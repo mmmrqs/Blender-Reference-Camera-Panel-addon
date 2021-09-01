@@ -36,7 +36,7 @@ bl_info = {
     
 #--- ### Change log
 
-#v0.6.5 (08.01.2021) - by Marcelo M. Marques 
+#v1.0.0 (09.01.2021) - by Marcelo M. Marques 
 #Added: Logic to scale the label's text according to both Blender's ui scale configuration and this addon 'preferences' setup
 #Added: 'style' property that allows the text to take different style colors per Blender's user themes.
 #Added: 'text_title' property that allows the highlight color to be overriden by code.

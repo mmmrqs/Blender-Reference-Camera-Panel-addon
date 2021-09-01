@@ -36,7 +36,7 @@ bl_info = {
     
 #--- ### Change log
 
-#v0.6.5 (08.01.2021) - by Marcelo M. Marques 
+#v1.0.0 (09.01.2021) - by Marcelo M. Marques 
 #Added: code to retrieve the color setup values from user preferences theme. These values to be used as default values for all widgets.
 #Added: 'style' property that allows the panel to be painted in one of four options per user theme (may be overriden by programmer).
 #Added: 'enabled' property to allow external control of enable/disable state (value is boolean). Currently used by the BL_UI_Button class.
@@ -94,11 +94,11 @@ class BL_UI_Widget():
         self._is_tooltip = False       # Indicates whether the object instance is of 'Tooltip' type
         self._is_mslider = False       # Indicates whether the object instance is for drawing the middle section of a 'Slider'
 
-        self.__ui_scale = 0            # Saves the last ui_scale value used
-        self.__area_height = 0         # Saves the last area height value
-        self.__area_width = 0          # Saves the last area width value
+        self.__ui_scale = 0            # Saves the latest ui_scale value 
+        self.__area_height = 0         # Saves the latest area height value
+        self.__area_width = 0          # Saves the latest area width value
         
-        self.__tooltip_gotimer = 0     # Last time when mouse entered widget area
+        self.__tooltip_gotimer = 0     # Latest time when mouse entered widget area
         self.__tooltip_current = False # Indicates whether the tooltip is updated with the current widget data
         self.__tooltip_shifted = False # Indicates whether the container panel has been dragged to another position
 
@@ -529,7 +529,7 @@ class BL_UI_Widget():
             # Take the outline color and "dark" it by 30%
             color = self.shade_color(color, 0.3)
 
-        if self.__update_shaders:
+        if self.__update_shaders or not hasattr(self,'shader_outline'):
             self.shader_outline = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
 
         self.shader_outline.bind()
@@ -538,7 +538,7 @@ class BL_UI_Widget():
         if self._is_mslider:
             # This is for the middle section of a 'SLIDER' object type 
             bgl.glLineWidth(1)
-            if self.__update_shaders:
+            if self.__update_shaders or not hasattr(self,'batch_outline'):
                 # Applying UI Scale:
                 x_screen = self.over_scale(self.x_screen)
                 y_screen = self.over_scale(self.y_screen)
@@ -556,7 +556,7 @@ class BL_UI_Widget():
             #used to be: if scaled_radius == 0 or scaled_radius > 10 or self._rounded_corners == (0,0,0,0):
             #but unfortunately 'TRI_FAN' results in a worse smooth render 
                 bgl.glLineWidth(1)
-                if self.__update_shaders:
+                if self.__update_shaders or not hasattr(self,'batch_outline'):
                     vertices = self.calc_corners_for_trifan(self.x_screen, self.y_screen, self.width, self.height, self._radius, 'FULL')
                     self.batch_outline = batch_for_shader(self.shader_outline, 'LINE_LOOP', {"pos" : vertices})
                 self.batch_outline.draw(self.shader_outline) 
@@ -570,7 +570,7 @@ class BL_UI_Widget():
                 # self.batch_outline = batch_for_shader(self.shader_outline, 'LINES', {"pos" : vertices})
                 # self.batch_outline.draw(self.shader_outline) 
                 bgl.glLineWidth(1)
-                if self.__update_shaders:
+                if self.__update_shaders or not hasattr(self,'batch_outline'):
                     vertices = self.calc_corners_for_lines(self.x_screen, self.y_screen, self.width, self.height, self._radius, 'OUTLINE-A')
                     self.batch_outline = batch_for_shader(self.shader_outline, 'LINE_LOOP', {"pos" : vertices})
                 self.batch_outline.draw(self.shader_outline) 
@@ -605,7 +605,7 @@ class BL_UI_Widget():
         if self._is_mslider:
             # This is for the middle section of a 'SLIDER' object type 
             bgl.glLineWidth(1)
-            if self.__update_shaders:
+            if self.__update_shaders or not hasattr(self,'batch_shadow1'):
                 # Applying UI Scale:
                 x_screen = self.over_scale(self.x_screen)
                 y_screen = self.over_scale(self.y_screen)
@@ -621,18 +621,18 @@ class BL_UI_Widget():
             #used to be: if scaled_radius == 0 or scaled_radius > 10 or self._rounded_corners == (0,0,0,0):
             #but unfortunately 'TRI_FAN' results in a worse smooth render 
                 bgl.glLineWidth(1)
-                if self.__update_shaders:
+                if self.__update_shaders or not hasattr(self,'batch_shadow1'):
                     vertices = self.calc_corners_for_trifan(self.x_screen, self.y_screen, self.width, self.height, self._radius, 'SHADOW')
                     self.batch_shadow1 = batch_for_shader(self.shader_shadow1, 'LINE_STRIP', {"pos" : vertices})
                 self.batch_shadow1.draw(self.shader_shadow1) 
             else:
                 bgl.glPointSize(1)
-                if self.__update_shaders:
+                if self.__update_shaders or not hasattr(self,'batch_shadow1'):
                     vertices = self.calc_corners_for_lines(self.x_screen, self.y_screen, self.width, self.height, self._radius, 'SHADOW-A')
                     self.batch_shadow1 = batch_for_shader(self.shader_shadow1, 'POINTS', {"pos" : vertices})
                 self.batch_shadow1.draw(self.shader_shadow1) 
                 bgl.glLineWidth(1)
-                if self.__update_shaders:
+                if self.__update_shaders or not hasattr(self,'batch_shadow2'):
                     vertices = self.calc_corners_for_lines(self.x_screen, self.y_screen, self.width, self.height, self._radius, 'SHADOW-B')
                     self.batch_shadow2 = batch_for_shader(self.shader_shadow2, 'LINES', {"pos" : vertices})
                 self.batch_shadow2.draw(self.shader_shadow2) 

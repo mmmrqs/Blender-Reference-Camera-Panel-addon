@@ -36,7 +36,7 @@ bl_info = {
     
 #--- ### Change log
 
-#v0.6.5 (08.01.2021) - by Marcelo M. Marques 
+#v1.0.0 (09.01.2021) - by Marcelo M. Marques 
 #Added: Logic to scale the slider according to both Blender's ui scale configuration and this addon 'preferences' setup
 #Added: 'outline_color' property to allow different color on the slider outline (value is standard color tuple). 
 #Added: 'roundness' property to allow the slider to be painted with rounded corners,
@@ -108,6 +108,7 @@ class BL_UI_Slider(BL_UI_Patch):
         self._text_shadow_alpha = None          # Slider text shadow alpha value [0..1]
 
         self.__middle_margin = 3                # This margin used for 'NUMBER_CLICK' type instead of self._text_margin
+        self.__last_roundness = 0               # Saves the latest roundness value
         self.__is_dragging = False
         self.__is_editing = False
         self.__mouse_moved = False
@@ -522,22 +523,43 @@ class BL_UI_Slider(BL_UI_Patch):
             self.verify_screen_position(area_height)
             return
             
-        # Enter edit mode and skip drawing the regular slider object pieces
-        if self.__is_editing:
-            self.textbox.draw()
-            self.draw_slider_border()
-            return
+        if not self._roundness is None:
+            roundness = self._roundness
+        else:
+            # From Preferences/Themes/User Interface/<style>
+            theme = bpy.context.preferences.themes[0]
+            widget_style = getattr(theme.user_interface, self.my_style())
+            roundness = widget_style.roundness        
+        force_update = False
+        if not self.__last_roundness == roundness:
+            force_update = True
+            self.__last_roundness = roundness
 
         # Draw slider's left and right sections
         if self._style == 'NUMBER_CLICK':
+            if force_update:
+                self.decrease.update(self.decrease.x_screen, self.decrease.y_screen)
             self.decrease.draw()
+            if force_update:
+                self.increase.update(self.increase.x_screen, self.increase.y_screen)
             self.increase.draw()
         
         # Draw slider's middle section
+        if force_update:
+            self.slider.update(self.slider.x_screen, self.slider.y_screen)
+            self.textbox.update(self.textbox.x_screen, self.textbox.y_screen)
         self.slider.draw()
 
         # Draw the appropriate outline and shadow effects
         self.draw_slider_border()
+
+        # Enter edit mode and skip drawing the regular slider object pieces
+        if self.__is_editing:
+            if force_update:
+                self.textbox.update(self.textbox.x_screen, self.textbox.y_screen)
+            self.textbox.draw()
+            self.draw_slider_border()
+            return
 
         # Draw slider's percentage overlay bar
         if self._style == 'NUMBER_SLIDE' and not (self._min_value is None or self._max_value is None):

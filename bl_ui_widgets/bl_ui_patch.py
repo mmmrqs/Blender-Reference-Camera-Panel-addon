@@ -36,7 +36,7 @@ bl_info = {
     
 #--- ### Change log
 
-#v0.6.5 (08.01.2021) - by Marcelo M. Marques 
+#v1.0.0 (09.01.2021) - by Marcelo M. Marques 
 #Added: This new class to paint custom rectangles on screen. Useful for creating header and subpanel areas.
 #       It is used as a base class for the following widgets:
 #       :BL_UI_Drag_Panel, BL_UI_Button, BL_UI_Slider, BL_UI_Checkbox and BL_UI_Tooltip.

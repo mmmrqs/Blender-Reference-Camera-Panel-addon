@@ -36,7 +36,7 @@ bl_info = {
     
 #--- ### Change log
 
-#v0.6.5 (08.01.2021) - by Marcelo M. Marques 
+#v1.0.0 (09.01.2021) - by Marcelo M. Marques 
 #Added: A control to check if the panel can be dragged by the user or must stay locked in position
 #Added: Logic to save/restore panel position from last session, or from last use (depending on addon 'preferences' setup)
 #Added: Logic to scale the panel according to both Blender's ui scale configuration and this addon 'preferences' setup
