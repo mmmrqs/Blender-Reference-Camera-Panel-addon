@@ -109,8 +109,8 @@ class BL_UI_Slider(BL_UI_Patch):
 
         self.__middle_margin = 3                # This margin used for 'NUMBER_CLICK' type instead of self._text_margin
         self.__last_roundness = 0               # Saves the latest roundness value
-        self.__is_dragging = False
         self.__is_editing = False
+        self.__is_dragging = False
         self.__mouse_moved = False
         self.__drag_origin = (0,0,0,0)          # Represents (mouse_x, mouse_y, mouse_region_x, mouse_region_y)
         self.__drag_start_x = 0
@@ -226,7 +226,7 @@ class BL_UI_Slider(BL_UI_Patch):
         self.textbox.context = context
         self.textbox.alignment = 'LEFT'
 
-        self.textbox.text = str(self._value)
+        self.textbox.text = self.textbox_str_value(self._value)
         self.textbox.text_color = self._text_color
         self.textbox.text_highlight = self._text_highlight
         self.textbox.style = self._style             
@@ -250,8 +250,8 @@ class BL_UI_Slider(BL_UI_Patch):
         self.textbox.text_shadow_color = self._text_shadow_color     
         self.textbox.text_shadow_alpha = self._text_shadow_alpha     
 
-        self.textbox.set_mouse_down(self.textbox_mouse_down_func)
-        self.textbox.set_mouse_up(self.textbox_mouse_up_func)
+#        self.textbox.set_mouse_down(self.textbox_mouse_down_func)
+#        self.textbox.set_mouse_up(self.textbox_mouse_up_func)
 
     @property
     def state(self):
@@ -456,6 +456,11 @@ class BL_UI_Slider(BL_UI_Patch):
         # This must return None when function is not overriden, 
         # so that the value updated by the slider is displayed by the default logic. 
         return None
+    
+    def textbox_str_value(self, value):
+        str_value = str(round(value, self._precision))
+        str_value = str_value[:len(str_value)-2] if str_value[-2:] == ".0" else str_value
+        return str_value
                  
     def update_self_value(self, value, mode):
         update_value = value
@@ -472,11 +477,10 @@ class BL_UI_Slider(BL_UI_Patch):
         else:
             self._value = round(update_value, self._precision)
         # Format the text display value
+        self.textbox.text = self.textbox_str_value(self._value)
         self.slider.textwo = self.value_display_func(self, self._value)
         if self.slider.textwo is None:
-            str_value = str(round(self._value, self._precision))
-            str_value = str_value[:len(str_value)-2] if str_value[-2:] == ".0" else str_value
-            self.slider.textwo = str_value + " " + self._unit
+            self.slider.textwo = self.textbox.text + " " + self._unit
         return self.slider.textwo
  
     def calc_slider_bar(self, value):
@@ -668,6 +672,7 @@ class BL_UI_Slider(BL_UI_Patch):
     def stop_editing(self):
         bpy.context.window.cursor_set('DEFAULT')
         self.update_self_value(float(self.textbox.text),'FINAL')
+        self.set_exclusive_mode(None) # Indicates that editing mode has finished
         self.__is_editing = False
 
     # Overrides base class function
@@ -680,7 +685,7 @@ class BL_UI_Slider(BL_UI_Patch):
             self.textbox.keyboard_press(event)
             if event.type in ['RET','NUMPAD_ENTER','ESC']:
                 # Note: the keyboard_press() function above would have executed also 
-                # the textbox's stop_editing() function for Enter or Escape events.
+                # the textbox's stop_editing() function for the respective key event.
                 self.stop_editing()
             return True
             
@@ -688,11 +693,11 @@ class BL_UI_Slider(BL_UI_Patch):
         
     # Overrides base class function
     def mouse_down(self, event, x, y):    
-        # When slider is disabled, just ignore the click
-        if not self._is_enabled: 
-            # Consume the mouse event to avoid the camera/target be unselected
-            return True
         if self.is_in_rect(x,y):
+            # When slider is disabled, just ignore the click
+            if not self._is_enabled: 
+                # Consume the mouse event to avoid the camera/target be unselected
+                return True
             if self.__is_editing:
                 if self.textbox.mouse_down(event, x, y):
                     return True
@@ -707,11 +712,13 @@ class BL_UI_Slider(BL_UI_Patch):
                         return True
                     if self.button_mouse_down(self.increase, event, x, y):
                         return True
+                # This below will end up calling the 'self.slider_mouse_down_func' function
                 if self.button_mouse_down(self.slider, event, x, y):
                     return True
         else:
             if self.__is_editing:
-                self.textbox_mouse_down_func(self, event, x, y)
+                if self.textbox_mouse_down_func(self, event, x, y):
+                    return True
             else:
                 pass  # Nothing to do
         return False
@@ -723,7 +730,7 @@ class BL_UI_Slider(BL_UI_Patch):
             return False
 
         if self.__is_editing:
-            return False
+            return self.textbox.mouse_move(event, x, y)
         
         if self.__is_dragging:
             # Update the value according to direction of x_drag
@@ -765,15 +772,7 @@ class BL_UI_Slider(BL_UI_Patch):
 
     # Overrides base class function
     def mouse_up(self, event, x, y):    
-        # When slider is disabled, just ignore the click
-        if not self._is_enabled: 
-            # Consume the mouse event to avoid the camera/target be unselected
-            return True
-            
-        if self.__is_editing:
-            pass
-            
-        if self.__is_dragging:
+        if self.__is_dragging and self.__mouse_moved:
             cursor = 'DEFAULT'
             if self._style == 'NUMBER_CLICK':
                 bpy.context.window.cursor_warp(self.__drag_origin[0], self.__drag_origin[1])
@@ -785,26 +784,33 @@ class BL_UI_Slider(BL_UI_Patch):
                 bpy.context.window.cursor_warp(capped_pos_x - offset_x, self.__drag_origin[1])
             bpy.context.window.cursor_set(cursor)
 
-
         if self.is_in_rect(x,y):
+            # When slider is disabled, just ignore the click
+            if not self._is_enabled: 
+                # Consume the mouse event to avoid the camera/target be unselected
+                return True
             if self.__is_editing:
                 if self.textbox.mouse_up(event, x, y):
                     return True
             else:
                 self.__is_dragging = False
                 if self._style == 'NUMBER_CLICK':
+                    # This below will end up calling the 'self.decrease_mouse_up_func' function
                     if self.decrease.mouse_up(event, x, y):
                         self.equalize_states(self.decrease)
                         return True
+                    # This below will end up calling the 'self.increase_mouse_up_func' function
                     if self.increase.mouse_up(event, x, y):
                         self.equalize_states(self.increase)
                         return True
+                # This below will end up calling the 'self.slider_mouse_up_func' function
                 if self.slider.mouse_up(event, x, y):
                     self.equalize_states(self.slider)
                     return True
         else:
             if self.__is_editing:
-                self.textbox_mouse_up_func(self, event, x, y)
+                if self.textbox_mouse_up_func(self, event, x, y):
+                    return True
             else:
                 if self.__is_dragging:
                     self.__is_dragging = False
@@ -814,7 +820,7 @@ class BL_UI_Slider(BL_UI_Patch):
                     self.slider.mouse_up_func(self, event, x, y)
                     self.equalize_states(self.slider)
                     return True
-                else:    
+                elif self._is_enabled: 
                     return self.slider.mouse_up(event, x, y)
         return False
 
@@ -823,8 +829,8 @@ class BL_UI_Slider(BL_UI_Patch):
         pass
 
     # Overrides base class function
-    # def mouse_enter(self, event, x, y):                     # Blender currently does not do this, but I've left
-        # if self._style == 'NUMBER_SLIDE':                   # this here just in case we want to do it in the future.
+    # def mouse_enter(self, event, x, y):                     # Blender currently does not change cursor mode for this slider type, 
+        # if self._style == 'NUMBER_SLIDE':                   # but I've left this here just in case we want to do it in the future.
             # if not (self.__is_editing or self.__is_dragging):
             #     bpy.context.window.cursor_set('MOVE_X')
         # return self.mouse_enter_func(self, event, x, y)
@@ -896,30 +902,31 @@ class BL_UI_Slider(BL_UI_Patch):
         return True
     
     def slider_mouse_up_func(self, widget, event, x, y):
+        self.__is_dragging = False
         if self.__mouse_moved:
             # Indicates that sliding mode has finished
             self.set_exclusive_mode(None)
         else:
             if self.textbox.mouse_down(event, x, y):
-                # Indicates that textbox editing mode has started. Redundant because this value
-                # would have already been populated by the 'slider_mouse_down_func()' but let's 
-                # do it anyway (again) here to make our intent very clear.
+                # Indicates that textbox editing mode has started. This is required because the above call to
+                # 'self.textbox.mouse_down()' would have set the exclusive mode for the 'self.textbox' object, 
+                # however we want it to be set for the 'self' (that is, the 'slider' object itself).
                 self.set_exclusive_mode(self)
                 self.__is_editing = True
             else:    
-                # Indicates that sliding mode has finished
+                # Indicates that textbox mode has finished
                 self.set_exclusive_mode(None)
         return True
 
     def textbox_mouse_down_func(self, widget, event, x, y):    
-        if not self.textbox.is_in_rect(x,y):
-            self.textbox.stop_editing()
-            self.stop_editing()
+        self.textbox.stop_editing()
+        self.stop_editing()
         return True
 
     def textbox_mouse_up_func(self, widget, event, x, y):    
-        if not self.textbox.is_in_rect(x,y):
+        # Here it is necessary to check that returning value is 'False' so that in the other case it can 
+        # stay in "textbox editing mode" when the user just finished drag-marking text with a mouse_move. 
+        if not self.textbox.mouse_up(event, x, y):
             self.textbox.stop_editing()
             self.stop_editing()
         return True
-

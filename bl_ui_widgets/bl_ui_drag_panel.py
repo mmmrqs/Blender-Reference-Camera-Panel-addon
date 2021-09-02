@@ -179,7 +179,7 @@ class BL_UI_Drag_Panel(BL_UI_Patch):
                 self.__is_drag = True
                 self.__drag_offset_x = x - self.x_screen
                 self.__drag_offset_y = y - self.y_screen
-            return True
+            return True  # <-- Perhaps should only return 'True' if self._is_enabled (TBD)
         else:
             return False
 

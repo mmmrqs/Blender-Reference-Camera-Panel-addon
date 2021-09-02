@@ -366,11 +366,11 @@ class BL_UI_Tooltip(BL_UI_Patch):
 
         cr = len(line_break)
         lstrip_it = False
-        text_lenght = len(text)
+        text_length = len(text)
         text_line = ""
         char_pos = 0
         
-        while char_pos < text_lenght and len(line_array) < max_lines_count:
+        while char_pos < text_length and len(line_array) < max_lines_count:
             next_chars = text[char_pos:(char_pos+cr)]
             if next_chars == line_break:
                 text_line = text_line.lstrip() if lstrip_it else text_line
@@ -397,7 +397,7 @@ class BL_UI_Tooltip(BL_UI_Patch):
                     line_array.append((sub_line, dimensions))
                     lstrip_it = True
                 char_pos += 1
-                if char_pos == text_lenght:
+                if char_pos == text_length:
                     text_line = text_line.lstrip() if lstrip_it else text_line
                     dimensions = blf.dimensions(0,text_line)
                     line_array.append((text_line, dimensions))
@@ -518,7 +518,7 @@ class BL_UI_Tooltip(BL_UI_Patch):
 
     # This piece of logic below would be used to merge/abbreviate the latest line to the "greatest" one
     # when going over the configured max lines count, however it needed to take into account the actual
-    # pixel-lenght of the strings instead of characters count, so it has been left out for now.
+    # pixel-length of the strings instead of characters count, so it has been left out for now.
 
     # def abbreviate_text(self, limit_chars, this_line, last_line):
         # this_line = this_line.rstrip()

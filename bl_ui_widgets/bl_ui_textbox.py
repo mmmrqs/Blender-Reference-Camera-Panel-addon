@@ -89,6 +89,10 @@ class BL_UI_Textbox(BL_UI_Button):
         self.__marked_pos = [0,0]
         self.__cached_text = ""
         self.__is_editing = False
+        self.__is_dragging = False
+        self.__mouse_moved = False
+        self.__drag_start_x = 0
+        self.__drag_length = 0
         self.__input_keys = ['ESC','RET','NUMPAD_ENTER','BACK_SPACE','HOME','END','DEL', 
                              'LEFT_ARROW','RIGHT_ARROW','UP_ARROW','DOWN_ARROW']
 
@@ -259,6 +263,41 @@ class BL_UI_Textbox(BL_UI_Button):
 
         return [start, length]
 
+    def get_cursor_pos_char(self):
+        theme = bpy.context.preferences.ui_styles[0]
+        widget_style = getattr(theme, "widget")
+        
+        if self._text_size is None:
+            text_size = widget_style.points
+            leveraged_text_size = text_size
+        else:
+            text_size = self._text_size
+            leveraged_text_size = self.leverage_text_size(text_size,"widget")
+        scaled_size = int(self.over_scale(leveraged_text_size))
+
+        text_kerning = (widget_style.font_kerning_style == 'FITTED') if self._text_kerning is None else self._text_kerning
+        if text_kerning:
+            blf.enable(0, blf.KERNING_DEFAULT)
+        blf.size(0, scaled_size, 72)
+
+        mark_target = self.__drag_start_x + self.__drag_length
+        text_startx = self.over_scale(self.x_screen + self._text_margin)
+        text_length = len(self._text)
+        char_pos = 0
+        text_line = ""
+        
+        while char_pos < text_length:
+            text_line += self._text[char_pos]
+            text_width = blf.dimensions(0,text_line)[0]
+            if (text_startx + text_width) > mark_target:
+                break
+            char_pos += 1
+
+        if text_kerning:
+            blf.disable(0, blf.KERNING_DEFAULT)
+
+        return char_pos
+
     def update_cursor(self):
         cursor_pos_px = self.get_cursor_pos_px()
         x0_screen = self.over_scale(self.x_screen + self._text_margin) 
@@ -287,6 +326,8 @@ class BL_UI_Textbox(BL_UI_Button):
     # Overrides base class function
     def draw(self):
 
+        # The draw_text function has been overriden so as to defer
+        # text drawing to later (see bottom of this self.draw() function)
         super().draw()
 
         if not self._is_visible:
@@ -327,8 +368,6 @@ class BL_UI_Textbox(BL_UI_Button):
 
                 bgl.glDisable(bgl.GL_LINE_SMOOTH)
 
-                self.draw_marked_text()
-
             # Paint the editing cursor
             if self._cursor_color is None:
                 # From Preferences/Themes/User Interface/"Styles"
@@ -353,26 +392,34 @@ class BL_UI_Textbox(BL_UI_Button):
 
             bgl.glDisable(bgl.GL_LINE_SMOOTH)
 
-    def draw_marked_text(self):
-        if not self._is_visible:
-            return
-        
-        # Save these values that will be temporarily overriden for the purpose of drawing only the marked text 
-        save_text = self._text           
-        save_x_screen = self.x_screen 
-        save_width = self.width
-        
-        cursor_pos_px = self.get_cursor_pos_px()
-        self._text = self._text[self.__marked_pos[0]:self.__marked_pos[1]]
-        self.x_screen = self.x_screen + (cursor_pos_px[0] / self.over_scale(1))
-        self.width = self._text_margin + cursor_pos_px[1]
-
+        # Paint the text last, over everything else
         super().draw_text()
+                
+    # Overrides base class function
+    def draw_text(self):
+        pass
+
+    def draw_marked_text(self):
+        # if not self._is_visible:
+            # return
         
-        # Restore former values 
-        self._text = save_text
-        self.x_screen = save_x_screen
-        self.width = save_width
+        # # Save these values that will be temporarily overriden for the purpose of drawing only the marked text 
+        # save_text = self._text           
+        # save_x_screen = self.x_screen 
+        # save_width = self.width
+        
+        # cursor_pos_px = self.get_cursor_pos_px()
+        # self._text = self._text[self.__marked_pos[0]:self.__marked_pos[1]]
+        # self.x_screen = self.x_screen + (cursor_pos_px[0] / self.over_scale(1))
+        # self.width = self._text_margin + cursor_pos_px[1]
+
+        # super().draw_text()
+        
+        # # Restore former values 
+        # self._text = save_text
+        # self.x_screen = save_x_screen
+        # self.width = save_width
+        pass
             
     # Overrides base class function
     def get_input_keys(self):
@@ -516,8 +563,13 @@ class BL_UI_Textbox(BL_UI_Button):
                 return True
             if self.mouse_down_func(self, event, x, y):
                 if self.__is_editing:
-                    # Here new logic to start highlight text
-                    pass
+                    self.__is_dragging = True
+                    self.__drag_start_x = x
+                    self.__drag_length = 0
+                    self.__marked_pos[0] = self.get_cursor_pos_char()
+                    self.__marked_pos[1] = self.__marked_pos[0]
+                    self.__mouse_moved = False
+                    self.update_cursor()
                 else:
                     self.start_editing()
                 return True
@@ -527,23 +579,45 @@ class BL_UI_Textbox(BL_UI_Button):
             return (not self.stop_editing())
             
     # Overrides base class function
+    def mouse_move(self, event, x, y):    
+        # When textbox is disabled, just ignore the hover
+        if not self._is_enabled: 
+            return False
+
+        if self.__is_editing and self.__is_dragging:
+            # Update the value according to direction of x_drag
+            self.__drag_length = x - self.__drag_start_x
+            self.__mouse_moved = not (self.__drag_length == 0)
+            if x < self.__drag_start_x:
+                self.__marked_pos[0] = self.get_cursor_pos_char()
+                self.__cursor_pos = 'LEFT'
+                self.update_cursor()
+            if x > self.__drag_start_x:
+                self.__marked_pos[1] = self.get_cursor_pos_char()
+                self.__cursor_pos = 'RIGHT'
+                self.update_cursor()
+            return True
+        else:    
+            return False
+
+    # Overrides base class function
     def mouse_up(self, event, x, y):
         if self.is_in_rect(x,y): 
             # When textbox is disabled, just ignore the click
             if not self._is_enabled: 
                 # Consume the mouse event to avoid the camera/target be unselected
                 return True
+            self.__is_dragging = False
             if self.mouse_up_func(self, event, x, y):
-                if self.__is_editing:
-                    # Here new logic to finish highlight text
-                    pass
-                else:
-                    pass
                 return True
             else:    
                 return False
         else:    
-            return (not self.stop_editing())
+            if self.__is_dragging:
+                self.__is_dragging = False
+                return True
+            else:
+                return (not self.stop_editing())
 
     # Overrides base class function
     def mouse_up_over(self):
