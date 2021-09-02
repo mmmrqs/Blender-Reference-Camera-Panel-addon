@@ -315,7 +315,7 @@ class ReferenceCameraPreferences(AddonPreferences):
         layout.label(text=" Defaults for creating new camera/target sets")
 
         split = layout.split(factor=0.45, align=True)
-        split.label(text="Perspective Camera focal lenght:",icon='DECORATE')
+        split.label(text="Perspective Camera focal length:",icon='DECORATE')
         splat = split.split(factor=0.4, align=True)
         splat.prop(self, "RC_FOCUS", expand=True)
         
