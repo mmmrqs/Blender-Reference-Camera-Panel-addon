@@ -46,6 +46,7 @@ import bpy
 
 from bpy.types import Operator
 
+from ..bl_ui_widgets.bl_ui_patch import BL_UI_Patch
 from ..bl_ui_widgets.bl_ui_button import BL_UI_Button
 from ..bl_ui_widgets.bl_ui_tooltip import BL_UI_Tooltip
 from ..bl_ui_widgets.bl_ui_draw_op import BL_UI_OT_draw_operator
@@ -105,8 +106,8 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         btnW = 56           # Button width
         btnH = 40+btnS      # Button height (takes 2 small buttons plus their separation)
         
-        marginX = 16
-        marginY = 10
+        marginX = 16        # Margin from left border
+        marginY = 10        # Margin from top border 
         
         btnX = marginX + 1  # Button position X (for the very first button)
         btnY = marginY + 1  # Button position Y (for the very first button)
@@ -330,7 +331,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         self.panel = BL_UI_Drag_Panel(panX, panY, panW, panH) 
         self.panel.style = 'PANEL'         # Options are: {HEADER,PANEL,SUBPANEL,TOOLTIP,NONE}
 
-        self.tooltip = BL_UI_Tooltip()     # This is for displaying any tooltips
+        self.tooltip = BL_UI_Tooltip()     # This is for displaying the widgets tooltips. Only need one instance!
 
         #-----------
         if DEBUG:

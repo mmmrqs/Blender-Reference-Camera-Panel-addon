@@ -83,7 +83,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
     #--- methods    
     @classmethod
     def poll(cls, context):
-        # Show this panel in View_3D only:
+        # Show this panel in View_3D only
         return (context.space_data.type == 'VIEW_3D')
 
     def __init__(self):
@@ -104,8 +104,8 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         btnW = 56           # Button width
         btnH = 40+btnS      # Button height (takes 2 small buttons plus their separation)
         
-        marginX = 16
-        marginY = 27
+        marginX = 16        # Margin from left border
+        marginY = 27        # Margin from top border 
         
         btnX = marginX + 1  # Button position X (for the very first button)
         btnY = marginY + 1  # Button position Y (for the very first button)
@@ -119,12 +119,13 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         self.button1.rounded_corners = (1,1,0,0)
         self.button1.set_mouse_up(self.button1_click)
         self.button1.set_button_pressed(self.button1_pressed)
-        self.button1.description = "Press this button to unlock its brothers. {Let me "+ \
+        self.button1.description = "Press this button to unlock its brothers (after the button"+ \
+                                   "with a 'LOCK' caption has been pressed). {Let me "+ \
                                    "type a very large description here to showcase a "+ \
                                    "tooltip text automatically being wrapped around "+ \
                                    "multiple lines inside its containing box}. Whatever "+ \
                                    "comes beyond the defined limit of maximum lines "+ \
-                                   "will be left out!"
+                                   "will be left out! You'll see this text will be truncated..."
         self.button1.shortcut = "Shortcut: None"
         self.button1.python_cmd = "bpy.ops.object.dp_ot_draw_operator.button1_click()"
         if self.button1_pressed(self.button1): self.button1.state = 3
@@ -153,7 +154,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         self.button3.rounded_corners = (0,0,0,0)
         self.button3.set_mouse_up(self.button3_click)
         self.button3.set_button_pressed(self.button3_pressed)
-        self.button3.description = "Adds one Monkey object to 3d View area"
+        self.button3.description = "Adds one little 'MONKEY' object to 3D View area"
         self.button3.python_cmd = "bpy.ops.object.dp_ot_draw_operator.button3_click()"
         if self.button3_pressed(self.button3): self.button3.state = 3
         btnC += 1
@@ -168,7 +169,10 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         self.button4.set_mouse_up(self.button4_click)
         self.button4.set_button_pressed(self.button4_pressed)
         self.button4.enabled = (not bpy.context.scene.var.OpState6)
-        self.button4.description = "This button does nothing more than to disable 2 and 3"
+        self.button4.description = "This button does nothing more than to disable 2 and 3.\n" +\
+                                   "Note: CTRL-L does not actually work as a short-cut, but " +\
+                                   "you could have programmed it to do so"
+        # In this example there is no .python_cmd populated, thus only the main description appears in the tooltip
         if self.button4_pressed(self.button4): self.button4.state = 3
         btnC += 1
         oldX = (btnX+((btnW-1+btnG)*btnC))
@@ -199,18 +203,17 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         self.number1.step = 100
         self.number1.unit = "m"
         self.number1.precision = 0
-        self.number1.description = "This is my click slider tooltip"        
+        self.number1.description = "This is a click slider component and it can work with a full range of values"        
         self.number1.set_value_updated(self.number1_update)
         # 
         self.slider1 = BL_UI_Slider(newX, newY, btnW, btnH)
         self.slider1.style = 'NUMBER_SLIDE'
         self.slider1.text = "Z Rot"
-        self.slider1.value = 1800
+        self.slider1.value = 180
         self.slider1.min = 0
-        self.slider1.max = 3600
-        self.slider1.description = "This is my standard slider tooltip.\nYou can use it to rotate the object"
+        self.slider1.max = 360
+        self.slider1.description = "This is a standard slider component with a 0 to 100 sliding percent bar.\nYou can use it to rotate the selected object(s) in the scene"
         self.slider1.set_value_updated(self.slider1_update)
-        self.slider1.set_value_display(self.slider1_display)
         #    
         self.objname = "<Press the ADD button so you can edit here>"
         self.textbox1 = BL_UI_Textbox(btnX, newY+35, 350, btnH)
@@ -223,8 +226,8 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         self.check1 = BL_UI_Checkbox(newX, newY+37, btnW, btnH)
         self.check1.text = "Unregit"
         self.check1.set_value_changed(self.check1_changed)
-        self.check1.description = "This is my checkbox tooltip"        
-        self.check1.python_cmd = "bpy.ops.object.checkbox()"
+        self.check1.description = "This checkbox accesses an 'UNREGISTER' fully circular button"        
+        self.check1.python_cmd = "bpy.ops.object.dp_ot_draw_operator.check1_changed()"
         self.check1.is_checked = False
         #-----------
 
@@ -250,7 +253,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         self.panel = BL_UI_Drag_Panel(panX, panY, panW, panH)  
         self.panel.style = 'PANEL'         # Options are: {HEADER,PANEL,SUBPANEL,TOOLTIP,NONE}
 
-        self.tooltip = BL_UI_Tooltip()     # This is for displaying any tooltips
+        self.tooltip = BL_UI_Tooltip()     # This is for displaying the widgets tooltips. Only need one instance!
 
         self.patch1 = BL_UI_Patch(0,0,panW,17)
         self.patch1.style = 'HEADER'
@@ -262,7 +265,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         self.label1.size = 12
         
         self.label2 = BL_UI_Label(panW-100,12,100,17)
-        self.label2.text = ""
+        self.label2.text = ""              # This empty text label will be used later on to display some dynamic values on the panel
 
         self.patch2 = BL_UI_Patch(oldX+10,btnY,oldW,oldH)
         self.patch2.bg_color = (0,0,0,0)
@@ -271,8 +274,8 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         self.patch2.corner_radius = 10
         self.patch2.shadow = True
         self.patch2.rounded_corners = (1,1,1,1)
-        self.patch2.description = "There is an issue I have not figured out yet,\n" + \
-                                  "which causes the image to black out after a while"  
+        self.patch2.description = "This could be any image (size, color, transparent etc)\n" + \
+                                  "and the cool part is that it scales together with the panel"  
         
         script_file = os.path.realpath(__file__)
         directory = os.path.dirname(script_file)
@@ -299,7 +302,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
         self.buttonU.roundness = 1.0
         self.buttonU.set_mouse_up(self.buttonU_click)
         self.buttonU.description = "Unregisters the Remote Control panel object and closes it"        
-        self.buttonU.python_cmd = "bpy.ops.object.set_remote_control()"
+        self.buttonU.python_cmd = "bpy.ops.object.dp_ot_draw_operator.buttonU_click()"
         self.buttonU.visible = False
 
     def on_invoke(self, context, event):
@@ -447,27 +450,22 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator): ## in: bl_ui_draw_op.py ##
     def slider1_update(self, widget, value):
         import math
         try:
-            rc = bpy.context.scene.collection
-            for obj in rc.objects:
+            for obj in bpy.context.selected_objects:
                 if obj.type == 'MESH': 
-                    obj.rotation_euler[2] = math.radians(value/10)
-                    break
+                    obj.rotation_euler[2] = math.radians(value)
         except:
             pass
         return True
     
-    def slider1_display(self, widget, value):
-        return str(int(round(value/10)))
-    
     def textbox1_changed(self, widget, context, former_text, updated_text):
+        # This is just an example done in a rush, so not much thinking and probably with bugs ;-)
         if updated_text != self.objname:
             if updated_text.strip() == "":
                 self.objname = "<Why have you tried to blank her name?>"
                 widget.text = self.objname
                 return True
             try:
-                rc = context.scene.collection
-                for obj in rc.objects:
+                for obj in bpy.data.objects:
                     if obj.type == 'MESH' and obj.name == self.objname: 
                         obj.name = updated_text
                         self.objname = obj.name
