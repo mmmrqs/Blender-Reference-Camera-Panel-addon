@@ -234,20 +234,24 @@ class ReferenceCameraPreferences(AddonPreferences):
     )
 
     RC_POS_X: IntProperty(
+        name="",        
         description="Remote Control panel position X from latest opened scene",
         default=-10000
     )
 
     RC_POS_Y: IntProperty(
+        name="",        
         description="Remote Control panel position Y from latest opened scene",
         default=-10000
     )
 
     RC_PAN_W: IntProperty(
+        name="",        
         description="Panel width saved on 'drag_panel_op.py'"
     )
 
     RC_PAN_H: IntProperty(
+        name="",        
         description="Panel height on 'drag_panel_op.py'"
     )
 
