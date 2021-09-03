@@ -250,9 +250,6 @@ class BL_UI_Slider(BL_UI_Patch):
         self.textbox.text_shadow_color = self._text_shadow_color     
         self.textbox.text_shadow_alpha = self._text_shadow_alpha     
 
-#        self.textbox.set_mouse_down(self.textbox_mouse_down_func)
-#        self.textbox.set_mouse_up(self.textbox_mouse_up_func)
-
     @property
     def state(self):
         return self.__state
@@ -629,6 +626,7 @@ class BL_UI_Slider(BL_UI_Patch):
     def draw_slider_border(self):
         # This is to draw the outline and shadow from the slider widget object, 
         # instead of the counterpart ones from textbox or button objects. 
+        
         area_height = self.get_area_height()
         
         self.verify_screen_position(area_height)

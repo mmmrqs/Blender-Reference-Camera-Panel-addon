@@ -120,6 +120,8 @@ class BL_UI_Widget():
 
     @visible.setter
     def visible(self, value):
+        # It seems that this commented out piece of logic is not needed, 
+        # but I was afraid to take rid of it for now. Better safe than sorry.
         # if value and not self._is_visible:
             # area_height = self.get_area_height()
             # self.__ui_scale = 0
@@ -408,8 +410,8 @@ class BL_UI_Widget():
         
         bgl.glEnable(bgl.GL_BLEND)
 
-        # The following statements make the contour nicer but causes the background to be translucid, 
-        # so I've disabled them till I figure out a better work around 
+        # The following statements make the contour nicer but cause the background to be translucid, 
+        # so I've disabled them till I figure out a better work around for smoothing the drawing. 
         # scaled_radius = self.scaled_radius(self._radius, self.height) 
         # if scaled_radius > 10:  
         # #used to be: if scaled_radius == 0 or scaled_radius > 10 or self._rounded_corners == (0,0,0,0):
@@ -516,7 +518,7 @@ class BL_UI_Widget():
 
         try:
             if self.state in {2,4,5}: # Hover, Hover++ and Down++ states
-                # Take the "state 0" background color and "tint" it by either 10% or 20%
+                # Take the "state 0" background color and "tint" it by either 20% or 10%
                 basecolor = color
                 color = self.tint_color(basecolor,(0.2 if basecolor[0] < 0.5 else 0.1))
                 if self.state in {4,5}: # Hover++ and Down++ states

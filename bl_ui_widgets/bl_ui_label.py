@@ -271,6 +271,7 @@ class BL_UI_Label(BL_UI_Widget):
                 shadow_size = 3 if (shadow_size < 3) else shadow_size
                 shadow_size = 5 if (shadow_size > 3) else shadow_size
 
+        # DOCUMENTATION:
         # blf.shadow(fontid, level, r, g, b, a)
         # Shadow options, enable/disable using SHADOW
         # Parameters:

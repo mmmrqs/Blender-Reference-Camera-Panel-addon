@@ -62,8 +62,8 @@ class BL_UI_OT_draw_operator(Operator):
     
     def __init__(self):
         self.widgets = []
-        #self.__draw_handle = None
-        #self.__draw_events = None
+        #self.__draw_handle = None  # <-- Was like this before implementing the 'lost handler detection logic'
+        #self.__draw_events = None  #     (ditto) 
         self.__finished = False
 
     @classmethod
@@ -148,7 +148,7 @@ class BL_UI_OT_draw_operator(Operator):
         if self.handle_widget_events(event):
             return {'RUNNING_MODAL'}   
         
-        # Not using this escape option but left here for documentation purpose
+        # Not using this escape option, but left it here for documentation purpose
         # if event.type in {"ESC"}:
             # self.finish()
                     
@@ -187,7 +187,7 @@ class BL_UI_OT_draw_operator(Operator):
 		
 	# Draw handler to paint onto the screen
     def draw_callback_px(self, op, context):
-        # check handles are still valid
+        # Check whether handles are still valid
         if not BL_UI_OT_draw_operator.validate():
             bpy.context.scene.var.RemoVisible = False
             bpy.context.scene.var.btnRemoText = "Open Remote Control"

@@ -37,6 +37,7 @@ bl_info = {
 #--- ### Change log
 
 #v1.0.0 (09.01.2021) - by Marcelo M. Marques 
+#Added: initial creation
 #Added: This new class to display tooltips for each widget. If design properties are not overriden by programmer 
 #       then those will be inherited from Blender's user themes.
 
@@ -516,9 +517,9 @@ class BL_UI_Tooltip(BL_UI_Patch):
                 if line_count >= self.__max_lines_python:  
                     break
 
-    # This piece of logic below would be used to merge/abbreviate the latest line to the "greatest" one
+    # This piece of logic below would be used to merge/abbreviate the latest line to the last one displayed
     # when going over the configured max lines count, however it needed to take into account the actual
-    # pixel-length of the strings instead of characters count, so it has been left out for now.
+    # pixel-length of the strings instead of characters count, so it has been left for future development.
 
     # def abbreviate_text(self, limit_chars, this_line, last_line):
         # this_line = this_line.rstrip()

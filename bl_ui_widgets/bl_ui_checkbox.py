@@ -326,7 +326,7 @@ class BL_UI_Checkbox(BL_UI_Patch):
             text_color = tuple(widget_style.text_sel) + (1.0,) if self._text_highlight is None else self._text_highlight
         elif self.__state == 2:
             text_color = tuple(widget_style.text) + (1.0,) if self._text_color is None else self._text_color
-            # Take the "state 0" text color and "tint" it by either 10% or 20%
+            # Take the "state 0" text color and "tint" it by either 20% or 10%
             text_color = self.tint_color(text_color,(0.2 if text_color[0] < 0.5 else 0.1))
 
         theme = bpy.context.preferences.ui_styles[0]

@@ -45,6 +45,7 @@ import bpy
 import gpu
 import bgl
 import blf
+import time
 
 from gpu_extras.batch import batch_for_shader
 
@@ -93,6 +94,8 @@ class BL_UI_Textbox(BL_UI_Button):
         self.__mouse_moved = False
         self.__drag_start_x = 0
         self.__drag_length = 0
+        self.__click_start = 0
+        self.__click_delay = 0.3
         self.__input_keys = ['ESC','RET','NUMPAD_ENTER','BACK_SPACE','HOME','END','DEL', 
                              'LEFT_ARROW','RIGHT_ARROW','UP_ARROW','DOWN_ARROW']
 
@@ -326,8 +329,8 @@ class BL_UI_Textbox(BL_UI_Button):
     # Overrides base class function
     def draw(self):
 
-        # The draw_text function has been overriden so as to defer
-        # text drawing to later (see bottom of this self.draw() function)
+        # The draw_text function has been overriden inside this python module so that 
+        # text drawing is deferred to later (at bottom of this self.draw() function)
         super().draw()
 
         if not self._is_visible:
@@ -399,28 +402,6 @@ class BL_UI_Textbox(BL_UI_Button):
     def draw_text(self):
         pass
 
-    def draw_marked_text(self):
-        # if not self._is_visible:
-            # return
-        
-        # # Save these values that will be temporarily overriden for the purpose of drawing only the marked text 
-        # save_text = self._text           
-        # save_x_screen = self.x_screen 
-        # save_width = self.width
-        
-        # cursor_pos_px = self.get_cursor_pos_px()
-        # self._text = self._text[self.__marked_pos[0]:self.__marked_pos[1]]
-        # self.x_screen = self.x_screen + (cursor_pos_px[0] / self.over_scale(1))
-        # self.width = self._text_margin + cursor_pos_px[1]
-
-        # super().draw_text()
-        
-        # # Restore former values 
-        # self._text = save_text
-        # self.x_screen = save_x_screen
-        # self.width = save_width
-        pass
-            
     # Overrides base class function
     def get_input_keys(self):
         return self.__input_keys
@@ -563,13 +544,21 @@ class BL_UI_Textbox(BL_UI_Button):
                 return True
             if self.mouse_down_func(self, event, x, y):
                 if self.__is_editing:
-                    self.__is_dragging = True
-                    self.__drag_start_x = x
-                    self.__drag_length = 0
-                    self.__marked_pos[0] = self.get_cursor_pos_char()
-                    self.__marked_pos[1] = self.__marked_pos[0]
-                    self.__mouse_moved = False
-                    self.update_cursor()
+                    if (time.time() - self.__click_start) <= self.__click_delay:
+                        # This is assumed as a double-click select text action
+                        self.__marked_pos[0] = self.find_text_gap('LEFT')
+                        self.__marked_pos[1] = self.find_text_gap('RIGHT')
+                        self.update_cursor()
+                    else:
+                        # This is assumed as a start of mouse drag select text action
+                        self.__is_dragging = True
+                        self.__drag_start_x = x
+                        self.__drag_length = 0
+                        self.__click_start = time.time()
+                        self.__marked_pos[0] = self.get_cursor_pos_char()
+                        self.__marked_pos[1] = self.__marked_pos[0]
+                        self.__mouse_moved = False
+                        self.update_cursor()
                 else:
                     self.start_editing()
                 return True

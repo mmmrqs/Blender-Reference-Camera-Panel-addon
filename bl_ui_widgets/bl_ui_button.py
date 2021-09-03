@@ -448,7 +448,7 @@ class BL_UI_Button(BL_UI_Patch):
             label.clip = (self.x_screen, self.y_screen, self.width, self.height)
             
             if self._text_size is None:
-                # Do not populate the text_size property to avoid it being leveraged and scaled twice
+                # Do not populate the label.text_size property to avoid it being leveraged and scaled twice
                 pass                          
             else:    
                 # Send the original programmer's overriding value and let it be leveraged and scaled by BL_UI_Label class
@@ -489,7 +489,7 @@ class BL_UI_Button(BL_UI_Patch):
             label.clip = (self.x_screen, self.y_screen, self.width, self.height)
             
             if self._textwo_size is None:
-                # Do not populate the text_size property to avoid it being leveraged and scaled twice
+                # Do not populate the label.text_size property to avoid it being leveraged and scaled twice
                 pass                          
             else:    
                 # Send the original programmer's overriding value and let it be leveraged and scaled by BL_UI_Label class
