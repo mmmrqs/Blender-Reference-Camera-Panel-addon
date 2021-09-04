@@ -379,9 +379,12 @@ class BL_UI_Button(BL_UI_Patch):
             leveraged_text_size = self.leverage_text_size(text_size,"widget")
         scaled_size = int(self.over_scale(leveraged_text_size))
 
-        text_kerning = (widget_style.font_kerning_style == 'FITTED') if self._text_kerning is None else self._text_kerning
-        if text_kerning:
-            blf.enable(0, blf.KERNING_DEFAULT)
+        if bpy.app.version >= (3, 0, 0): # 3.00 issue: 'font_kerning_style' has become extinct
+            text_kerning = False
+        else:
+            text_kerning = (widget_style.font_kerning_style == 'FITTED') if self._text_kerning is None else self._text_kerning
+            if text_kerning:
+                blf.enable(0, blf.KERNING_DEFAULT)
             
         blf.size(0, leveraged_text_size, 72)
         normal1 = blf.dimensions(0, "W")[1]  # This is to keep a regular pattern since letters differ in height
@@ -493,8 +496,6 @@ class BL_UI_Button(BL_UI_Patch):
                 label.text_size = textwo_size    
 
             label.text_kerning = text_kerning
-            label.text_kerning = text_kerning
-
             label.shadow_size  = shadow_size 
             label.shadow_offset_x = shadow_offset_x
             label.shadow_offset_y = shadow_offset_y

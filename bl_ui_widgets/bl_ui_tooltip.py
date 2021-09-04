@@ -220,7 +220,10 @@ class BL_UI_Tooltip(BL_UI_Patch):
                 theme = bpy.context.preferences.ui_styles[0]
                 widget_style = getattr(theme, "widget")
                 text_size = widget_style.points if self._text_size is None else self._text_size
-                text_kerning = (widget_style.font_kerning_style == 'FITTED') if self._text_kerning is None else self._text_kerning
+                if bpy.app.version >= (3, 0, 0): # 3.00 issue: 'font_kerning_style' has become extinct
+                    text_kerning = True if self._text_kerning is None else self._text_kerning
+                else:
+                    text_kerning = (widget_style.font_kerning_style == 'FITTED') if self._text_kerning is None else self._text_kerning
                 if self.__tooltip_textsize != text_size or self.__tooltip_textkern != text_kerning:
                     self.__tooltip_textsize = text_size 
                     self.__tooltip_textkern = text_kerning
@@ -262,7 +265,11 @@ class BL_UI_Tooltip(BL_UI_Patch):
             text_size = widget_style.points
         else:
             text_size = self.leverage_text_size(self._text_size,"widget")
-        text_kerning = (widget_style.font_kerning_style == 'FITTED') if self._text_kerning is None else self._text_kerning
+
+        if bpy.app.version >= (3, 0, 0): # 3.00 issue: 'font_kerning_style' has become extinct
+            text_kerning = False
+        else:
+            text_kerning = (widget_style.font_kerning_style == 'FITTED') if self._text_kerning is None else self._text_kerning
 
         # Will send these scaled values to text_wrap function to get a more precise measurement for the widest 
         # text line because the font characters do not scale so well proportionally to the supplied factor.
@@ -429,7 +436,11 @@ class BL_UI_Tooltip(BL_UI_Patch):
         else:
             text_size = self._text_size
             leveraged_text_size = self.leverage_text_size(text_size,"widget")
-        text_kerning = (widget_style.font_kerning_style == 'FITTED') if self._text_kerning is None else self._text_kerning
+
+        if bpy.app.version >= (3, 0, 0): # 3.00 issue: 'font_kerning_style' has become extinct
+            text_kerning = False
+        else:
+            text_kerning = (widget_style.font_kerning_style == 'FITTED') if self._text_kerning is None else self._text_kerning
 
         # Will send this scaled value to text_wrap function to get a more precise measurement for the widest 
         # text line because the font characters do not scale so well proportionally to the supplied factor.

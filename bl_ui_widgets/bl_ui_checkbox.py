@@ -337,9 +337,12 @@ class BL_UI_Checkbox(BL_UI_Patch):
             leveraged_text_size = self.leverage_text_size(text_size,"widget")
         scaled_size = int(self.over_scale(leveraged_text_size))
         
-        text_kerning = (widget_style.font_kerning_style == 'FITTED') if self._text_kerning is None else self._text_kerning
-        if text_kerning:
-            blf.enable(0, blf.KERNING_DEFAULT)
+        if bpy.app.version >= (3, 0, 0): # 3.00 issue: 'font_kerning_style' has become extinct
+            text_kerning = False
+        else:
+            text_kerning = (widget_style.font_kerning_style == 'FITTED') if self._text_kerning is None else self._text_kerning
+            if text_kerning:
+                blf.enable(0, blf.KERNING_DEFAULT)
             
         rounded_scale = int(round(self.over_scale(1)))    
         margin_space = (" "*rounded_scale) if rounded_scale > 0 else " "

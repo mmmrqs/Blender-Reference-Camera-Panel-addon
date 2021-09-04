@@ -266,9 +266,12 @@ class BL_UI_Textbox(BL_UI_Button):
             leveraged_text_size = self.leverage_text_size(text_size,"widget")
         scaled_size = int(self.over_scale(leveraged_text_size))
 
-        text_kerning = (widget_style.font_kerning_style == 'FITTED') if self._text_kerning is None else self._text_kerning
-        if text_kerning:
-            blf.enable(0, blf.KERNING_DEFAULT)
+        if bpy.app.version >= (3, 0, 0): # 3.00 issue: 'font_kerning_style' has become extinct
+            text_kerning = False
+        else:
+            text_kerning = (widget_style.font_kerning_style == 'FITTED') if self._text_kerning is None else self._text_kerning
+            if text_kerning:
+                blf.enable(0, blf.KERNING_DEFAULT)
         blf.size(0, scaled_size, 72)
 
         if self.__marked_pos[0] == 0:
@@ -297,9 +300,12 @@ class BL_UI_Textbox(BL_UI_Button):
             leveraged_text_size = self.leverage_text_size(text_size,"widget")
         scaled_size = int(self.over_scale(leveraged_text_size))
 
-        text_kerning = (widget_style.font_kerning_style == 'FITTED') if self._text_kerning is None else self._text_kerning
-        if text_kerning:
-            blf.enable(0, blf.KERNING_DEFAULT)
+        if bpy.app.version >= (3, 0, 0): # 3.00 issue: 'font_kerning_style' has become extinct
+            text_kerning = False
+        else:
+            text_kerning = (widget_style.font_kerning_style == 'FITTED') if self._text_kerning is None else self._text_kerning
+            if text_kerning:
+                blf.enable(0, blf.KERNING_DEFAULT)
         blf.size(0, scaled_size, 72)
 
         mark_target = self.__drag_start_x + self.__drag_length

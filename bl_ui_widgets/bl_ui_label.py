@@ -250,7 +250,10 @@ class BL_UI_Label(BL_UI_Widget):
         else:
             text_size = int(self.over_scale(text_size))
             
-        text_kerning = (widget_style.font_kerning_style == 'FITTED') if self._text_kerning is None else self._text_kerning
+        if bpy.app.version >= (3, 0, 0): # 3.00 issue: 'font_kerning_style' has become extinct
+            text_kerning = True if self._text_kerning is None else self._text_kerning
+        else:
+            text_kerning = (widget_style.font_kerning_style == 'FITTED') if self._text_kerning is None else self._text_kerning
 
         shadow_size  = widget_style.shadow if self._shadow_size is None else self._shadow_size   
         shadow_offset_x = widget_style.shadow_offset_x if self._shadow_offset_x is None else self._shadow_offset_x 
@@ -285,6 +288,9 @@ class BL_UI_Label(BL_UI_Widget):
         # fontid (int) – The id of the typeface as returned by blf.load(), for default font use 0.
         # x (float) – Horizontal shadow offset value in pixels (positive is right, negative is left)
         # y (float) – Vertical shadow offset value in pixels  (positive is up, negative is down)
+
+        if bpy.app.version >= (3, 0, 0): # 3.00 issue: 'font_kerning_style' has become extinct
+            text_kerning = False
 
         if shadow_size:
             blf.enable(0, blf.SHADOW)
