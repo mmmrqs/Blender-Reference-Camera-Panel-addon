@@ -16,9 +16,6 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 
-'''
-Reference Cameras add-on
-'''
 #--- ### Header
 bl_info = {
     "name": "BL UI Widgets",
@@ -37,8 +34,30 @@ bl_info = {
 #--- ### Change log
 
 #v1.0.0 (09.01.2021) - by Marcelo M. Marques 
+#Added: 'text_highlight' property to allow different text color on the selected textbox (value is standard color tuple). 
+#Added: 'outline_color' property to allow different color on the textbox outline (value is standard color tuple). 
+#Added: 'marked_color' property to allow different color on the selected part of the text (value is standard color tuple). 
+#Added: 'roundness' property to allow the textbox to be painted with rounded corners,
+#        same as that property available in Blender's user themes and it works together with 'rounded_corners' below.
+#Added: 'corner_radius' property to allow a limit for the roundness curvature, more useful when 'roundness' property 
+#        is not overriden by programmer and the one from Blender's user themes is used instead.
+#Added: 'rounded_corners' property and coding to allow the textbox to be painted with rounded corners (value is a 4 elements tuple).
+#        Each elements is a boolean value (0 or 1) which indicates whether the corresponding corner is to be rounded or straight
+#        in the following clockwise sequence: bottom left, top left, top right, bottom right. 
+#Added: 'shadow' property and coding to allow the textbox to be painted with a shadow (value is boolean).
+#Added: 'set_value_changed' function to allow assignment of an external function to be called when user finishes editing the text.
+#Added: Shadow and Kerning related properties that allow the text to be painted using these characteristics.
+#Added: Size, Shadow and Kerning attributes default to values retrieved from user theme (may be overriden by programmer).
+#Added: Logic to allow the user to select parts of the text with {shift/ctrl + cursor keys}, {mouse double-click} or {mouse dragging}.
+#Chang: Expanded the keypress event handling logic to deal with 'shift' and 'control' key combinations.
+#Chang: Included the keypress event handling for 'UP_ARROW', 'DOWN_ARROW' and 'NUMPAD_ENTER' keys.
+#Chang: Made it a subclass of 'BL_UI_Button' instead of 'BL_UI_Widget' so that it can inherit the layout features from there.
+#Chang: Instead of hardcoded logic it is now leveraging 'BL_UI_Label' to paint the textbox text line.
+#Chang: Renamed property 'carret_color' to 'cursor_color'.
 #Chang: Renamed function 'text_input' to 'keyboard_press'.
-
+#Chang: Renamed function 'set_text_changed' to 'set_value_updated'.
+#Chang: 'draw_text' function logic bypassed to use the same function inherited from 'BL_UI_Button' class.
+#Chang: 'mouse_down', 'mouse_move' and 'mouse_up' functions to handle text selection.
 
 #--- ### Imports
 import bpy
@@ -60,7 +79,7 @@ class BL_UI_Textbox(BL_UI_Button):
 
         self._text = "Textbox"
         self._text_color = None                 # Textbox normal color 
-        self._text_highlight = None             # Textbox high color (first row) 
+        self._text_highlight = None             # Textbox high color 
 
         self._style = 'TEXTBOX'                 # Textbox background color style
         self._bg_color = None                   # Textbox background color 

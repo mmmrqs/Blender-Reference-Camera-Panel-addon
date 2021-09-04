@@ -16,9 +16,6 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 
-'''
-Reference Cameras add-on
-'''
 #--- ### Header
 bl_info = {
     "name": "BL UI Widgets",
@@ -177,4 +174,3 @@ class BL_UI_Patch(BL_UI_Widget):
         if self._image is not None:
             if time.time() - self.__image_time >= 10:
                 self.set_image(self.__image_file)
-        

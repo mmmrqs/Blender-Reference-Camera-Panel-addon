@@ -16,9 +16,6 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 
-'''
-Reference Cameras add-on
-'''
 #--- ### Header
 bl_info = {
     "name": "BL UI Widgets",

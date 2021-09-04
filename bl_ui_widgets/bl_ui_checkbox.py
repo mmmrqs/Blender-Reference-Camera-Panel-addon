@@ -16,9 +16,6 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 
-'''
-Reference Cameras add-on
-'''
 #--- ### Header
 bl_info = {
     "name": "BL UI Widgets",
@@ -74,7 +71,7 @@ class BL_UI_Checkbox(BL_UI_Patch):
     
     def __init__(self, x, y, width, height):
 
-        width  = 15     # <-- Fixed size matching Blender ui at 1.0 resolution scale
+        width  = 15     # <-- Fixed-size attempt to match Blender's ui at 1.0 resolution scale
         height = width  
     
         super().__init__(x, y, width, height)

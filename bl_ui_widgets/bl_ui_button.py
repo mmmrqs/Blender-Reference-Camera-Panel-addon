@@ -16,9 +16,6 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 
-'''
-Reference Cameras add-on
-'''
 #--- ### Header
 bl_info = {
     "name": "BL UI Widgets",
@@ -42,7 +39,7 @@ bl_info = {
 #        The 1 line or 2 lines are always centered both in horizontal and vertical dimensions.
 #Added: 'textwo_size' property to allow different size from the other text line (value is integer). 
 #Added: 'textwo_color' property to allow different color from the other text line (value is standard color tuple). 
-#Added: 'text_highlight' and 'textwo_highlight' properties to allow different text colors on the selected button.
+#Added: 'text_highlight' and 'textwo_highlight' properties to allow different text colors on the selected button (value is standard color tuple). 
 #Added: 'outline_color' property to allow different color on the button outline (value is standard color tuple). 
 #Added: 'roundness' property to allow the button to be painted with rounded corners,
 #        same as that property available in Blender's user themes and it works together with 'rounded_corners' below.

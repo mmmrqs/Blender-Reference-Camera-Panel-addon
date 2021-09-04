@@ -16,9 +16,6 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 
-'''
-Reference Cameras add-on
-'''
 #--- ### Header
 bl_info = {
     "name": "BL UI Widgets",
@@ -101,7 +98,7 @@ class BL_UI_Drag_Panel(BL_UI_Patch):
         self._rounded_corners = (0,0,0,0)       # 1=Round/0=Straight, coords:(bottomLeft,topLeft,topRight,bottomRight)
         self._has_shadow = False                # Indicates whether a shadow must be drawn around the panel 
 
-        self._anchored = False    # Indicates whether panel can be dragged around the viewport or not
+        self._anchored = False                  # Indicates whether panel can be dragged around the viewport or not
 
         self.__drag_offset_x = 0
         self.__drag_offset_y = 0
@@ -200,4 +197,3 @@ class BL_UI_Drag_Panel(BL_UI_Patch):
         self.__drag_offset_x = 0
         self.__drag_offset_y = 0
         return False
-        
