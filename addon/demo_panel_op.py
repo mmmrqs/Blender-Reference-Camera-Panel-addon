@@ -38,7 +38,6 @@ bl_info = {
 #Added: New properties and functions to all widgets (check their corresponding modules for more information). 
 
 #--- ### Imports
-
 import bpy
 import os
 

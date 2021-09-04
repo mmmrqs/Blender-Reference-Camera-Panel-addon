@@ -41,7 +41,6 @@ bl_info = {
 #Added: New properties and functions in all widgets (check their corresponding modules for more information). 
 
 #--- ### Imports
-
 import bpy
 
 from bpy.types import Operator

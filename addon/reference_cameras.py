@@ -37,15 +37,17 @@ bl_info = {
 #--- ### Change log
 
 #v2.1.0 (08.01.2021) - by Marcelo M. Marques 
-#Added: Addon preferences with properties to customize most of the panel's features
-#Added: Group of buttons to set the transformation orientation and select the camera/target 
-#Added: Button to turn the active meshe(s) visibility on or off
-#Added: Button to open/close a floating 'Remote Control' panel
-#Added: Buttons to remove (hide) cameras from the N-Panel groups
-#Added: Buttons to add to the scene new camera/target set auto configured to work with this addon
-#Added: Function to add to the scene the needed collection set to work with this addon
-#Added: Logic to allow the many cameras to be automatically organized in distinct groups
-#Chang: Replaced constants by functions that retrieve the values from the addon preferences
+#Added: Addon preferences with properties to customize most of the panel's features.
+#Added: Group of buttons to set the transformation orientation and select the camera/target.
+#Added: Button to blink the active meshe(s) by continuously turning visibility on or off.
+#Added: Button to open/close a floating 'Remote Control' panel.
+#Added: Buttons to lock position and rotation of target object.
+#Added: Buttons to save/recover camera+target set setups.
+#Added: Buttons to remove (hide) cameras from the N-Panel groups.
+#Added: Buttons to add to the scene new camera/target set auto configured to work with this addon.
+#Added: Function to add to the scene the set of collections needed to work with this addon.
+#Added: Logic to allow the many reference cameras to be automatically organized in distinct groups.
+#Chang: Replaced constants by functions that retrieve the values from the addon preferences.
 
 #--- ### Imports
 import functools
@@ -137,12 +139,12 @@ def RC_TRGCOLOR():
     return (bpy.context.preferences.addons[package].preferences.RC_TRGCOLOR)
 
 def RC_OPACITY():
-    """ Opacity level for the camera backgroud image to blend against the viewport background color """
+    """ Opacity level for the camera background image to blend against the viewport background color """
     package = __package__[0:__package__.find(".")]
     return (bpy.context.preferences.addons[package].preferences.RC_OPACITY)
 
 def RC_DEPTH():
-    """ Depth option for rendering the camera's backgroud image """
+    """ Depth option for rendering the camera's background image """
     package = __package__[0:__package__.find(".")]
     return (bpy.context.preferences.addons[package].preferences.RC_DEPTH)
 

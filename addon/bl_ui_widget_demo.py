@@ -31,6 +31,12 @@ bl_info = {
     "tracker_url": "https://github.com/mmmrqs/bl_ui_widgets/issues"
     }    
 
+#--- ### Change log
+
+#v1.0.0 (09.01.2021) - by Marcelo M. Marques 
+#Added: initial creation
+
+#--- ### Imports
 import bpy
 from bpy.props import StringProperty, BoolProperty
 
@@ -46,7 +52,7 @@ class Variables(bpy.types.PropertyGroup):
     btnRemoText: bpy.props.StringProperty(default="Open Demo Panel")
 
 def is_desired_mode(context = None):
-    """Returns True, when Blender is in one of the desired Modes
+    """ Returns True, when Blender is in one of the desired Modes
         Arguments:
             @context (Context):  current context (optional - as received by the operator)
 
@@ -107,7 +113,7 @@ class OBJECT_PT_Demo(bpy.types.Panel):
 import bpy.app
 from bpy.utils import unregister_class, register_class
 
-#list of the classes in this add-on to be registered in Blender API:
+# List of classes in this add-on to be registered in Blender's API:
 classes = [ 
             Variables,
             Set_Demo_Panel,
