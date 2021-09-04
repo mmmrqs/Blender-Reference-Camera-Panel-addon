@@ -16,6 +16,10 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 
+'''
+Reference Cameras add-on
+'''
+#--- ### Header
 bl_info = {
     "name": "Reference Cameras Control Panel",
     "description": "Handles cameras associated with reference photos",
@@ -30,6 +34,12 @@ bl_info = {
     "tracker_url": "https://github.com/mmmrqs/Blender-Reference-Camera-Panel-addon/issues"
     }
 
+#--- ### Change log
+
+#v1.0.0 (09.01.2021) - by Marcelo M. Marques 
+#Added: initial creation
+
+#--- ### Imports
 import bpy
 import sys
 import importlib

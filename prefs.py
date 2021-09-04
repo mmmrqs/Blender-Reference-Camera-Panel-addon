@@ -148,7 +148,7 @@ class ReferenceCameraPreferences(AddonPreferences):
 
     RC_OPACITY: FloatProperty(
         name="",
-        description="Opacity level for the camera's backgroud image to blend against the viewport background color",
+        description="Opacity level for the camera's background image to blend against the viewport's background color",
         default=0.5,
         max=1.0,
         min=0.0,
@@ -162,7 +162,7 @@ class ReferenceCameraPreferences(AddonPreferences):
 
     #(identifier, name, description, icon, number)
     RC_DEPTH: EnumProperty(
-        name="Depth option for rendering the camera's backgroud image",
+        name="Depth option for rendering the camera's background image",
         items=[
             ('BACK',  "Back",  "Display under everything.", '', 0),
             ('FRONT', "Front", "Display over everything.", '', 1)
@@ -252,7 +252,7 @@ class ReferenceCameraPreferences(AddonPreferences):
 
     RC_PAN_H: IntProperty(
         name="",        
-        description="Panel height on 'drag_panel_op.py'"
+        description="Panel height saved on 'drag_panel_op.py'"
     )
 
     def ui_scale(self, value):
