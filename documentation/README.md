@@ -1,7 +1,7 @@
 # Some Basic Documentation
 
 ## Camera Movements Cheat Sheet
-![Standard Camera Movements](https://github.com/mmmrqs/Blender-Reference-Camera-Panel-addon/blob/main/media/Camera%20Movements%20Cheat%20Sheet.jpg)
+![Standard Camera Movements](https://github.com/mmmrqs/media/blob/main/Camera%20Movements%20Cheat%20Sheet.jpg)
 
 # Blender UI Widgets
 
