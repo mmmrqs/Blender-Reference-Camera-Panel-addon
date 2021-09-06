@@ -168,7 +168,10 @@ class BL_UI_Widget():
 
     def RC_UI_BIND(self):
         """ General scaling for 'Remote Control' panel """
-        package = __package__[0:__package__.find(".")]
+        if __package__.find(".") != -1:
+            package = __package__[0:__package__.find(".")]
+        else: 
+            package = __package__
         try:    bind = bpy.context.preferences.addons[package].preferences.RC_UI_BIND
         except: bind = True
         return (bind)
@@ -177,7 +180,10 @@ class BL_UI_Widget():
         """ Scaling to be applied on the Remote Control panel  
             over (in addition to) the interface ui_scale.
         """
-        package = __package__[0:__package__.find(".")]
+        if __package__.find(".") != -1:
+            package = __package__[0:__package__.find(".")]
+        else: 
+            package = __package__
         try:    scale = bpy.context.preferences.addons[package].preferences.RC_SCALE
         except: scale = 1.0
         return (scale)
@@ -187,7 +193,10 @@ class BL_UI_Widget():
             If (ON): remote panel slides together with viewport's bottom border.
             If (OFF): remote panel stays in place regardless of viewport resizing; 
         """
-        package = __package__[0:__package__.find(".")]
+        if __package__.find(".") != -1:
+            package = __package__[0:__package__.find(".")]
+        else: 
+            package = __package__
         try:    slide = bpy.context.preferences.addons[package].preferences.RC_SLIDE
         except: slide = True
         return (slide)

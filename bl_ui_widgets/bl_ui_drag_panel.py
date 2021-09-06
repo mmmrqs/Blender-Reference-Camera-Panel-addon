@@ -60,7 +60,10 @@ class BL_UI_Drag_Panel(BL_UI_Patch):
     def __init__(self, x, y, width, height):
 
         try:
-            package = __package__[0:__package__.find(".")]
+            if __package__.find(".") != -1:
+                package = __package__[0:__package__.find(".")]
+            else: 
+                package = __package__
             RC_POSITION = bpy.context.preferences.addons[package].preferences.RC_POSITION
             RC_POS_X = bpy.context.preferences.addons[package].preferences.RC_POS_X
             RC_POS_Y = bpy.context.preferences.addons[package].preferences.RC_POS_Y
@@ -138,7 +141,10 @@ class BL_UI_Drag_Panel(BL_UI_Patch):
         bpy.context.scene["bl_ui_panel_saved_data"] = {"panX" : new_x, "panY" : new_y}
         try:
             # Update values also in the add-on's preferences properties
-            package = __package__[0:__package__.find(".")]
+            if __package__.find(".") != -1:
+                package = __package__[0:__package__.find(".")]
+            else: 
+                package = __package__
             bpy.context.preferences.addons[package].preferences.RC_POS_X = new_x
             bpy.context.preferences.addons[package].preferences.RC_POS_Y = new_y
         except: 
