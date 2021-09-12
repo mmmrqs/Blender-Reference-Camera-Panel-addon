@@ -24,7 +24,7 @@ bl_info = {
     "name": "Reference Cameras",
     "description": "Handles cameras associated with reference photos",
     "author": "Marcelo M. Marques (fork of Witold Jaworski's project)",
-    "version": (1, 0, 0),
+    "version": (1, 0, 1),
     "blender": (2, 80, 75),
     "location": "View3D > side panel ([N]), [Cameras] tab",
     "support": "COMMUNITY",
@@ -36,7 +36,9 @@ bl_info = {
 
 #--- ### Change log
 
-#v2.1.0 (08.01.2021) - by Marcelo M. Marques 
+#v1.0.1 (09.12.2021) - by Marcelo M. Marques 
+#Fixed: Saved the current camera state to prevent impact by the depsgraph_update_post's after_update() function
+#v1.0.0 (09.01.2021) - by Marcelo M. Marques 
 #Added: Addon preferences with properties to customize most of the panel's features.
 #Added: Group of buttons to set the transformation orientation and select the camera/target.
 #Added: Button to blink the active meshe(s) by continuously turning visibility on or off.
@@ -730,6 +732,8 @@ class RefCameraPanelbutton_FLSH(bpy.types.Operator):
         return {'FINISHED'}
         
 def switch_memory_data(slot=0):
+    global LastState
+
     scn = bpy.context.scene
     camera = scn.camera
     target = get_target(camera)  
@@ -758,6 +762,9 @@ def switch_memory_data(slot=0):
     camera.rotation_euler = backup_slot.CameraRotation
     target.location = backup_slot.TargetLocation
     target.rotation_euler = backup_slot.TargetRotation
+
+    # Finally save the current state to prevent impact by the depsgraph_update_post's after_update() function
+    LastState = (camera.name, camera.data.lens)
 
 class RefCameraPanelbutton_M1(bpy.types.Operator):
     bl_idname = "object.ref_camera_panelbutton_m1"
