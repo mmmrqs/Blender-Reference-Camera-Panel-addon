@@ -36,7 +36,7 @@ bl_info = {
 
 #--- ### Change log
 
-#v1.0.0 (09.01.2021) - by Marcelo M. Marques
+#v1.0.0 (09.01.2021) - by Marcelo M. Marques 
 #Added: initial creation
 
 #--- ### Imports
