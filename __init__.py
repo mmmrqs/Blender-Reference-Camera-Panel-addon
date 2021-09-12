@@ -24,7 +24,7 @@ bl_info = {
     "name": "Reference Cameras Control Panel",
     "description": "Handles cameras associated with reference photos",
     "author": "Marcelo M. Marques (fork of Witold Jaworski's & Jayanam's projects)",
-    "version": (1, 0, 0),
+    "version": (1, 0, 1),
     "blender": (2, 80, 75),
     "location": "View3D > side panel ([N]), [Cameras] tab",
     "support": "COMMUNITY",
@@ -36,6 +36,8 @@ bl_info = {
 
 #--- ### Change log
 
+#v1.0.1 (09.12.2021) - by Marcelo M. Marques 
+#Chang: updated version with fixes
 #v1.0.0 (09.01.2021) - by Marcelo M. Marques 
 #Added: initial creation
 
