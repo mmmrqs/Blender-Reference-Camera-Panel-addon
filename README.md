@@ -2,7 +2,7 @@
 
 This add-on adds a new tab to Blender's N-Panel which groups many utilities for managing cameras that can be used for “fitting” the 3D models into reference photos. With it the user can easily operate multiple reference camera setups containing real world object photos taken from different directions. 
 
-This add-on was [originally created](http://airplanes3d.net/scripts-257_e.xml) by ***Witold Jaworsky*** and has been enhanced by me with additional features and a handy floating "cameras remote control" panel built upon the [BL UI Widgets](https://github.com/jayanam/bl_ui_widgets) add-on created by ***Jayanam***. 
+This add-on was [originally created](http://airplanes3d.net/scripts-257_e.xml) by ***Witold Jaworski*** and has been enhanced by me with additional features and a handy floating "cameras remote control" panel built upon the [BL UI Widgets](https://github.com/jayanam/bl_ui_widgets) add-on created by ***Jayanam***. 
 
 Feel free to create issues, file requests etc but be aware of that I may not find time to work on this as much as I'd probably like to. 
 
