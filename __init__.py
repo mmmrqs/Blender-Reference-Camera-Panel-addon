@@ -19,29 +19,35 @@
 '''
 Reference Cameras add-on
 '''
-#--- ### Header
-bl_info = {
-    "name": "Reference Cameras Control Panel",
-    "description": "Handles cameras associated with reference photos",
-    "author": "Marcelo M. Marques (fork of Witold Jaworski's & Jayanam's projects)",
-    "version": (1, 0, 1),
-    "blender": (2, 80, 75),
-    "location": "View3D > side panel ([N]), [Cameras] tab",
-    "support": "COMMUNITY",
-    "category": "3D View",
-    "warning": "Version numbering diverges from Witold's original project",
-    "doc_url": "http://airplanes3d.net/scripts-257_e.xml",
-    "tracker_url": "https://github.com/mmmrqs/Blender-Reference-Camera-Panel-addon/issues"
-    }
+# --- ### Header
+bl_info = {"name": "Reference Cameras Control Panel",
+           "description": "Handles cameras associated with reference photos",
+           "author": "Marcelo M. Marques (fork of Witold Jaworski's & Jayanam's projects)",
+           "version": (1, 0, 2),
+           "blender": (2, 80, 75),
+           "location": "View3D > side panel ([N]), [Cameras] tab",
+           "support": "COMMUNITY",
+           "category": "3D View",
+           "warning": "Version numbering diverges from Witold's original project",
+           "doc_url": "http://airplanes3d.net/scripts-257_e.xml",
+           "tracker_url": "https://github.com/mmmrqs/Blender-Reference-Camera-Panel-addon/issues"
+           }
 
-#--- ### Change log
+# --- ### Change log
 
-#v1.0.1 (09.12.2021) - by Marcelo M. Marques 
-#Chang: updated version with fixes
-#v1.0.0 (09.01.2021) - by Marcelo M. Marques 
-#Added: initial creation
+# Note: Because the way Blender's Preferences window displays the Addon version number,
+# I am forced to keep this file in sync with the greatest version number of all modules.
 
-#--- ### Imports
+# v1.0.2 (09.20.2021) - by Marcelo M. Marques
+# Chang: just some pep8 code formatting
+
+# v1.0.1 (09.12.2021) - by Marcelo M. Marques
+# Chang: updated version with fixes
+
+# v1.0.0 (09.01.2021) - by Marcelo M. Marques
+# Added: initial creation
+
+# --- ### Imports
 import bpy
 import sys
 import importlib
@@ -50,8 +56,7 @@ from bpy.props import *
 
 modulesFullNames = {}
 
-modulesNames = [
-                'prefs',
+modulesNames = ['prefs',
                 'bl_ui_widgets.bl_ui_draw_op',
                 'bl_ui_widgets.bl_ui_widget',
                 'bl_ui_widgets.bl_ui_label',
@@ -64,7 +69,7 @@ modulesNames = [
                 'bl_ui_widgets.bl_ui_drag_panel',
                 'addon.drag_panel_op',
                 'addon.reference_cameras',
-               ]
+                ]
 
 for currentModuleName in modulesNames:
     if 'DEBUG_MODE' in sys.argv:
@@ -83,25 +88,28 @@ if 'DEBUG_MODE' in sys.argv:
     print(timestr, __name__ + ": registered")
     print()
     sys.argv.remove('DEBUG_MODE')
- 
+
 for currentModuleFullName in modulesFullNames.values():
     if currentModuleFullName in sys.modules:
         importlib.reload(sys.modules[currentModuleFullName])
     else:
         globals()[currentModuleFullName] = importlib.import_module(currentModuleFullName)
         setattr(globals()[currentModuleFullName], 'modulesNames', modulesFullNames)
- 
+
+
 def register():
     for currentModuleName in modulesFullNames.values():
         if currentModuleName in sys.modules:
             if hasattr(sys.modules[currentModuleName], 'register'):
                 sys.modules[currentModuleName].register()
 
+
 def unregister():
     for currentModuleName in modulesFullNames.values():
         if currentModuleName in sys.modules:
             if hasattr(sys.modules[currentModuleName], 'unregister'):
                 sys.modules[currentModuleName].unregister()
- 
+
+
 if __name__ == "__main__":
     register()

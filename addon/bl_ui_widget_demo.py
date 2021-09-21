@@ -16,31 +16,34 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 
-#--- ### Header
-bl_info = {
-    "name": "BL UI Widgets",
-    "description": "UI Widgets to draw in the 3D view",
-    "author": "Marcelo M. Marques",
-    "version": (1, 0, 0),
-    "blender": (2, 80, 75),
-    "location": "View3D > side panel ([N]), [BL_UI_Widget] tab",
-    "support": "COMMUNITY",
-    "category": "3D View",
-    "warning": "",
-    "doc_url": "https://github.com/mmmrqs/bl_ui_widgets",
-    "tracker_url": "https://github.com/mmmrqs/bl_ui_widgets/issues"
-    }    
+# --- ### Header
+bl_info = {"name": "BL UI Widgets",
+           "description": "UI Widgets to draw in the 3D view",
+           "author": "Marcelo M. Marques",
+           "version": (1, 0, 1),
+           "blender": (2, 80, 75),
+           "location": "View3D > side panel ([N]), [BL_UI_Widget] tab",
+           "support": "COMMUNITY",
+           "category": "3D View",
+           "warning": "",
+           "doc_url": "https://github.com/mmmrqs/bl_ui_widgets",
+           "tracker_url": "https://github.com/mmmrqs/bl_ui_widgets/issues"
+           }
 
-#--- ### Change log
+# --- ### Change log
 
-#v1.0.0 (09.01.2021) - by Marcelo M. Marques 
-#Added: initial creation
+# v1.0.1 (09.20.2021) - by Marcelo M. Marques
+# Chang: just some pep8 code formatting
 
-#--- ### Imports
+# v1.0.0 (09.01.2021) - by Marcelo M. Marques
+# Added: initial creation
+
+# --- ### Imports
 import bpy
 from bpy.props import StringProperty, BoolProperty
 
-#--- ### Properties
+
+# --- ### Properties
 class Variables(bpy.types.PropertyGroup):
     OpState1: bpy.props.BoolProperty(default=False)
     OpState2: bpy.props.BoolProperty(default=False)
@@ -51,61 +54,65 @@ class Variables(bpy.types.PropertyGroup):
     RemoVisible: bpy.props.BoolProperty(default=False)
     btnRemoText: bpy.props.StringProperty(default="Open Demo Panel")
 
-def is_desired_mode(context = None):
+
+def is_desired_mode(context=None):
     """ Returns True, when Blender is in one of the desired Modes
         Arguments:
             @context (Context):  current context (optional - as received by the operator)
 
-       Possible desired mode options (as of Blender 2.8): 
-            'EDIT_MESH', 'EDIT_CURVE', 'EDIT_SURFACE', 'EDIT_TEXT', 'EDIT_ARMATURE', 'EDIT_METABALL', 
-            'EDIT_LATTICE', 'POSE', 'SCULPT', 'PAINT_WEIGHT', 'PAINT_VERTEX', 'PAINT_TEXTURE', 'PARTICLE', 
-            'OBJECT', 'PAINT_GPENCIL', 'EDIT_GPENCIL', 'SCULPT_GPENCIL', 'WEIGHT_GPENCIL', 
-       Additional desired mode option (as of Blender 2.9): 
-            'VERTEX_GPENCIL'    
+       Possible desired mode options (as of Blender 2.8):
+            'EDIT_MESH', 'EDIT_CURVE', 'EDIT_SURFACE', 'EDIT_TEXT', 'EDIT_ARMATURE', 'EDIT_METABALL',
+            'EDIT_LATTICE', 'POSE', 'SCULPT', 'PAINT_WEIGHT', 'PAINT_VERTEX', 'PAINT_TEXTURE', 'PARTICLE',
+            'OBJECT', 'PAINT_GPENCIL', 'EDIT_GPENCIL', 'SCULPT_GPENCIL', 'WEIGHT_GPENCIL',
+       Additional desired mode option (as of Blender 2.9):
+            'VERTEX_GPENCIL'
     """
-    desired_modes = ['OBJECT','EDIT_MESH','POSE',]
+    desired_modes = ['OBJECT', 'EDIT_MESH', 'POSE', ]
     if context:
         return (context.mode in desired_modes)
     else:
         return (bpy.context.mode in desired_modes)
 
+
 class Set_Demo_Panel(bpy.types.Operator):
     ''' Opens/Closes the remote control demo panel '''
-    bl_idname = "object.set_demo_panel" 
+    bl_idname = "object.set_demo_panel"
     bl_label = "Open Demo Panel"
     bl_description = "Turns the remote control demo panel on/off"
-    #--- Blender interface methods
+
+    # --- Blender interface methods
     @classmethod
-    def poll(cls,context):
+    def poll(cls, context):
         return is_desired_mode(context)
-        
+
     def invoke(self, context, event):
-        #input validation: 
+        # input validation:
         return self.execute(context)
-            
-    def execute(self,context):
-        if context.scene.var.RemoVisible == True:
+
+    def execute(self, context):
+        if context.scene.var.RemoVisible:
             context.scene.var.btnRemoText = "Open Demo Panel"
-        else:    
+        else:
             context.scene.var.btnRemoText = "Close Demo Panel"
             context.scene.var.objRemote = bpy.ops.object.dp_ot_draw_operator('INVOKE_DEFAULT')
 
-        context.scene.var.RemoVisible = not context.scene.var.RemoVisible 
+        context.scene.var.RemoVisible = not context.scene.var.RemoVisible
         return {'FINISHED'}
-        
+
+
 class OBJECT_PT_Demo(bpy.types.Panel):
-    bl_space_type = 'VIEW_3D' 
-    bl_region_type = 'UI' 
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
     bl_category = "BL_UI_Widget"
     bl_label = "BL_UI_Widget"
-       
+
     @classmethod
     def poll(cls, context):
         return is_desired_mode()
-   
+
     def draw(self, context):
-        if context.space_data.type == 'VIEW_3D' and is_desired_mode(): 
-            #-- remote control switch button
+        if context.space_data.type == 'VIEW_3D' and is_desired_mode():
+            # -- remote control switch button
             op = self.layout.operator(Set_Demo_Panel.bl_idname, text=context.scene.var.btnRemoText)
         return None
 
@@ -114,21 +121,23 @@ import bpy.app
 from bpy.utils import unregister_class, register_class
 
 # List of classes in this add-on to be registered in Blender's API:
-classes = [ 
-            Variables,
-            Set_Demo_Panel,
-            OBJECT_PT_Demo,
-          ]  
+classes = [Variables,
+           Set_Demo_Panel,
+           OBJECT_PT_Demo,
+           ]
+
 
 def register():
     for cls in classes:
         register_class(cls)
     bpy.types.Scene.var = bpy.props.PointerProperty(type=Variables)
 
+
 def unregister():
     del bpy.types.Scene.var
     for cls in reversed(classes):
-        unregister_class(cls)  
+        unregister_class(cls)
+
 
 if __name__ == '__main__':
     register()

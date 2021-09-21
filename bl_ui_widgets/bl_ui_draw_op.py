@@ -16,58 +16,64 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 
-#--- ### Header
-bl_info = {
-    "name": "BL UI Widgets",
-    "description": "UI Widgets to draw in the 3D view",
-    "author": "Marcelo M. Marques (fork of Jayanam's original project)",
-    "version": (1, 0, 0),
-    "blender": (2, 80, 75),
-    "location": "View3D > viewport area",
-    "support": "COMMUNITY",
-    "category": "3D View",
-    "warning": "Version numbering diverges from Jayanam's original project",
-    "doc_url": "https://github.com/mmmrqs/bl_ui_widgets",
-    "tracker_url": "https://github.com/mmmrqs/bl_ui_widgets/issues"
-    }    
-    
-#--- ### Change log
+# --- ### Header
+bl_info = {"name": "BL UI Widgets",
+           "description": "UI Widgets to draw in the 3D view",
+           "author": "Marcelo M. Marques (fork of Jayanam's original project)",
+           "version": (1, 0, 1),
+           "blender": (2, 80, 75),
+           "location": "View3D > viewport area",
+           "support": "COMMUNITY",
+           "category": "3D View",
+           "warning": "Version numbering diverges from Jayanam's original project",
+           "doc_url": "https://github.com/mmmrqs/bl_ui_widgets",
+           "tracker_url": "https://github.com/mmmrqs/bl_ui_widgets/issues"
+           }
 
-#v1.0.0 (09.01.2021) - by Marcelo M. Marques 
-#Added: 'terminate_execution' function that can be overriden by programmer in its subclass to command termination of the panel widget.
-#Added: A call to a new 'handle_event_finalize' function in the widgets so that after finishing processing of all the widgets primary 'handle_event' 
-#       function, a final pass is done one more time to wrap up any pending change of state for prior widgets already on the widgets list. Without 
-#       this additional pass it was not possible to make widgets that keep a 'pressed' state in relation to others, to work alright.
-#Added: New logic to finish execution of the widget whenever the user moves out of the 3D VIEW display mode (e.g. going into Sculpt editor).
-#Added: New logic to only allow paint onto the screen if the user is in the 3D VIEW display mode.
-#Added: New logic to detect when drawback handler gets lost (e.g. after opening other blender file) so that it can finish the operator without crashing.
-#Chang: Disabled code that finished execution by pressing the ESC key, since the addon has control to finish it by a 'terminate_execution' function.
-#Chang: Renamed some local variables so that those become restricted to this class only.
+# --- ### Change log
 
-#--- ### Imports
+# v1.0.1 (09.20.2021) - by Marcelo M. Marques
+# Chang: just some pep8 code formatting
+
+# v1.0.0 (09.01.2021) - by Marcelo M. Marques
+# Added: 'terminate_execution' function that can be overriden by programmer in the subclass to control termination of the panel widget.
+# Added: A call to a new 'handle_event_finalize' function in the widgets so that after finishing processing of all the widgets primary 'handle_event'
+#        function, a final pass is done one more time to wrap up any pending change of state for prior widgets already on the widgets list. Without
+#        this additional pass it was not possible to make widgets that keep a 'pressed' state in relation to others, to work alright.
+# Added: New logic to finish execution of the widget whenever the user moves out of the 3D VIEW display mode (e.g. going into Sculpt editor).
+# Added: New logic to only allow paint onto the screen if the user is in the 3D VIEW display mode.
+# Added: New logic to detect when drawback handler gets lost (e.g. after opening other blender file) so that it can finish the operator without crashing.
+# Chang: Disabled code that finished execution by pressing the ESC key, since the addon has control to finish it by a 'terminate_execution' function.
+# Chang: Renamed some local variables so that those become restricted to this class only.
+
+# --- ### Imports
 import bpy
 import sys
 
 from bpy.types import Operator
 
+
 class BL_UI_OT_draw_operator(Operator):
     bl_idname = "object.bl_ui_ot_draw_operator"
     bl_label = "bl ui widgets operator"
-    bl_description = "Operator for bl ui widgets" 
+    bl_description = "Operator for bl ui widgets"
     bl_options = {'REGISTER'}
+
     handlers = []
-    
+
     def __init__(self):
         self.widgets = []
-        #self.__draw_handle = None  # <-- Was like this before implementing the 'lost handler detection logic'
-        #self.__draw_events = None  #     (ditto) 
+        self.valid_modes = []
+        # self.__draw_handle = None  # <-- Was like this before implementing the 'lost handler detection logic'
+        # self.__draw_events = None  #     (ditto)
         self.__finished = False
+        self.__informed = False
 
     @classmethod
     def validate(cls):
-        """ A draw callback belonging to the space is persistent when another file is opened, whereas a modal operator is not. 
-            Solution below removes the draw callback if the operator becomes invalid. The RNA is how Blender objects store their 
-            properties under the hood. When the instance of the Blender operator is no longer required its RNA is trashed. 
+        """ A draw callback belonging to the space is persistent when another file is opened, whereas a modal operator is not.
+            Solution below removes the draw callback if the operator becomes invalid. The RNA is how Blender objects store their
+            properties under the hood. When the instance of the Blender operator is no longer required its RNA is trashed.
             Using 'repr()' avoids using a try catch clause. Would be keen to find out if there is a nicer way to check for this.
         """
         invalids = [(type, op, context, handler) for type, op, context, handler in cls.handlers if repr(op).endswith("invalid>")]
@@ -80,7 +86,7 @@ class BL_UI_OT_draw_operator(Operator):
                 context.window_manager.event_timer_remove(handler)
             cls.handlers.remove((type, op, context, handler))
         return valid
-    	
+
     def init_widgets(self, context, widgets):
         self.widgets = widgets
         for widget in self.widgets:
@@ -98,15 +104,15 @@ class BL_UI_OT_draw_operator(Operator):
         self.register_handlers(args, context)
         context.window_manager.modal_handler_add(self)
         return {'RUNNING_MODAL'}
-    
+
     def register_handlers(self, args, context):
         BL_UI_OT_draw_operator.handlers = []
         BL_UI_OT_draw_operator.handlers.append(('H', self, context, bpy.types.SpaceView3D.draw_handler_add(self.draw_callback_px, args, 'WINDOW', 'POST_PIXEL')))
         BL_UI_OT_draw_operator.handlers.append(('T', self, context, context.window_manager.event_timer_add(0.1, window=context.window)))
-        #Was as below before implementing the 'lost handler detection logic'
-        #self.__draw_handle = bpy.types.SpaceView3D.draw_handler_add(self.draw_callback_px, args, "WINDOW", "POST_PIXEL")
-        #self.__draw_events = context.window_manager.event_timer_add(0.1, window=context.window)
-        
+        # Was as below before implementing the 'lost handler detection logic'
+        # self.__draw_handle = bpy.types.SpaceView3D.draw_handler_add(self.draw_callback_px, args, "WINDOW", "POST_PIXEL")
+        # self.__draw_events = context.window_manager.event_timer_add(0.1, window=context.window)
+
     def unregister_handlers(self, context):
         for handler in BL_UI_OT_draw_operator.handlers:
             if handler[0] == 'H':
@@ -114,43 +120,45 @@ class BL_UI_OT_draw_operator(Operator):
             if handler[0] == 'T':
                 context.window_manager.event_timer_remove(handler[3])
         BL_UI_OT_draw_operator.handlers = []
-        #Was as below before implementing the 'lost handler detection logic'
-        #context.window_manager.event_timer_remove(self.__draw_events)
-        #bpy.types.SpaceView3D.draw_handler_remove(self.__draw_handle, "WINDOW")
-        #self.__draw_handle = None
-        #self.__draw_events = None
-        
+        # Was as below before implementing the 'lost handler detection logic'
+        # context.window_manager.event_timer_remove(self.__draw_events)
+        # bpy.types.SpaceView3D.draw_handler_remove(self.__draw_handle, "WINDOW")
+        # self.__draw_handle = None
+        # self.__draw_events = None
+
     def modal(self, context, event):
         if self.__finished:
             return {'FINISHED'}
 
-        ##-- personalized criteria for the Reference Cameras addon --
+        # -- personalized criteria for the Reference Cameras addon --
         # This is an ugly workaround till I figure out how to signal to the N-panel coding that this remote control panel has been finished.
         # This is to detect when user changed workspace
-        try: testing = context.space_data.type
-        except: self.finish()
+        try:
+            testing = context.space_data.type
+        except Exception as e:
+            self.finish()
 
         try:
             if not (context.space_data.type == 'VIEW_3D'):
                 self.finish()
             if self.terminate_execution():
                 self.finish()
-        except:
+        except Exception as e:
             pass
-        ##-- end of the personalized criteria for the given addon --
+        # -- end of the personalized criteria for the given addon --
 
         if context.area:
             context.area.tag_redraw()
 
         if self.handle_widget_events(event):
-            return {'RUNNING_MODAL'}   
-        
+            return {'RUNNING_MODAL'}
+
         # Not using this escape option, but left it here for documentation purpose
         # if event.type in {"ESC"}:
             # self.finish()
-                    
+
         return {'PASS_THROUGH'}
-                                
+
     def handle_widget_events(self, event):
         result = False
         for widget in self.widgets:
@@ -164,39 +172,42 @@ class BL_UI_OT_draw_operator(Operator):
                     # Need to pass one more time to wrap up any pending change of state for widgets on the widgets list
                     widget.handle_event_finalize(event)
         return result
-          
+
     def terminate_execution(self):
-        # This may be overriden by one same named function on the child class
+        # This might be overriden by one same named function in the derived (child) class
         return False
-    
+
     def finish(self):
-        ##-- personalized criteria for the Reference Cameras addon --
+        # -- personalized criteria for the Reference Cameras addon --
         # This is an ugly workaround till I figure out how to signal to the N-panel coding that this remote control panel has been finished.
         # This is to detect when user changed workspace
-        try: testing = context.space_data.type  
-        except:    
+        try:
+            testing = bpy.context.space_data.type
+        except Exception as e:
             bpy.context.scene.var.RemoVisible = False
             bpy.context.scene.var.btnRemoText = "Open Remote Control"
-        ##-- end of the personalized criteria for the given addon --
-            
+        # -- end of the personalized criteria for the given addon --
+
         self.unregister_handlers(bpy.context)
         self.on_finish(bpy.context)
-		
+
 	# Draw handler to paint onto the screen
     def draw_callback_px(self, op, context):
         # Check whether handles are still valid
         if not BL_UI_OT_draw_operator.validate():
             bpy.context.scene.var.RemoVisible = False
             bpy.context.scene.var.btnRemoText = "Open Remote Control"
-            return        
+            return
 
         success = True
 
         ##-- personalized criteria for the Reference Cameras addon --
         # This is an ugly workaround till I figure out how to signal to the N-panel coding that this remote control panel has been finished.
         # This is to detect when user changed workspace
-        try: testing = context.space_data.type  
-        except: self.finish()
+        try:
+            testing = context.space_data.type
+        except Exception as e:
+            self.finish()
 
         try:
             if context.space_data.type == 'VIEW_3D':
@@ -204,13 +215,12 @@ class BL_UI_OT_draw_operator(Operator):
                     if context.scene.var.addon_ident == 'RC_CAMERA':
                         # The above "marker" is generated in the 'reference_camera.py' module 
                         success = (context.mode == 'OBJECT' and context.region_data.view_perspective == 'CAMERA')
-            else:        
+            else:
                 success = False
-        except:
+        except Exception as e:
             success = False
-
         ##-- end of the personalized criteria for the given addon --
-            
+
         if success:
             for widget in self.widgets:
                 widget.draw()

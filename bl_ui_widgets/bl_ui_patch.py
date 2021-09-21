@@ -16,40 +16,43 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 
-#--- ### Header
-bl_info = {
-    "name": "BL UI Widgets",
-    "description": "UI Widgets to draw in the 3D view",
-    "author": "Marcelo M. Marques",
-    "version": (1, 0, 0),
-    "blender": (2, 80, 75),
-    "location": "View3D > viewport area",
-    "support": "COMMUNITY",
-    "category": "3D View",
-    "warning": "",
-    "doc_url": "https://github.com/mmmrqs/bl_ui_widgets",
-    "tracker_url": "https://github.com/mmmrqs/bl_ui_widgets/issues"
-    }    
-    
-#--- ### Change log
+# --- ### Header
+bl_info = {"name": "BL UI Widgets",
+           "description": "UI Widgets to draw in the 3D view",
+           "author": "Marcelo M. Marques",
+           "version": (1, 0, 1),
+           "blender": (2, 80, 75),
+           "location": "View3D > viewport area",
+           "support": "COMMUNITY",
+           "category": "3D View",
+           "warning": "",
+           "doc_url": "https://github.com/mmmrqs/bl_ui_widgets",
+           "tracker_url": "https://github.com/mmmrqs/bl_ui_widgets/issues"
+           }
 
-#v1.0.0 (09.01.2021) - by Marcelo M. Marques 
-#Added: initial creation
-#Added: This new class to paint custom rectangles on screen. Useful for creating header and subpanel areas.
-#       It is used as a base class for the following widgets:
-#       {'BL_UI_Drag_Panel','BL_UI_Button','BL_UI_Slider','BL_UI_Checkbox','BL_UI_Tooltip'}
+# --- ### Change log
 
-#--- ### Imports
+# v1.0.1 (09.20.2021) - by Marcelo M. Marques
+# Chang: just some pep8 code formatting
+
+# v1.0.0 (09.01.2021) - by Marcelo M. Marques
+# Added: initial creation
+# Added: This new class to paint custom rectangles on screen. Useful for creating header and subpanel areas.
+#        It is used as a base class for the following widgets:
+#        {'BL_UI_Drag_Panel','BL_UI_Button','BL_UI_Slider','BL_UI_Checkbox','BL_UI_Tooltip'}
+
+# --- ### Imports
 import bpy
 import time
 
 from . bl_ui_widget import BL_UI_Widget
 
-class BL_UI_Patch(BL_UI_Widget): 
+
+class BL_UI_Patch(BL_UI_Widget):
 
     def __init__(self, x, y, width, height):
         super().__init__(x, y, width, height)
- 
+
         # Note: '_style' value will always be ignored if the bg_color value is overriden after object initialization.
 
         self._style = 'NONE'                    # Patch background color styles are: {HEADER,PANEL,SUBPANEL,BOX,TOOLTIP,NONE}
@@ -58,13 +61,13 @@ class BL_UI_Patch(BL_UI_Widget):
         self._outline_color = None              # Panel outline color (defaults to invisible)
         self._roundness = 0                     # Patch corners roundness factor [0..1]
         self._radius = 0                        # Patch corners circular radius
-        self._rounded_corners = (0,0,0,0)       # 1=Round/0=Straight, coords:(bottomLeft,topLeft,topRight,bottomRight)
-        self._has_shadow = False                # Indicates whether a shadow must be drawn around the patch 
-        
+        self._rounded_corners = (0, 0, 0, 0)    # 1=Round/0=Straight, coords:(bottomLeft,topLeft,topRight,bottomRight)
+        self._has_shadow = False                # Indicates whether a shadow must be drawn around the patch
+
         self._image = None                      # Image file to be loaded
         self._image_size = (24, 24)             # Image size in pixels; values are (width, height)
         self._image_position = (4, 2)           # Image position inside the patch area; values are (x, y)
-        
+
         self.__image_file = None
         self.__image_time = 0
 
@@ -90,8 +93,8 @@ class BL_UI_Patch(BL_UI_Widget):
 
     @outline_color.setter
     def outline_color(self, value):
-        self._outline_color = value 
-        
+        self._outline_color = value
+
     @property
     def roundness(self):
         return self._roundness
@@ -106,15 +109,15 @@ class BL_UI_Patch(BL_UI_Widget):
             self._roundness = 1.0
         else:
             self._roundness = value
-        
+
     @property
     def corner_radius(self):
         return self._radius
 
     @corner_radius.setter
     def corner_radius(self, value):
-        self._radius = value 
-        
+        self._radius = value
+
     @property
     def rounded_corners(self):
         return self._rounded_corners
@@ -141,7 +144,7 @@ class BL_UI_Patch(BL_UI_Widget):
         self.__image_file = rel_filepath
         self.__image_time = time.time()
         try:
-            self._image = bpy.data.images.load(self.__image_file, check_existing=True)   
+            self._image = bpy.data.images.load(self.__image_file, check_existing=True)
             self._image.gl_load()
             self._image.pack(as_png=True)
         except:
@@ -152,24 +155,24 @@ class BL_UI_Patch(BL_UI_Widget):
         """
            The statement with super() is equivalent to writing either one of the following,
            but with the advantage of not having the class name hard coded.
-            - if type(self).__name__ == "BL_UI_Patch": 
+            - if type(self).__name__ == "BL_UI_Patch":
             - if type(self) is BL_UI_Patch:
-        """    
+        """
         # This distincts whether it is the Base or a Derived class
-        if super().__self_class__ is super().__thisclass__:    
+        if super().__self_class__ is super().__thisclass__:
             # This object type must not react to mouse events
             return False
         else:
-            return super().is_in_rect(x,y)
+            return super().is_in_rect(x, y)
 
     # Overrides base class function
-    def draw(self):      
+    def draw(self):
 
         super().draw()
 
         if not self._is_visible:
             return
-            
+
         # Attempt to refresh the image because it has an issue that causes it to black out after a while
         if self._image is not None:
             if time.time() - self.__image_time >= 10:
