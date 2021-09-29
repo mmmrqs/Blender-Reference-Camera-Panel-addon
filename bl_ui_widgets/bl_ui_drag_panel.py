@@ -70,7 +70,7 @@ class BL_UI_Drag_Panel(BL_UI_Patch):
             RC_POSITION = bpy.context.preferences.addons[package].preferences.RC_POSITION
             RC_POS_X = bpy.context.preferences.addons[package].preferences.RC_POS_X
             RC_POS_Y = bpy.context.preferences.addons[package].preferences.RC_POS_Y
-        except:
+        except Exception as e:
             RC_POSITION = False
 
         if RC_POSITION:
@@ -150,7 +150,7 @@ class BL_UI_Drag_Panel(BL_UI_Patch):
                 package = __package__
             bpy.context.preferences.addons[package].preferences.RC_POS_X = new_x
             bpy.context.preferences.addons[package].preferences.RC_POS_Y = new_y
-        except:
+        except Exception as e:
             pass
 
     # Overrides base class function
