@@ -23,7 +23,7 @@ Reference Cameras add-on
 bl_info = {"name": "Reference Cameras Control Panel",
            "description": "Handles cameras associated with reference photos",
            "author": "Marcelo M. Marques (fork of Witold Jaworski's & Jayanam's projects)",
-           "version": (1, 0, 2),
+           "version": (1, 0, 3),
            "blender": (2, 80, 75),
            "location": "View3D > side panel ([N]), [Cameras] tab",
            "support": "COMMUNITY",
@@ -38,6 +38,9 @@ bl_info = {"name": "Reference Cameras Control Panel",
 # Note: Because the way Blender's Preferences window displays the Addon version number,
 # I am forced to keep this file in sync with the greatest version number of all modules.
 
+# v1.0.3 (09.30.2021) - by Marcelo M. Marques
+# Chang: updated version with improvements and some clean up
+
 # v1.0.2 (09.20.2021) - by Marcelo M. Marques
 # Chang: just some pep8 code formatting
 
@@ -48,11 +51,8 @@ bl_info = {"name": "Reference Cameras Control Panel",
 # Added: initial creation
 
 # --- ### Imports
-import bpy
 import sys
 import importlib
-
-from bpy.props import *
 
 modulesFullNames = {}
 
