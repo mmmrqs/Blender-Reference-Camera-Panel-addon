@@ -20,7 +20,7 @@
 bl_info = {"name": "BL UI Widgets",
            "description": "UI Widgets to draw in the 3D view",
            "author": "Marcelo M. Marques (fork of Jayanam's original project)",
-           "version": (1, 0, 1),
+           "version": (1, 0, 2),
            "blender": (2, 80, 75),
            "location": "View3D > viewport area",
            "support": "COMMUNITY",
@@ -31,6 +31,11 @@ bl_info = {"name": "BL UI Widgets",
            }
 
 # --- ### Change log
+
+# v1.0.2 (09.30.2021) - by Marcelo M. Marques
+# Added: 'valid_modes' property to indicate the 'bpy.context.mode' valid values for displaying the panel.
+# Added: 'suppress_rendering' function that can be optionally used to control render bypass of the panel widget.
+# Added: 'area' and 'region' input parameters to the overridable 'terminate_execution()' function.
 
 # v1.0.1 (09.20.2021) - by Marcelo M. Marques
 # Chang: just some pep8 code formatting
@@ -93,7 +98,21 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator):  # in: bl_ui_draw_op.py ##
 
         package = __package__[0:__package__.find(".")]
 
-        # From Preferences/Themes/"Text Style"
+        # The values assigned to the self.valid_modes variable below will be used to restrict panel display
+        # to those options only. Set it accordingly to the desired functionality of your particular addon.
+        #
+        # Possible valid mode options (as of Blender 2.8):
+        #   'EDIT_MESH', 'EDIT_CURVE', 'EDIT_SURFACE', 'EDIT_TEXT', 'EDIT_ARMATURE', 'EDIT_METABALL',
+        #   'EDIT_LATTICE', 'POSE', 'SCULPT', 'PAINT_WEIGHT', 'PAINT_VERTEX', 'PAINT_TEXTURE', 'PARTICLE',
+        #   'OBJECT', 'PAINT_GPENCIL', 'EDIT_GPENCIL', 'SCULPT_GPENCIL', 'WEIGHT_GPENCIL',
+        # Additional valid mode option (as of Blender 2.9):
+        #   'VERTEX_GPENCIL'
+        #
+        # Note: Leave it empty, e.g. self.valid_modes = {}, for no restriction to be applied.
+
+        self.valid_modes = {'OBJECT', 'EDIT_MESH'}
+
+        # From Preferences/Themes/User Interface/"State"
         theme = bpy.context.preferences.themes[0]
         ui = theme.user_interface
         widget_style = getattr(ui, "wcol_state")
@@ -142,8 +161,8 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator):  # in: bl_ui_draw_op.py ##
         self.button2.rounded_corners = (0, 0, 0, 0)
         self.button2.set_mouse_up(self.button2_click)
         self.button2.set_button_pressed(self.button2_pressed)
-        self.button2.description = "You can help me by doing as follows:\n" +\
-                                   " -Press button 4 to Disable Me\n" +\
+        self.button2.description = "You can help me by doing as follows:\n" + \
+                                   " -Press button 4 to Disable Me\n" + \
                                    " -Press button 1 to Enable Me"
         self.button2.python_cmd = "bpy.ops.object.dp_ot_draw_operator.button2_click()"
         if self.button2_pressed(self.button2):
@@ -266,7 +285,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator):  # in: bl_ui_draw_op.py ##
         self.patch1.set_mouse_move(self.patch1_mouse_move)
 
         self.label1 = BL_UI_Label(5, 12, panW, 17)
-        self.label1.style = "TITLE"
+        self.label1.style = 'TITLE'
         self.label1.text = "Panel Title For Example"
         self.label1.size = 12
 
@@ -325,7 +344,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator):  # in: bl_ui_draw_op.py ##
 
         widgets = widgets_panel + widgets_items
 
-        self.init_widgets(context, widgets)
+        self.init_widgets(context, widgets, self.valid_modes)
 
         self.panel.add_widgets(widgets_items)
 
@@ -333,7 +352,21 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator):  # in: bl_ui_draw_op.py ##
 
     # -- Helper function
 
-    def terminate_execution(self):
+    def suppress_rendering(self, area, region):
+        '''
+            This is a special case 'overriding function' to allow subclass control for displaying (rendering) the panel.
+            Function is defined in class BL_UI_OT_draw_operator (bl_ui_draw_op.py) and available to be inherited here.
+            If not included here the function in the superclass just returns 'False' and rendering is always executed.
+            When 'True" is returned below, the rendering of the entire panel is bypassed and it is not drawn on screen.
+        '''
+        if bpy.context.region.as_pointer() != self.get_region_pointer():
+            # Avoid drawing the remote panel simultaneously in every duplicated area.
+            # The self.get_region_pointer() returns the 'region.as_pointer' value that was saved in the class variable
+            # when operator was initially invoked (in the case of this demo it will correspond to the N-Panel's region).
+            return True
+        return False
+
+    def terminate_execution(self, area, region):
         '''
             This is a special case 'overriding function' to allow subclass control for terminating/closing the panel.
             Function is defined in class BL_UI_OT_draw_operator (bl_ui_draw_op.py) and available to be inherited here.
@@ -456,12 +489,13 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator):  # in: bl_ui_draw_op.py ##
             for obj in bpy.context.selected_objects:
                 if obj.type == 'MESH':
                     obj.rotation_euler[2] = math.radians(value)
-        except:
+        except Exception as e:
             pass
         return True
 
     def textbox1_changed(self, widget, context, former_text, updated_text):
         # This is just an example done in a rush, so not much thinking and probably with bugs ;-)
+        # self.objname is a variable declared in this module (around the place where self.textbox1 is declared)
         if updated_text != self.objname:
             if updated_text.strip() == "":
                 self.objname = "<Why have you tried to blank her name?>"
@@ -473,7 +507,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator):  # in: bl_ui_draw_op.py ##
                         obj.name = updated_text
                         self.objname = obj.name
                         break
-            except:
+            except Exception as e:
                 self.objname = "<Error trying to assign this name to object>"
                 widget.text = self.objname
         return True

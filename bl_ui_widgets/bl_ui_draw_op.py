@@ -20,7 +20,7 @@
 bl_info = {"name": "BL UI Widgets",
            "description": "UI Widgets to draw in the 3D view",
            "author": "Marcelo M. Marques (fork of Jayanam's original project)",
-           "version": (1, 0, 1),
+           "version": (1, 0, 2),
            "blender": (2, 80, 75),
            "location": "View3D > viewport area",
            "support": "COMMUNITY",
@@ -31,6 +31,18 @@ bl_info = {"name": "BL UI Widgets",
            }
 
 # --- ### Change log
+
+# v1.0.2 (09.30.2021) - by Marcelo M. Marques
+# Added: 'region_pointer' class level property to indicate the region in which the drag_panel operator instance has been invoked().
+# Added: 'valid_modes' property to indicate the 'bpy.context.mode' valid values for displaying the panel.
+# Added: 'get_region_pointer' function to retrieve the value of the 'region_pointer' class level property.
+# Added: 'get_3d_area_and_region' function to retrieve the correct area and region (because those are not guaranteed to remain
+#         the same after maximizing/restoring screen areas).
+# Added: 'valid_display_mode' function to determine whether the user has moved out of the valid area/region.
+# Added: 'suppress_rendering' function that can be overriden by programmer in the subclass to control render bypass of the panel widget.
+# Added: Logic to the 'invoke' method to avoid "internal error" terminal messages, after maximizing the viewport.
+# Chang: How we determine whether the user has moved out of the valid area/region, now using the 'valid_display_mode()' function.
+# Chang: Renamed function 'validate()' to 'valid_handler()' for better understanding of its purpose.
 
 # v1.0.1 (09.20.2021) - by Marcelo M. Marques
 # Chang: just some pep8 code formatting
@@ -60,6 +72,7 @@ class BL_UI_OT_draw_operator(Operator):
     bl_options = {'REGISTER'}
 
     handlers = []
+    region_pointer = 0  # Uniquely identifies the region that this (drag_panel) operator instance has been invoked()
 
     def __init__(self):
         self.widgets = []
@@ -70,7 +83,7 @@ class BL_UI_OT_draw_operator(Operator):
         self.__informed = False
 
     @classmethod
-    def validate(cls):
+    def valid_handler(cls):
         """ A draw callback belonging to the space is persistent when another file is opened, whereas a modal operator is not.
             Solution below removes the draw callback if the operator becomes invalid. The RNA is how Blender objects store their
             properties under the hood. When the instance of the Blender operator is no longer required its RNA is trashed.
@@ -87,10 +100,13 @@ class BL_UI_OT_draw_operator(Operator):
             cls.handlers.remove((type, op, context, handler))
         return valid
 
-    def init_widgets(self, context, widgets):
+    def get_region_pointer(self):
+        return BL_UI_OT_draw_operator.region_pointer
+
+    def init_widgets(self, context, widgets, valid_modes):
         self.widgets = widgets
         for widget in self.widgets:
-            widget.init(context)
+            widget.init(context, valid_modes)
 
     def on_invoke(self, context, event):
         pass
@@ -99,6 +115,16 @@ class BL_UI_OT_draw_operator(Operator):
         self.__finished = True
 
     def invoke(self, context, event):
+        # Avoid "internal error: modal gizmo-map handler has invalid area" terminal messages, after maximizing the viewport,
+        # by switching the workspace back and forth. Not pretty, but at least it avoids the terminal output getting spammed.
+        current = context.workspace
+        other = [ws for ws in bpy.data.workspaces if ws != current]
+        if other:
+            bpy.context.window.workspace = other[0]
+            bpy.context.window.workspace = current
+        # -----------------------------------------------------------------
+        BL_UI_OT_draw_operator.region_pointer = context.region.as_pointer()
+        # -----------------------------------------------------------------
         self.on_invoke(context, event)
         args = (self, context)
         self.register_handlers(args, context)
@@ -130,28 +156,16 @@ class BL_UI_OT_draw_operator(Operator):
         if self.__finished:
             return {'FINISHED'}
 
-        # -- personalized criteria for the Reference Cameras addon --
-        # This is an ugly workaround till I figure out how to signal to the N-panel coding that this remote control panel has been finished.
-        # This is to detect when user changed workspace
-        try:
-            testing = context.space_data.type
-        except Exception as e:
+        area, region, abend = get_3d_area_and_region()
+
+        if abend:
             self.finish()
-
-        try:
-            if not (context.space_data.type == 'VIEW_3D'):
-                self.finish()
-            if self.terminate_execution():
-                self.finish()
-        except Exception as e:
-            pass
-        # -- end of the personalized criteria for the given addon --
-
-        if context.area:
-            context.area.tag_redraw()
-
-        if self.handle_widget_events(event):
-            return {'RUNNING_MODAL'}
+        if self.terminate_execution(area, region):
+            self.finish()
+        if area:
+            area.tag_redraw()
+            if self.handle_widget_events(event):
+                return {'RUNNING_MODAL'}
 
         # Not using this escape option, but left it here for documentation purpose
         # if event.type in {"ESC"}:
@@ -173,54 +187,103 @@ class BL_UI_OT_draw_operator(Operator):
                     widget.handle_event_finalize(event)
         return result
 
-    def terminate_execution(self):
+    def suppress_rendering(self, area, region):
+        # This might be overriden by one same named function in the derived (child) class
+        return False
+
+    def terminate_execution(self, area, region):
         # This might be overriden by one same named function in the derived (child) class
         return False
 
     def finish(self):
-        # -- personalized criteria for the Reference Cameras addon --
-        # This is an ugly workaround till I figure out how to signal to the N-panel coding that this remote control panel has been finished.
-        # This is to detect when user changed workspace
-        try:
-            testing = bpy.context.space_data.type
-        except Exception as e:
-            bpy.context.scene.var.RemoVisible = False
-            bpy.context.scene.var.btnRemoText = "Open Remote Control"
+        # -- personalized criteria for the Remote Control panel addon --
+        # This is a temporary workaround till I figure out how to signal to
+        # the N-panel coding that the remote control panel has been finished.
+        bpy.context.scene.var.RemoVisible = False
+        bpy.context.scene.var.btnRemoText = "Open Remote Control"
         # -- end of the personalized criteria for the given addon --
 
         self.unregister_handlers(bpy.context)
         self.on_finish(bpy.context)
 
-	# Draw handler to paint onto the screen
+    # Draw handler to paint onto the screen
     def draw_callback_px(self, op, context):
         # Check whether handles are still valid
-        if not BL_UI_OT_draw_operator.validate():
+        if not BL_UI_OT_draw_operator.valid_handler():
+            # -- personalized criteria for the Remote Control panel addon --
+            # This is a temporary workaround till I figure out how to signal to
+            # the N-panel coding that the remote control panel has been finished.
             bpy.context.scene.var.RemoVisible = False
             bpy.context.scene.var.btnRemoText = "Open Remote Control"
+            # -- end of the personalized criteria for the given addon --
             return
 
-        success = True
-
-        ##-- personalized criteria for the Reference Cameras addon --
-        # This is an ugly workaround till I figure out how to signal to the N-panel coding that this remote control panel has been finished.
-        # This is to detect when user changed workspace
-        try:
-            testing = context.space_data.type
-        except Exception as e:
-            self.finish()
-
-        try:
-            if context.space_data.type == 'VIEW_3D':
-                if hasattr(context.scene.var, 'addon_ident'):
-                    if context.scene.var.addon_ident == 'RC_CAMERA':
-                        # The above "marker" is generated in the 'reference_camera.py' module 
-                        success = (context.mode == 'OBJECT' and context.region_data.view_perspective == 'CAMERA')
-            else:
-                success = False
-        except Exception as e:
-            success = False
-        ##-- end of the personalized criteria for the given addon --
-
-        if success:
+        # This is to detect when user moved into an undesired 'bpy.context.mode'
+        # and it will check also the programmer's defined suppress_rendering function
+        if valid_display_mode(self.valid_modes, self.suppress_rendering):
             for widget in self.widgets:
                 widget.draw()
+
+
+# --- ### Helper functions
+
+def get_3d_area_and_region(prefs=None):
+    abend = False
+    try:
+        # Left this commented code for a while until I make sure it will not be needed.
+        # Case we want to put this back, it will need to import parameter 'idx', and in
+        # the calling module the 'idx' value must be set as follows:
+        #    ---------------------------------------------------------------------
+        #    idx = bpy.context.window_manager.windows[:].index(bpy.context.window)
+        #    ---------------------------------------------------------------------
+        #
+        # if bpy.app.version >= (2, 90, 0):
+        #     areas = bpy.context.window.screen.areas
+        # else:
+        #     areas = bpy.context.window_manager.windows[idx].screen.areas
+        #
+        # if prefs:
+        #     location = bpy.data.screens['Layout'].areas
+        # else:
+        #     location = bpy.context.window.screen.areas
+        # for area in location:
+        #     if area.type == 'VIEW_3D':
+        #         for region in area.regions:
+        #             if region.type == 'WINDOW':
+        #                 if region.as_pointer() == BL_UI_OT_draw_operator.region_pointer:
+        #                     return (area, region, abend)
+
+        for screen in bpy.data.screens:
+            for area in screen.areas:
+                if area.type == 'VIEW_3D':
+                    for region in area.regions:
+                        if region.type == 'WINDOW':
+                            if region.as_pointer() == BL_UI_OT_draw_operator.region_pointer:
+                                return (area, region, abend)
+    except Exception as e:
+        if __package__.find(".") != -1:
+            package = __package__[0:__package__.find(".")]
+        else:
+            package = __package__
+        print("**WARNING** " + package + " addon issue:")
+        print("  +--> unexpected result in 'get_3d_area_and_region' function of bl_ui_draw_op.py module!")
+        print("       " + e)
+        abend = True
+    return (None, None, abend)
+
+
+def valid_display_mode(valid_modes, suppress_rendering=None):
+    if valid_modes:
+        if bpy.context.mode not in valid_modes:
+            return False
+
+    area, region, abend = get_3d_area_and_region()
+    if abend:
+        return False
+    else:
+        if suppress_rendering is not None:
+            # Consider not a valid display mode when the overridable custom function
+            # returns True (meaning that it wants to suppress the rendering at all).
+            if suppress_rendering(area, region):
+                return False
+    return True

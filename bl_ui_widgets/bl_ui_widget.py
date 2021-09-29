@@ -20,7 +20,7 @@
 bl_info = {"name": "BL UI Widgets",
            "description": "UI Widgets to draw in the 3D view",
            "author": "Marcelo M. Marques (fork of Jayanam's original project)",
-           "version": (1, 0, 1),
+           "version": (1, 0, 2),
            "blender": (2, 80, 75),
            "location": "View3D > viewport area",
            "support": "COMMUNITY",
@@ -31,6 +31,17 @@ bl_info = {"name": "BL UI Widgets",
            }
 
 # --- ### Change log
+
+# v1.0.2 (09.30.2021) - by Marcelo M. Marques
+# Added: 'valid_modes' property to indicate the 'bpy.context.mode' valid values for displaying the panel.
+# Added: 'init_mode' function to allow the 'bl_ui_slider' subclass to call it without triggering an update from the former 'init' function.
+# Chang: How we determine whether the user has moved out of the valid area/region, now using the 'valid_display_mode()' function.
+# Chang: 'get_area_height' and 'get_area_width' functions to retrieve the values from the area returned by 'get_3d_area_and_region()'.
+# Chang: 'handle_event' function to rely on area and region values retrieved by 'get_3d_area_and_region()'. Also replaced the event's
+#         mouse_region_x|y by calculated values using mouse_x|y and region.x|y because the former mouse_region_x|y stopped working
+#         after the change on 'bl_ui_draw_op.invoke' method which switches the workspace back and forth.
+# Chang: improved reliability on 'timer_event', 'mouse_down', 'mouse_move', 'mouse_up', 'mouse_enter' and 'mouse_exit' overridable
+#         functions by conditioning the returned value
 
 # v1.0.1 (09.20.2021) - by Marcelo M. Marques
 # Chang: just some pep8 code formatting
@@ -67,8 +78,8 @@ import time
 from gpu_extras.batch import batch_for_shader
 from math import pi, cos, sin
 
+from . bl_ui_draw_op import get_3d_area_and_region, valid_display_mode
 
-# --- ### Main class
 
 class BL_UI_Widget():
 
@@ -99,6 +110,7 @@ class BL_UI_Widget():
         self.__ui_scale = 0             # Saves the latest ui_scale value
         self.__area_height = 0          # Saves the latest area height value
         self.__area_width = 0           # Saves the latest area width value
+        self.__valid_modes = []         # List of 'bpy.context.mode' values for restricting panel display to these modes only
 
         self.__tooltip_gotimer = 0      # Latest time when mouse entered widget area
         self.__tooltip_current = False  # Indicates whether the tooltip is updated with the current widget data
@@ -312,11 +324,15 @@ class BL_UI_Widget():
     def set_update_shaders(self, value):
         self.__update_shaders = value
 
-    def init(self, context):
+    def init(self, context, valid_modes):
+        self.init_mode(context, valid_modes)
+        self.update(self.x, self.y)
+
+    def init_mode(self, context, valid_modes):
         self.context = context
+        self.__valid_modes = valid_modes
         self.tooltip_clear()
         self.set_exclusive_mode(None)
-        self.update(self.x, self.y)
 
     def context_it(self, context):
         self.context = context
@@ -541,7 +557,7 @@ class BL_UI_Widget():
                 if self.state in {4, 5}:  # Hover++ and Down++ states
                     # Has to tint the color twice the same factor values used for "state 0"
                     color = self.tint_color(color, (0.2 if basecolor[0] < 0.5 else 0.1))
-        except:
+        except Exception as e:
             pass  # Because not all widget types have a 'state' property
 
         if not self._is_enabled:
@@ -699,25 +715,25 @@ class BL_UI_Widget():
                 self.shader_img.bind()
                 self.shader_img.uniform_int("image", 0)
                 self.batch_img.draw(self.shader_img)
-            except:
+            except Exception as e:
                 pass
 
     def handle_event(self, event):
-        x = event.mouse_region_x
-        y = event.mouse_region_y
-
-        ##-- personalized criteria for the Reference Cameras addon --
-        # This is an ugly workaround till I figure out how to signal to the N-panel coding that this remote control panel has been finished.
-        # This is to detect when user changed workspace
-        try:
-            if not (self.context.space_data.type == 'VIEW_3D'):
-                bpy.context.scene.var.RemoVisible = False
-                return False
-        except:
+        if not valid_display_mode(self.__valid_modes):
+            # -- personalized criteria for the Remote Control panel addon --
+            # This is a temporary workaround till I figure out how to signal to
+            # the N-panel coding that the remote control panel has been finished.
             bpy.context.scene.var.RemoVisible = False
-
+            bpy.context.scene.var.btnRemoText = "Open Remote Control"
+            # -- end of the personalized criteria for the given addon --
             return False
-        ##-- end of the personalized criteria for the given addon --
+
+        region = get_3d_area_and_region()[1]
+        if not region:
+            return False
+
+        x = (event.mouse_x - region.x)
+        y = (event.mouse_y - region.y)
 
         base_class = super().__thisclass__.__mro__[-2]  # This stunt only to avoid hard coding the Base class name
         exclusive_widget = base_class.g_exclusive_mode
@@ -743,6 +759,7 @@ class BL_UI_Widget():
                     return self.mouse_up(event, x, y)
                 else:
                     # -- personalized criteria for the Reference Cameras addon --
+                    # https://github.com/mmmrqs/Blender-Reference-Camera-Panel-addon
                     # This prevents the user to unselect camera/target by clicking on a disabled widget
                     return self.is_in_rect(x, y)
                     # -- end of the personalized criteria for the given addon --
@@ -773,6 +790,15 @@ class BL_UI_Widget():
         return False
 
     def handle_event_finalize(self, event):
+        if not valid_display_mode(self.__valid_modes):
+            # -- personalized criteria for the Remote Control panel addon --
+            # This is a temporary workaround till I figure out how to signal to
+            # the N-panel coding that the remote control panel has been finished.
+            bpy.context.scene.var.RemoVisible = False
+            bpy.context.scene.var.btnRemoText = "Open Remote Control"
+            # -- end of the personalized criteria for the given addon --
+            return False
+
         if self._is_enabled:
             # Want to run it just for the mouse_up event
             if(event.type == 'LEFTMOUSE'):
@@ -784,10 +810,18 @@ class BL_UI_Widget():
         return []
 
     def get_area_height(self):
-        return self.context.area.height
+        area = get_3d_area_and_region()[0]
+        if area:
+            return area.height
+        else:
+            return self.__area_height
 
     def get_area_width(self):
-        return self.context.area.width
+        area = get_3d_area_and_region()[0]
+        if area:
+            return area.width
+        else:
+            return self.__area_width
 
     def is_in_rect(self, x, y):
         widget_x = self.over_scale(self.x_screen)
@@ -809,7 +843,7 @@ class BL_UI_Widget():
         return False
 
     def timer_event(self, event, x, y):
-        return self.timer_event_func(self, event, x, y)
+        return (self.timer_event_func(self, event, x, y) == True)
 
     # Mouse down handler functions
     def set_mouse_down(self, mouse_down_func):
@@ -819,7 +853,7 @@ class BL_UI_Widget():
         return False
 
     def mouse_down(self, event, x, y):
-        return self.mouse_down_func(self, event, x, y)
+        return (self.mouse_down_func(self, event, x, y) == True)
 
     # Mouse move handler functions
     def set_mouse_move(self, mouse_move_func):
@@ -829,7 +863,7 @@ class BL_UI_Widget():
         return False
 
     def mouse_move(self, event, x, y):
-        return self.mouse_move_func(self, event, x, y)
+        return (self.mouse_move_func(self, event, x, y) == True)
 
     # Mouse up handler functions
     def set_mouse_up(self, mouse_up_func):
@@ -839,7 +873,7 @@ class BL_UI_Widget():
         return False
 
     def mouse_up(self, event, x, y):
-        return self.mouse_up_func(self, event, x, y)
+        return (self.mouse_up_func(self, event, x, y) == True)
 
     def mouse_up_over(self):
         pass
@@ -852,7 +886,7 @@ class BL_UI_Widget():
         return False
 
     def mouse_enter(self, event, x, y):
-        return self.mouse_enter_func(self, event, x, y)
+        return (self.mouse_enter_func(self, event, x, y) == True)
 
     # Mouse exit handler functions
     def set_mouse_exit(self, mouse_exit_func):
@@ -862,7 +896,7 @@ class BL_UI_Widget():
         return False
 
     def mouse_exit(self, event, x, y):
-        return self.mouse_exit_func(self, event, x, y)
+        return (self.mouse_exit_func(self, event, x, y) == True)
 
     # -- Helper functions ---------------------------------------------------------------
 
