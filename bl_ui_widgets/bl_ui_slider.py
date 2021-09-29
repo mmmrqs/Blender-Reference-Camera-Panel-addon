@@ -20,7 +20,7 @@
 bl_info = {"name": "BL UI Widgets",
            "description": "UI Widgets to draw in the 3D view",
            "author": "Marcelo M. Marques (fork of Jayanam's original project)",
-           "version": (1, 0, 1),
+           "version": (1, 0, 2),
            "blender": (2, 80, 75),
            "location": "View3D > viewport area",
            "support": "COMMUNITY",
@@ -31,6 +31,10 @@ bl_info = {"name": "BL UI Widgets",
            }
 
 # --- ### Change log
+
+# v1.0.2 (09.30.2021) - by Marcelo M. Marques
+# Added: 'valid_modes' parm in the 'init' function and a call to 'super().init_mode' so we get everything correctly initialized.
+# Chang: improved reliability on 'mouse_exit' and 'button_mouse_down' overridable functions by conditioning the returned value
 
 # v1.0.1 (09.20.2021) - by Marcelo M. Marques
 # Chang: just some pep8 code formatting
@@ -116,8 +120,8 @@ class BL_UI_Slider(BL_UI_Patch):
         self.__drag_start_x = 0
 
     # Overrides base class function
-    def init(self, context):
-        self.context = context
+    def init(self, context, valid_modes):
+        super().init_mode(context, valid_modes)
 
         # -- create sub element pieces that make the slider widget
 
@@ -728,7 +732,7 @@ class BL_UI_Slider(BL_UI_Patch):
             return False
 
         if self.__is_editing:
-            return self.textbox.mouse_move(event, x, y)
+            return (self.textbox.mouse_move(event, x, y) == True)
 
         if self.__is_dragging:
             # Update the value according to direction of x_drag
@@ -819,7 +823,7 @@ class BL_UI_Slider(BL_UI_Patch):
                     self.equalize_states(self.slider)
                     return True
                 elif self._is_enabled:
-                    return self.slider.mouse_up(event, x, y)
+                    return (self.slider.mouse_up(event, x, y) == True)
         return False
 
     # Overrides base class function
@@ -831,13 +835,13 @@ class BL_UI_Slider(BL_UI_Patch):
         # if self._style == 'NUMBER_SLIDE':                   # but I've left this here just in case we want to do it in the future.
         #     if not (self.__is_editing or self.__is_dragging):
         #         bpy.context.window.cursor_set('MOVE_X')
-        # return self.mouse_enter_func(self, event, x, y)
+        # return (self.mouse_enter_func(self, event, x, y) == True)
 
     # Overrides base class function
     def mouse_exit(self, event, x, y):
         if not (self.__is_editing or self.__is_dragging):
             bpy.context.window.cursor_set('DEFAULT')
-        return self.mouse_exit_func(self, event, x, y)
+        return (self.mouse_exit_func(self, event, x, y) == True)
 
     # Emulates the mouse_down function of 'BL_UI_Button' class
     def button_mouse_down(self, widget, event, x, y):
@@ -853,7 +857,7 @@ class BL_UI_Slider(BL_UI_Patch):
                     self.slider.state = 1
             else:
                 widget.state = 1
-            return widget.mouse_down_func(widget, event, x, y)
+            return (widget.mouse_down_func(widget, event, x, y) == True)
         else:
             return False
 
