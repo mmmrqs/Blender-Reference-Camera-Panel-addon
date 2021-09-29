@@ -147,7 +147,7 @@ class BL_UI_Patch(BL_UI_Widget):
             self._image = bpy.data.images.load(self.__image_file, check_existing=True)
             self._image.gl_load()
             self._image.pack(as_png=True)
-        except:
+        except Exception as e:
             pass
 
     # Overrides base class function
