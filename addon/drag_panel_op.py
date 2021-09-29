@@ -23,7 +23,7 @@ Reference Cameras add-on
 bl_info = {"name": "BL UI Widgets",
            "description": "UI Widgets to draw in the 3D view",
            "author": "Marcelo M. Marques (fork of Jayanam's original project)",
-           "version": (1, 0, 1),
+           "version": (1, 0, 2),
            "blender": (2, 80, 75),
            "location": "View3D > viewport area",
            "support": "COMMUNITY",
@@ -34,6 +34,15 @@ bl_info = {"name": "BL UI Widgets",
            }
 
 # --- ### Change log
+
+# v1.0.2 (09.30.2021) - by Marcelo M. Marques
+# Added: 'valid_modes' property to indicate the 'bpy.context.mode' valid values for displaying the panel.
+# Added: 'suppress_rendering' function that can be optionally used to control render bypass of the panel widget.
+# Added: 'area' and 'region' input parameters to the overridable 'terminate_execution()' function.
+# Added: New code to 'memsave_poll()' function to comply with new changes in 'reference_cameras.py' (see its change log v1.0.2)
+# Added: 'MR' button to restore the memory backup slot setup (plus the additional functions).
+# Chang: Modified description for 'memtrim' button
+# Chang: Shrinked most of the buttons a little bit.
 
 # v1.0.1 (09.20.2021) - by Marcelo M. Marques
 # Chang: just some pep8 code formatting
@@ -96,18 +105,32 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator):  # in: bl_ui_draw_op.py ##
 
         package = __package__[0:__package__.find(".")]
 
+        # The values assigned to the self.valid_modes variable below will be used to restrict panel display
+        # to those options only. Set it accordingly to the desired functionality of your particular addon.
+        #
+        # Possible valid mode options (as of Blender 2.8):
+        #   'EDIT_MESH', 'EDIT_CURVE', 'EDIT_SURFACE', 'EDIT_TEXT', 'EDIT_ARMATURE', 'EDIT_METABALL',
+        #   'EDIT_LATTICE', 'POSE', 'SCULPT', 'PAINT_WEIGHT', 'PAINT_VERTEX', 'PAINT_TEXTURE', 'PARTICLE',
+        #   'OBJECT', 'PAINT_GPENCIL', 'EDIT_GPENCIL', 'SCULPT_GPENCIL', 'WEIGHT_GPENCIL',
+        # Additional valid mode option (as of Blender 2.9):
+        #   'VERTEX_GPENCIL'
+        #
+        # Note: Leave it empty, e.g. self.valid_modes = {}, for no restriction to be applied.
+
+        self.valid_modes = {'OBJECT', 'EDIT_MESH'}
+
         # Panel Layout:
 
-        # |ZOOM||H ORB||V ORB||TILT||MOVE||ROLL||POV |   |Reset Target||Lock Position|   |M1|M2|M3| #
-        # | GZ ||  RZ ||  RX || RY ||GXYZ|| RXY||GXYZ|   |Display Mesh||Lock Rotation|   |MSave|MC| #
+        # |ZOOM||H ORB||V ORB||TILT||MOVE||ROLL||POV |   |Reset Target||Lock Position|   |M1|M2|M3|MR| #
+        # | GZ ||  RZ ||  RX || RY ||GXYZ|| RXY||GXYZ|   |Display Mesh||Lock Rotation|   |MSave|Clear| #
 
         btnC = 0            # Element counter
         btnS = 4            # Button separation (for the smaller ones)
         btnG = 0            # Button gap (for the bigger ones)
-        btnW = 56           # Button width
+        btnW = 52           # Button width
         btnH = 40 + btnS    # Button height (takes 2 small buttons plus their separation)
 
-        marginX = 16        # Margin from left border
+        marginX = 12        # Margin from left border
         marginY = 10        # Margin from top border
 
         btnX = marginX + 1  # Button position X (for the very first button)
@@ -216,7 +239,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator):  # in: bl_ui_draw_op.py ##
             self.button7.state = 3
         btnC += 1
         newX = (btnX + ((btnW - 1 + btnG) * btnC)) + marginX
-        btnW = 96
+        btnW = 88
         btnH = 20
         # Reset Target: Sets Target Location and Rotation to (0,0,0) and removes related locks
         self.buttonR = BL_UI_Button(newX, btnY, btnW, btnH)
@@ -271,7 +294,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator):  # in: bl_ui_draw_op.py ##
         btnW = 22
         btnH = 20
         # Memory slots box
-        self.slotbox = BL_UI_Patch((newX - btnS), (btnY - btnS), (btnW * 3 + btnS * 3), (btnH * 2 + btnS * 3))
+        self.slotbox = BL_UI_Patch((newX - btnS), (btnY - btnS), (btnW * 4 + btnS * 4 - 2), (btnH * 2 + btnS * 3))
         self.slotbox.style = 'BOX'
         self.slotbox.radius = 4
         # Memory switch first button
@@ -280,7 +303,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator):  # in: bl_ui_draw_op.py ##
         self.memory1.text = "M1"
         self.memory1.set_mouse_up(self.memory1_click)
         self.memory1.set_timer_event(self.memory1_poll)
-        self.memory1.description = "Switches the Camera+Target set configuration with memory slot 1"
+        self.memory1.description = "Restores the Camera+Target set configuration from memory slot 1"
         self.memory1.python_cmd = "bpy.ops.object.ref_camera_panelbutton_m1()"
         newY = btnY + btnH + btnS
         # Memory save button
@@ -298,7 +321,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator):  # in: bl_ui_draw_op.py ##
         self.memory2.text = "M2"
         self.memory2.set_mouse_up(self.memory2_click)
         self.memory2.set_timer_event(self.memory2_poll)
-        self.memory2.description = "Switches the Camera+Target set configuration with memory slot 2"
+        self.memory2.description = "Restores the Camera+Target set configuration from memory slot 2"
         self.memory2.python_cmd = "bpy.ops.object.ref_camera_panelbutton_m2()"
         newX = newX + btnW + 2
         # Memory switch third button
@@ -307,17 +330,26 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator):  # in: bl_ui_draw_op.py ##
         self.memory3.text = "M3"
         self.memory3.set_mouse_up(self.memory3_click)
         self.memory3.set_timer_event(self.memory3_poll)
-        self.memory3.description = "Switches the Camera+Target set configuration with memory slot 3"
+        self.memory3.description = "Restores the Camera+Target set configuration from memory slot 3"
         self.memory3.python_cmd = "bpy.ops.object.ref_camera_panelbutton_m3()"
         newY = btnY + btnH + btnS
         # Memory clear button
-        self.memtrim = BL_UI_Button(newX, newY, btnW, btnH)
+        self.memtrim = BL_UI_Button(newX, newY, (btnW * 2 + 2), btnH)
         self.memtrim.style = 'TOOL'
-        self.memtrim.text = "MC"
+        self.memtrim.text = "Clear"
         self.memtrim.set_mouse_up(self.memtrim_click)
         self.memtrim.set_timer_event(self.memtrim_poll)
-        self.memtrim.description = "Clears out all three memory slots"
+        self.memtrim.description = "Clears out all memory slots (including the one for the auto backup)"
         self.memtrim.python_cmd = "bpy.ops.object.ref_camera_panelbutton_mc()"
+        newX = newX + btnW + 2
+        # Memory recall button
+        self.memback = BL_UI_Button(newX, btnY, btnW, btnH)
+        self.memback.style = 'TOOL'
+        self.memback.text = "MR"
+        self.memback.set_mouse_up(self.memback_click)
+        self.memback.set_timer_event(self.memback_poll)
+        self.memback.description = "Restores the Camera+Target set configuration from the memory backup slot"
+        self.memback.python_cmd = "bpy.ops.object.ref_camera_panelbutton_mr()"
         # -----------
 
         panW = newX + btnW + marginX + btnS  # Panel desired width  (beware: this math is good for my setup only)
@@ -368,8 +400,8 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator):  # in: bl_ui_draw_op.py ##
         widgets_panel = [self.panel
                          ]
         widgets_items = [self.button1, self.button2, self.button3, self.button4, self.button5, self.button6,
-                         self.button7, self.button8, self.button9, self.buttonA, self.buttonR,
-                         self.slotbox, self.memory1, self.memory2, self.memory3, self.memsave, self.memtrim,
+                         self.button7, self.button8, self.button9, self.buttonA, self.buttonR, self.slotbox,
+                         self.memory1, self.memory2, self.memory3, self.memsave, self.memtrim, self.memback,
                          self.tooltip,  # <-- If there is a tooltip object, it must be the last in this list
                          ]
 
@@ -378,7 +410,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator):  # in: bl_ui_draw_op.py ##
 
         widgets = widgets_panel + widgets_items
 
-        self.init_widgets(context, widgets)
+        self.init_widgets(context, widgets, self.valid_modes)
 
         self.panel.add_widgets(widgets_items)
 
@@ -386,7 +418,36 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator):  # in: bl_ui_draw_op.py ##
 
     # -- Helper function
 
-    def terminate_execution(self):
+    def suppress_rendering(self, area, region):
+        '''
+            This is a special case 'overriding function' to allow subclass control for displaying (rendering) the panel.
+            Function is defined in class BL_UI_OT_draw_operator (bl_ui_draw_op.py) and available to be inherited here.
+            If not included here the function in the superclass just returns 'False' and rendering is always executed.
+            When 'True" is returned below, the rendering of the entire panel is bypassed and it is not drawn on screen.
+        '''
+        if bpy.context.region.as_pointer() != self.get_region_pointer():
+            # Avoid drawing the remote panel simultaneously in every duplicated area.
+            # The self.get_region_pointer() returns the 'region.as_pointer' value that was saved in the class variable
+            # when operator was initially invoked (in the case of this demo it will correspond to the N-Panel's region).
+            return True
+        if bpy.context.mode != 'OBJECT':
+            # This temporarily suspends drawing if user moved out of OBJECT mode
+            return True
+
+        perspect_found = False
+        if bpy.app.version >= (2, 90, 0):
+            # The following code is better for Blender 2.90 and greater
+           #perspect_found = (area.regions[-1].data.view_perspective == 'CAMERA') # <-- Could've done just this instead but I didn't trust it for production.
+            perspect_found = (region.data.view_perspective == 'CAMERA')  # 2.80 issue: '.data' would not exist in this context
+        else:
+            # The following code is needed for Blender 2.80 thru 2.83
+            for space_data in area.spaces:
+                if space_data.type == 'VIEW_3D':  # This is a SpaceView3D
+                    perspect_found = (space_data.region_3d.view_perspective == 'CAMERA')  # This is a RegionView3D
+                    break
+        return (not perspect_found)
+
+    def terminate_execution(self, area, region):
         '''
             This is a special case 'overriding function' to allow subclass control for terminating/closing the panel.
             Function is defined in class BL_UI_OT_draw_operator (bl_ui_draw_op.py) and available to be inherited here.
@@ -512,7 +573,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator):  # in: bl_ui_draw_op.py ##
         self.finish()
 
     def memory1_click(self, widget, event, x, y):
-        # Memory Switch 1: Switches the Camera+Target set configuration with memory slot 1"
+        # Memory Switch 1: Restores the Camera+Target set configuration from memory slot 1"
         bpy.ops.object.ref_camera_panelbutton_m1()
 
     def memory1_poll(self, widget, event, x, y):
@@ -520,7 +581,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator):  # in: bl_ui_draw_op.py ##
         return False
 
     def memory2_click(self, widget, event, x, y):
-        # Memory Switch 2: Switches the Camera+Target set configuration with memory slot 2"
+        # Memory Switch 2: Restores the Camera+Target set configuration from memory slot 2"
         bpy.ops.object.ref_camera_panelbutton_m2()
 
     def memory2_poll(self, widget, event, x, y):
@@ -528,7 +589,7 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator):  # in: bl_ui_draw_op.py ##
         return False
 
     def memory3_click(self, widget, event, x, y):
-        # Memory Switch 3: Switches the Camera+Target set configuration with memory slot 3"
+        # Memory Switch 3: Restores the Camera+Target set configuration from memory slot 3"
         bpy.ops.object.ref_camera_panelbutton_m3()
 
     def memory3_poll(self, widget, event, x, y):
@@ -544,11 +605,19 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator):  # in: bl_ui_draw_op.py ##
         return False
 
     def memtrim_click(self, widget, event, x, y):
-        # Memory Clear: Clears out all three memory slots"
+        # Memory Clear: Clears out all memory slots (including the one for the auto backup)"
         bpy.ops.object.ref_camera_panelbutton_mc()
 
     def memtrim_poll(self, widget, event, x, y):
         widget.enabled = bpy.context.scene.var.OpStatM1
+        return False
+
+    def memback_click(self, widget, event, x, y):
+        # Memory Recall: Restores the Camera+Target set configuration from the memory backup slot"
+        bpy.ops.object.ref_camera_panelbutton_mr()
+
+    def memback_poll(self, widget, event, x, y):
+        widget.enabled = bpy.context.scene.var.OpStatM0
         return False
 
 
