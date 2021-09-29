@@ -231,7 +231,7 @@ class BL_UI_Textbox(BL_UI_Button):
                     try:
                         float(clean_text)
                         self._text = clean_text
-                    except:
+                    except Exception as e:
                         self._text = self.__cached_text
                         return False
             else:
