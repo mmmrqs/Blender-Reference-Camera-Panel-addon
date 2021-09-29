@@ -23,7 +23,7 @@ Reference Cameras add-on
 bl_info = {"name": "Reference Cameras Control Panel",
            "description": "Handles cameras associated with reference photos",
            "author": "Marcelo M. Marques (fork of Witold Jaworski's & Jayanam's projects)",
-           "version": (1, 0, 1),
+           "version": (1, 0, 2),
            "blender": (2, 80, 75),
            "location": "View3D > side panel ([N]), [Cameras] tab",
            "support": "COMMUNITY",
@@ -34,6 +34,9 @@ bl_info = {"name": "Reference Cameras Control Panel",
            }
 
 # --- ### Change log
+
+# v1.0.2 (09.30.2021) - by Marcelo M. Marques
+# Chang: the logic that retrieves region.width of the 3d view screen which has the Remote Control
 
 # v1.0.1 (09.20.2021) - by Marcelo M. Marques
 # Chang: just some pep8 code formatting
@@ -46,6 +49,8 @@ import bpy
 
 from bpy.types import AddonPreferences, Operator
 from bpy.props import StringProperty, IntProperty, BoolProperty, EnumProperty, FloatProperty, FloatVectorProperty
+
+from .bl_ui_widgets.bl_ui_draw_op import get_3d_area_and_region
 
 
 class ReferenceCameraPreferences(AddonPreferences):
@@ -85,7 +90,7 @@ class ReferenceCameraPreferences(AddonPreferences):
         soft_min=0
     )
 
-    # (identifier, name, description, icon, number)
+    # items=[identifier, name, description, icon, number]
     RC_SUBP_MODE: EnumProperty(
         name="N-Panel Layout option",
         items=[
@@ -127,7 +132,7 @@ class ReferenceCameraPreferences(AddonPreferences):
         unit='CAMERA'
     )
 
-    # (identifier, name, description, icon, number)
+    # items=[identifier, name, description, icon, number]
     RC_TRGMODE: EnumProperty(
         name="",
         items=[
@@ -163,7 +168,7 @@ class ReferenceCameraPreferences(AddonPreferences):
         subtype='FACTOR'
     )
 
-    # (identifier, name, description, icon, number)
+    # items=[identifier, name, description, icon, number]
     RC_DEPTH: EnumProperty(
         name="Depth option for rendering the camera's background image",
         items=[
@@ -285,33 +290,33 @@ class ReferenceCameraPreferences(AddonPreferences):
         split = layout.split(factor=0.45, align=True)
         split.label(text="Cameras Collection name suffix:", icon='DECORATE')
         splat = split.split(factor=0.8, align=True)
-        splat.prop(self, "RC_CAMERAS", text="")
+        splat.prop(self, 'RC_CAMERAS', text="")
 
         split = layout.split(factor=0.45, align=True)
         split.label(text="Targets Collection name suffix:", icon='DECORATE')
         splat = split.split(factor=0.8, align=True)
-        splat.prop(self, "RC_TARGETS", text="")
+        splat.prop(self, 'RC_TARGETS', text="")
 
         split = layout.split(factor=0.45, align=True)
         split.label(text="Temporary Collection name suffix:", icon='DECORATE')
         splat = split.split(factor=0.8, align=True)
-        splat.prop(self, "RC_TEMP", text="")
+        splat.prop(self, 'RC_TEMP', text="")
 
         split = layout.split(factor=0.45, align=True)
         split.label(text="Subpanels max number:", icon='DECORATE')
         splat = split.split(factor=0.4, align=True)
-        splat.prop(self, "RC_SUBPANELS", text="")
+        splat.prop(self, 'RC_SUBPANELS', text="")
 
         split = layout.split(factor=0.45, align=True)
         split.label(text="N-Panel layout option:", icon='DECORATE')
         splat = split.split(factor=0.8, align=True)
         row = splat.row()
-        row.prop(self, "RC_SUBP_MODE", expand=True)
+        row.prop(self, 'RC_SUBP_MODE', expand=True)
 
         split = layout.split(factor=0.45, align=True)
         split.label(text="N-Panel action mode:", icon='DECORATE')
         splat = split.split(factor=0.8, align=True)
-        splat.prop(self, "RC_ACTION_MAIN", text=" Start action immediately")
+        splat.prop(self, 'RC_ACTION_MAIN', text=" Start action immediately")
 
         # -- Defaults for creating new camera/target sets
 
@@ -324,33 +329,33 @@ class ReferenceCameraPreferences(AddonPreferences):
         split = layout.split(factor=0.45, align=True)
         split.label(text="Perspective Camera focal length:", icon='DECORATE')
         splat = split.split(factor=0.4, align=True)
-        splat.prop(self, "RC_FOCUS", expand=True)
+        splat.prop(self, 'RC_FOCUS', expand=True)
 
         split = layout.split(factor=0.45, align=True)
         split.label(text="Perspective Camera sensor width:", icon='DECORATE')
         splat = split.split(factor=0.4, align=True)
-        splat.prop(self, "RC_SENSOR", expand=True)
+        splat.prop(self, 'RC_SENSOR', expand=True)
 
         split = layout.split(factor=0.45, align=True)
         split.label(text="Target Object display mode:", icon='DECORATE')
         splat = split.split(factor=0.4, align=True)
-        splat.prop(self, "RC_TRGMODE", text="", expand=False)
+        splat.prop(self, 'RC_TRGMODE', text="", expand=False)
 
         split = layout.split(factor=0.45, align=True)
         split.label(text="Target Object display color:", icon='DECORATE')
         splat = split.split(factor=0.4, align=True)
-        splat.prop(self, "RC_TRGCOLOR", text="")
+        splat.prop(self, 'RC_TRGCOLOR', text="")
 
         split = layout.split(factor=0.45, align=True)
         split.label(text="Background Image opacity level:", icon='DECORATE')
         splat = split.split(factor=0.4, align=True)
-        splat.prop(self, "RC_OPACITY", text="")
+        splat.prop(self, 'RC_OPACITY', text="")
 
         split = layout.split(factor=0.45, align=True)
         split.label(text="Background Image depth option:", icon='DECORATE')
         splat = split.split(factor=0.8, align=True)
         row = splat.row()
-        row.prop(self, "RC_DEPTH", expand=True)
+        row.prop(self, 'RC_DEPTH', expand=True)
 
         # -- Remote Control Panel configuration
 
@@ -363,46 +368,46 @@ class ReferenceCameraPreferences(AddonPreferences):
         split = layout.split(factor=0.45, align=True)
         split.label(text="General scaling for panel:", icon='DECORATE')
         splat = split.split(factor=0.8, align=True)
-        splat.prop(self, "RC_UI_BIND", text=" Bound to Blender's UI")
+        splat.prop(self, 'RC_UI_BIND', text=" Bound to Blender's UI")
 
         split = layout.split(factor=0.45, align=True)
         split.label(text="User defined addon scaling:", icon='DECORATE')
         splat = split.split(factor=0.4, align=True)
-        splat.prop(self, "RC_SCALE", text="")
+        splat.prop(self, 'RC_SCALE', text="")
 
         split = layout.split(factor=0.45, align=True)
         split.label(text="Blinking Cycle duration  (On / Off):", icon='DECORATE')
         splat = split.split(factor=0.4, align=True)
         splot = splat.split(factor=0.5, align=True)
         row = splot.row(align=False)
-        row.prop(self, "RC_BLINK_ON", text="")
+        row.prop(self, 'RC_BLINK_ON', text="")
         row = splot.row(align=False)
-        row.prop(self, "RC_BLINK_OFF", text="")
+        row.prop(self, 'RC_BLINK_OFF', text="")
 
         split = layout.split(factor=0.45, align=True)
         split.label(text="Panel action mode:", icon='DECORATE')
         splat = split.split(factor=0.8, align=True)
-        splat.prop(self, "RC_ACTION_REMO", text=" Start action immediately")
+        splat.prop(self, 'RC_ACTION_REMO', text=" Start action immediately")
 
         split = layout.split(factor=0.45, align=True)
         split.label(text="Panel sliding option:", icon='DECORATE')
         splat = split.split(factor=0.8, align=True)
-        splat.prop(self, "RC_SLIDE", text=" Move along viewport border")
+        splat.prop(self, 'RC_SLIDE', text=" Move along viewport border")
 
         split = layout.split(factor=0.45, align=True)
         split.label(text="Opening screen position:", icon='DECORATE')
         splat = split.split(factor=0.8, align=True)
-        splat.prop(self, "RC_POSITION", text=" Same as in the last opened scene")
+        splat.prop(self, 'RC_POSITION', text=" Same as in the last opened scene")
 
         if bpy.context.scene.get("bl_ui_panel_saved_data") is None:
-            coords = "x: 0    " +\
+            coords = "x: 0    " + \
                      "y: 0    "
         else:
             panH = bpy.context.preferences.addons[__package__].preferences.RC_PAN_H     # Panel height
             pos_x = int(round(bpy.context.scene.get("bl_ui_panel_saved_data")["panX"]))
             pos_y = int(round(bpy.context.scene.get("bl_ui_panel_saved_data")["panY"]))
             # Note: Because of the scaling logic it was necessary to make this weird correction math below
-            coords = "x: " + str(pos_x) + "    " +\
+            coords = "x: " + str(pos_x) + "    " + \
                      "y: " + str(pos_y + int(panH * (self.over_scale(1) - 1))) + "    "
 
         split = layout.split(factor=0.45, align=True)
@@ -433,8 +438,8 @@ class ReferenceCameraPreferences(AddonPreferences):
 class Reset_Coords(bpy.types.Operator):
     bl_idname = "object.reset_coords"
     bl_label = "Reset Pos"
-    bl_description = "Resets the 'Remote Control' panel screen position for this current session only.\n"\
-                     "Use this button to recover the panel if it has got stuck out of the viewport area.\n"\
+    bl_description = "Resets the 'Remote Control' panel screen position for this current session only.\n" \
+                     "Use this button to recover the panel if it has got stuck out of the viewport area.\n" \
                      "You will need to reopen the panel for the new screen position to take effect"
 
     @classmethod
@@ -450,17 +455,16 @@ class Reset_Coords(bpy.types.Operator):
         panX = 100             # Panel X coordinate, for top-left corner (some default, case it fails below)
         panY = panH + 40 - 1   # Panel Y coordinate, for top-left corner
 
-        for area in bpy.data.screens['Layout'].areas:
-            if area.type == 'VIEW_3D':
-                if bpy.context.preferences.addons[__package__].preferences.RC_UI_BIND:
-                    # From Preferences/Interface/"Display"
-                    ui_scale = bpy.context.preferences.view.ui_scale
-                else:
-                    ui_scale = 1
-                over_scale = bpy.context.preferences.addons[__package__].preferences.RC_SCALE
-                # Need this just because I want the panel to be centered
-                panX = int((area.width - (panW * ui_scale * over_scale)) / 2.0) + 1
-                break
+        region = get_3d_area_and_region(prefs=True)[1]
+        if region:
+            if bpy.context.preferences.addons[__package__].preferences.RC_UI_BIND:
+                # From Preferences/Interface/"Display"
+                ui_scale = bpy.context.preferences.view.ui_scale
+            else:
+                ui_scale = 1
+            over_scale = bpy.context.preferences.addons[__package__].preferences.RC_SCALE
+            # Need this just because I want the panel to be centered
+            panX = int((region.width - (panW * ui_scale * over_scale)) / 2.0) + 1
         try:
             bpy.context.preferences.addons[__package__].preferences.RC_POS_X = panX
             bpy.context.preferences.addons[__package__].preferences.RC_POS_Y = panY
