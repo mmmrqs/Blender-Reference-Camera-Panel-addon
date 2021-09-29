@@ -20,7 +20,7 @@
 bl_info = {"name": "BL UI Widgets",
            "description": "UI Widgets to draw in the 3D view",
            "author": "Marcelo M. Marques (fork of Jayanam's original project)",
-           "version": (1, 0, 1),
+           "version": (1, 0, 2),
            "blender": (2, 80, 75),
            "location": "View3D > viewport area",
            "support": "COMMUNITY",
@@ -31,6 +31,9 @@ bl_info = {"name": "BL UI Widgets",
            }
 
 # --- ### Change log
+
+# v1.0.2 (09.30.2021) - by Marcelo M. Marques
+# Chang: improved reliability on 'mouse_down' and 'mouse_up' overridable functions by conditioning the returned value
 
 # v1.0.1 (09.20.2021) - by Marcelo M. Marques
 # Chang: just some pep8 code formatting
@@ -523,7 +526,7 @@ class BL_UI_Button(BL_UI_Patch):
                 return True
             # Down state
             self.__state = 1
-            return self.mouse_down_func(self, event, x, y)
+            return (self.mouse_down_func(self, event, x, y) == True)
         else:
             return False
 
@@ -554,7 +557,7 @@ class BL_UI_Button(BL_UI_Patch):
                 # Consume the mouse event to avoid the camera/target be unselected
                 return True
             if self.__state == 1 or self.__state == 5:  # states 1 and 5 are equivalent for 'SLIDER' widget
-                result = self.mouse_up_func(self, event, x, y)
+                result = (self.mouse_up_func(self, event, x, y) == True)
         if self.button_pressed_func(self):
             # Pressed state
             self.__state = 3
