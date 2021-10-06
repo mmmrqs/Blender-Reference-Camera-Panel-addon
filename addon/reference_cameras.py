@@ -35,7 +35,7 @@ bl_info = {"name": "Reference Cameras",
 
 # --- ### Change log
 
-# v1.0.3 (09.__.2021) - by Marcelo M. Marques
+# v1.0.3 (09.30.2021) - by Marcelo M. Marques
 # Chang: Renamed the 'unreg' class to 'Self_Unregister'.
 # Chang: Renamed 'switch_memory_data' function to 'restore_memory_slot'.
 # Chang: Fine tuned how the memory slot behaves because it was a bit confusing. Now it always restores the saved setup instead of
@@ -1075,8 +1075,6 @@ def SetAdjustmentMode(type='NONE', panel_mode='NPANEL', start_action=False):
         var.OpState7 = True
 
     override = None
-    print("-----------------------------")
-    print(start_action, type, panel_mode)
     if (start_action or type in {'HORB', 'VORB'}) and panel_mode == 'REMOTE':
         override = bpy.context.copy()
         for area in bpy.context.screen.areas:
@@ -1084,8 +1082,6 @@ def SetAdjustmentMode(type='NONE', panel_mode='NPANEL', start_action=False):
             if area.type == 'VIEW_3D':
                 override["area"] = area
                 override["region"] = area.regions[-1]  # Rule of thumb: this region.type == 'WINDOW'
-                print(override["area"])
-                print(override["region"])
                 break
 
     # Make sure, that everything is deselected to avoid moving them by accident
