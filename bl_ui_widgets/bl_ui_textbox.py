@@ -20,7 +20,7 @@
 bl_info = {"name": "BL UI Widgets",
            "description": "UI Widgets to draw in the 3D view",
            "author": "Marcelo M. Marques (fork of Jayanam's original project)",
-           "version": (1, 0, 1),
+           "version": (1, 0, 2),
            "blender": (2, 80, 75),
            "location": "View3D > viewport area",
            "support": "COMMUNITY",
@@ -31,6 +31,9 @@ bl_info = {"name": "BL UI Widgets",
            }
 
 # --- ### Change log
+
+# v1.0.2 (09.30.21) - by Marcelo M. Marques
+# Added: Logic to change state during a mouse move action so that the textbox background color is correctly set
 
 # v1.0.1 (09.20.2021) - by Marcelo M. Marques
 # Chang: just some pep8 code formatting
@@ -600,7 +603,6 @@ class BL_UI_Textbox(BL_UI_Button):
         # When textbox is disabled, just ignore the hover
         if not self._is_enabled:
             return False
-
         if self.__is_editing and self.__is_dragging:
             # Update the value according to direction of x_drag
             self.__drag_length = x - self.__drag_start_x
@@ -614,8 +616,14 @@ class BL_UI_Textbox(BL_UI_Button):
                 self.__cursor_pos = 'RIGHT'
                 self.update_cursor()
             return True
-        else:
-            return False
+        elif not self.__is_editing:
+            if self.is_in_rect(x, y):
+                # Hover state
+                self.state = 2
+            else:
+                # Up state
+                self.state = 0
+        return False
 
     # Overrides base class function
     def mouse_up(self, event, x, y):
