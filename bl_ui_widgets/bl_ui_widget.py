@@ -32,7 +32,7 @@ bl_info = {"name": "BL UI Widgets",
 
 # --- ### Change log
 
-# v1.0.2 (09.30.2021) - by Marcelo M. Marques
+# v1.0.2 (10.31.2021) - by Marcelo M. Marques
 # Added: 'valid_modes' property to indicate the 'bpy.context.mode' valid values for displaying the panel.
 # Added: 'init_mode' function to allow the 'bl_ui_slider' subclass to call it without triggering an update from the former 'init' function.
 # Chang: How we determine whether the user has moved out of the valid area/region, now using the 'valid_display_mode()' function.

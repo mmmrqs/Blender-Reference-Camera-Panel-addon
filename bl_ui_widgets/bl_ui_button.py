@@ -32,7 +32,7 @@ bl_info = {"name": "BL UI Widgets",
 
 # --- ### Change log
 
-# v1.0.2 (09.30.2021) - by Marcelo M. Marques
+# v1.0.2 (10.31.2021) - by Marcelo M. Marques
 # Chang: improved reliability on 'mouse_down' and 'mouse_up' overridable functions by conditioning the returned value
 
 # v1.0.1 (09.20.2021) - by Marcelo M. Marques

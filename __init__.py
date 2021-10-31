@@ -38,7 +38,7 @@ bl_info = {"name": "Reference Cameras Control Panel",
 # Note: Because the way Blender's Preferences window displays the Addon version number,
 # I am forced to keep this file in sync with the greatest version number of all modules.
 
-# v1.0.3 (09.30.2021) - by Marcelo M. Marques
+# v1.0.3 (10.31.2021) - by Marcelo M. Marques
 # Chang: updated version with improvements and some clean up
 
 # v1.0.2 (09.20.2021) - by Marcelo M. Marques

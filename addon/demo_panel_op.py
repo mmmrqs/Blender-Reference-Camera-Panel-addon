@@ -32,7 +32,7 @@ bl_info = {"name": "BL UI Widgets",
 
 # --- ### Change log
 
-# v1.0.2 (09.30.2021) - by Marcelo M. Marques
+# v1.0.2 (10.31.2021) - by Marcelo M. Marques
 # Added: 'valid_modes' property to indicate the 'bpy.context.mode' valid values for displaying the panel.
 # Added: 'suppress_rendering' function that can be optionally used to control render bypass of the panel widget.
 # Added: 'area' and 'region' input parameters to the overridable 'terminate_execution()' function.
@@ -359,11 +359,6 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator):  # in: bl_ui_draw_op.py ##
             If not included here the function in the superclass just returns 'False' and rendering is always executed.
             When 'True" is returned below, the rendering of the entire panel is bypassed and it is not drawn on screen.
         '''
-        if bpy.context.region.as_pointer() != self.get_region_pointer():
-            # Avoid drawing the remote panel simultaneously in every duplicated area.
-            # The self.get_region_pointer() returns the 'region.as_pointer' value that was saved in the class variable
-            # when operator was initially invoked (in the case of this demo it will correspond to the N-Panel's region).
-            return True
         return False
 
     def terminate_execution(self, area, region):

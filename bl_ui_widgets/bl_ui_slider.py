@@ -32,7 +32,7 @@ bl_info = {"name": "BL UI Widgets",
 
 # --- ### Change log
 
-# v1.0.2 (09.30.2021) - by Marcelo M. Marques
+# v1.0.2 (10.31.2021) - by Marcelo M. Marques
 # Added: 'valid_modes' parm in the 'init' function and a call to 'super().init_mode' so we get everything correctly initialized.
 # Chang: improved reliability on 'mouse_exit' and 'button_mouse_down' overridable functions by conditioning the returned value
 

@@ -32,7 +32,7 @@ bl_info = {"name": "BL UI Widgets",
 
 # --- ### Change log
 
-# v1.0.2 (09.30.21) - by Marcelo M. Marques
+# v1.0.2 (10.31.2021) - by Marcelo M. Marques
 # Added: Logic to change state during a mouse move action so that the textbox background color is correctly set
 
 # v1.0.1 (09.20.2021) - by Marcelo M. Marques

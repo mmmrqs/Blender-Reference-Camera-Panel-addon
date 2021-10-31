@@ -35,12 +35,13 @@ bl_info = {"name": "BL UI Widgets",
 
 # --- ### Change log
 
-# v1.0.2 (09.30.2021) - by Marcelo M. Marques
+# v1.0.2 (10.31.2021) - by Marcelo M. Marques
 # Added: 'valid_modes' property to indicate the 'bpy.context.mode' valid values for displaying the panel.
 # Added: 'suppress_rendering' function that can be optionally used to control render bypass of the panel widget.
 # Added: 'area' and 'region' input parameters to the overridable 'terminate_execution()' function.
 # Added: New code to 'memsave_poll()' function to comply with new changes in 'reference_cameras.py' (see its change log v1.0.2)
 # Added: 'MR' button to restore the memory backup slot setup (plus the additional functions).
+# Chang: Updates to operation mode of the 'Blink Mesh(es)' button.
 # Chang: Modified description for 'memtrim' button
 # Chang: Shrinked most of the buttons a little bit.
 
@@ -425,16 +426,10 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator):  # in: bl_ui_draw_op.py ##
             If not included here the function in the superclass just returns 'False' and rendering is always executed.
             When 'True" is returned below, the rendering of the entire panel is bypassed and it is not drawn on screen.
         '''
-        if bpy.context.region.as_pointer() != self.get_region_pointer():
-            # Avoid drawing the remote panel simultaneously in every duplicated area.
-            # The self.get_region_pointer() returns the 'region.as_pointer' value that was saved in the class variable
-            # when operator was initially invoked (in the case of this demo it will correspond to the N-Panel's region).
-            return True
+        perspect_found = False
         if bpy.context.mode != 'OBJECT':
             # This temporarily suspends drawing if user moved out of OBJECT mode
             return True
-
-        perspect_found = False
         if bpy.app.version >= (2, 90, 0):
             # The following code is better for Blender 2.90 and greater
            #perspect_found = (area.regions[-1].data.view_perspective == 'CAMERA') # <-- Could've done just this instead but I didn't trust it for production.
@@ -545,7 +540,13 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator):  # in: bl_ui_draw_op.py ##
     def buttonA_click(self, widget, event, x, y):
         # Blink Mesh(es): Turns mesh visibility on/off
         # Good to precisely eyeball superposition of fine mesh details against the image background
+        package = __package__[0:__package__.find(".")]
+        preferences = bpy.context.preferences.addons[package].preferences
         result = bpy.ops.object.ref_camera_panelbutton_flsh(mode='REMOTE')
+        if preferences.RC_BLINK_ALT and bpy.context.scene.var.OpStateB:
+            widget.text = "Display Meshes"
+        else:
+            widget.text = "Blink Mesh(es)"
         if result == {'CANCELLED'}:
             package = __package__[0:__package__.find(".")]
             collect = bpy.context.preferences.addons[package].preferences.RC_MESHES
@@ -554,10 +555,13 @@ class DP_OT_draw_operator(BL_UI_OT_draw_operator):  # in: bl_ui_draw_op.py ##
     def buttonA_enter(self, widget, event, x, y):
         package = __package__[0:__package__.find(".")]
         preferences = bpy.context.preferences.addons[package].preferences
-        blink_on = round(preferences.RC_BLINK_ON, 1)
-        blink_off = round(preferences.RC_BLINK_OFF, 1)
         col_name = preferences.RC_MESHES
-        widget.description = self.buttonA_description.format(col_name, blink_on, blink_off)
+        if preferences.RC_BLINK_ALT and bpy.context.scene.var.OpStateB:
+            widget.description = self.buttonA_description[:self.buttonA_description.find(".")].replace("on/off", "ON").format(col_name)
+        else:
+            blink_on = round(preferences.RC_BLINK_ON, 1)
+            blink_off = round(preferences.RC_BLINK_OFF, 1)
+            widget.description = self.buttonA_description.format(col_name, blink_on, blink_off)
 
     def buttonA_pressed(self, widget):
         return (bpy.context.scene.var.OpStateA)

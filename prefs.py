@@ -35,7 +35,9 @@ bl_info = {"name": "Reference Cameras Control Panel",
 
 # --- ### Change log
 
-# v1.0.2 (09.30.2021) - by Marcelo M. Marques
+# v1.0.2 (10.31.2021) - by Marcelo M. Marques
+# Added: new 'RC_BLINK_ALT' property to configure alternative operation mode of the Blink Mesh(es) function
+# Added: new 'update_subpanel' helper function to reinitialize the "panel_switch" variables after property's been updated.
 # Chang: the logic that retrieves region.width of the 3d view screen which has the Remote Control
 
 # v1.0.1 (09.20.2021) - by Marcelo M. Marques
@@ -51,6 +53,25 @@ from bpy.types import AddonPreferences, Operator
 from bpy.props import StringProperty, IntProperty, BoolProperty, EnumProperty, FloatProperty, FloatVectorProperty
 
 from .bl_ui_widgets.bl_ui_draw_op import get_3d_area_and_region
+
+
+# --- ### Helper functions
+
+def update_subpanel(self, context):
+    num_panels = bpy.context.preferences.addons[__package__].preferences.RC_SUBPANELS
+    for i in range(100):
+        propSubPanel = f"panel_switch_{i+1:03d}"
+        try:
+            if hasattr(bpy.types.Scene, propSubPanel):
+                if i >= num_panels:
+                    delattr(bpy.types.Scene, propSubPanel)
+            else:
+                if i < num_panels:
+                    setattr(bpy.types.Scene, propSubPanel, BoolProperty(name=propSubPanel, default=True, description="Collapse/Expand this subpanel"))
+                else:
+                    break
+        except:
+            pass
 
 
 class ReferenceCameraPreferences(AddonPreferences):
@@ -82,12 +103,13 @@ class ReferenceCameraPreferences(AddonPreferences):
 
     RC_SUBPANELS: IntProperty(
         name="",
-        description="Maximum number of dynamic subpanels for grouping camera selection buttons (when children collections exist under the main camera collection)",
+        description="Maximum number of dynamic subpanels for grouping camera selection buttons (when children collections exist under the main camera collection).  Set it to zero to not use grouping at all",
         default=15,
         max=99,
         min=0,
         soft_max=32,
-        soft_min=0
+        soft_min=0,
+        update=update_subpanel
     )
 
     # items=[identifier, name, description, icon, number]
@@ -221,6 +243,14 @@ class ReferenceCameraPreferences(AddonPreferences):
         step=10,
         precision=1,
         unit='NONE'
+    )
+
+    RC_BLINK_ALT: BoolProperty(
+        name="Alternative mode which makes the button to operate in a three stages action sequence.\n" +
+             "First click to start blinking, next click to stop blinking and to leave mesh(es) hidden,\n" +
+             "next click to finally unhide the mesh(es) and finish the cycle.",
+        description="If (ON): button works in a three stages sequence (Blink/Hide/Unhide).\nIf (OFF): button works in a two stages sequence (Blink/Stop Blinking)",
+        default=False
     )
 
     RC_ACTION_REMO: BoolProperty(
@@ -383,6 +413,11 @@ class ReferenceCameraPreferences(AddonPreferences):
         row.prop(self, 'RC_BLINK_ON', text="")
         row = splot.row(align=False)
         row.prop(self, 'RC_BLINK_OFF', text="")
+
+        split = layout.split(factor=0.45, align=True)
+        split.label(text="Blinking operation option:", icon='DECORATE')
+        splat = split.split(factor=0.8, align=True)
+        splat.prop(self, 'RC_BLINK_ALT', text=" Alternative mode")
 
         split = layout.split(factor=0.45, align=True)
         split.label(text="Panel action mode:", icon='DECORATE')

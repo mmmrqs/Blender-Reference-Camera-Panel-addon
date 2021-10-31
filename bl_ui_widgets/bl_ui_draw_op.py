@@ -32,10 +32,12 @@ bl_info = {"name": "BL UI Widgets",
 
 # --- ### Change log
 
-# v1.0.2 (09.30.2021) - by Marcelo M. Marques
+# v1.0.2 (10.31.2021) - by Marcelo M. Marques
 # Added: 'region_pointer' class level property to indicate the region in which the drag_panel operator instance has been invoked().
 # Added: 'valid_modes' property to indicate the 'bpy.context.mode' valid values for displaying the panel.
+# Added: 'valid_scenario' function to validate whether the events must be handled by the widgets during a modal pass.
 # Added: 'get_region_pointer' function to retrieve the value of the 'region_pointer' class level property.
+# Added: 'get_quadview_index' function to retrieve the region under which the mouse is hovering or being clicked.
 # Added: 'get_3d_area_and_region' function to retrieve the correct area and region (because those are not guaranteed to remain
 #         the same after maximizing/restoring screen areas).
 # Added: 'valid_display_mode' function to determine whether the user has moved out of the valid area/region.
@@ -156,15 +158,11 @@ class BL_UI_OT_draw_operator(Operator):
         if self.__finished:
             return {'FINISHED'}
 
-        area, region, abend = get_3d_area_and_region()
-
-        if abend:
-            self.finish()
-        if self.terminate_execution(area, region):
-            self.finish()
+        valid, area, region = self.valid_scenario(context, event)
         if area:
             area.tag_redraw()
-            if self.handle_widget_events(event):
+        if valid:
+            if self.handle_widget_events(event, area, region):
                 return {'RUNNING_MODAL'}
 
         # Not using this escape option, but left it here for documentation purpose
@@ -173,7 +171,34 @@ class BL_UI_OT_draw_operator(Operator):
 
         return {'PASS_THROUGH'}
 
-    def handle_widget_events(self, event):
+    def valid_scenario(self, context, event):
+        valid = True
+        area, region, abend = get_3d_area_and_region()
+        if abend:
+            self.finish()
+            valid = False
+        elif not (area and region):
+            # Return but do not finish
+            valid = False
+        elif self.terminate_execution(area, region):
+            area.tag_redraw()
+            self.finish()
+            valid = False
+        elif event.type != 'TIMER':
+            # Check whether it is drawing on the same region where the panel was initially opened
+            mouse_region = get_quadview_index(context, event.mouse_x, event.mouse_y)[0]
+            if mouse_region is None or mouse_region.as_pointer() != self.get_region_pointer():
+                # Not the same region, so skip handling events at this time
+                valid = False
+        return (valid, area, region)
+
+    def handle_widget_events(self, event, area, region):
+        # Consider not a valid display mode when the overridable custom function
+        # returns True (meaning that it wants to suppress the rendering anyway).
+        if event.type != 'TIMER':
+            if self.suppress_rendering(area, region):
+                return False
+
         result = False
         for widget in self.widgets:
             if widget.visible or event.type == 'TIMER':
@@ -218,6 +243,15 @@ class BL_UI_OT_draw_operator(Operator):
             # -- end of the personalized criteria for the given addon --
             return
 
+        # Check whether it is drawing on the same region where the panel was initially opened
+        for region in context.area.regions:
+            if region.type == 'WINDOW':
+                if context.region == region:
+                    if region.as_pointer() != self.get_region_pointer():
+                        # Not the same region, so skip drawing there
+                        return
+                    break
+
         # This is to detect when user moved into an undesired 'bpy.context.mode'
         # and it will check also the programmer's defined suppress_rendering function
         if valid_display_mode(self.valid_modes, self.suppress_rendering):
@@ -226,6 +260,23 @@ class BL_UI_OT_draw_operator(Operator):
 
 
 # --- ### Helper functions
+
+def get_quadview_index(context, x, y):
+    for area in context.screen.areas:
+        if area.type != 'VIEW_3D':
+            continue
+        is_quadview = (len(area.spaces.active.region_quadviews) == 0)
+        i = -1
+        for region in area.regions:
+            if region.type == 'WINDOW':
+                i += 1
+                if (x >= region.x and
+                    y >= region.y and
+                    x < region.width + region.x and
+                    y < region.height + region.y):
+                    return (region, area.spaces.active, None if is_quadview else i)
+    return (None, None, None)
+
 
 def get_3d_area_and_region(prefs=None):
     abend = False
@@ -278,12 +329,12 @@ def valid_display_mode(valid_modes, suppress_rendering=None):
             return False
 
     area, region, abend = get_3d_area_and_region()
-    if abend:
+    if abend or not area or not region:
         return False
     else:
         if suppress_rendering is not None:
             # Consider not a valid display mode when the overridable custom function
-            # returns True (meaning that it wants to suppress the rendering at all).
+            # returns True (meaning that it wants to suppress the rendering anyway).
             if suppress_rendering(area, region):
                 return False
     return True

@@ -35,19 +35,22 @@ bl_info = {"name": "Reference Cameras",
 
 # --- ### Change log
 
-# v1.0.3 (09.30.2021) - by Marcelo M. Marques
+# v1.0.3 (10.31.2021) - by Marcelo M. Marques
+# Added: Additional operation mode for the 'Blink Mesh(es)' operator.
 # Chang: Renamed the 'unreg' class to 'Self_Unregister'.
 # Chang: Renamed 'switch_memory_data' function to 'restore_memory_slot'.
 # Chang: Fine tuned how the memory slot behaves because it was a bit confusing. Now it always restores the saved setup instead of
 #        switching it with the current active setup. The current setup will be saved to a backup slot if it is not already stored
 #        in any memory slots (including the backup slot itself). When a save is done for the same setup as in the backup, the
-#        backup slot is then cleaned up and freed.
+#        backup slot is then cleaned up and freed. Besides, when loading new camera or cleaning up all slots, the current state
+#        will get saved into the backup slot to help out the user forgetting to save it by himself.
 # Chang: The extra features buttons are only displayed either on the Remote Control panel or on the 'Extend' side panel mode.
-# Chang: Abbreviations of all camera adjustment modes for the 'Full' mode of the side panel version.
+# Chang: Abbreviations of all camera adjustment modes for the 'Full' layout of the side panel version.
+# Chang: Sub-grouping of reference cameras to assume no grouping when max subpanels equals to zero in the user preferences.
 # Chang: Logic that initialize the bpy transformation operators for camera adjustments (when action is triggered by the Remote Control)
 #        because the changes in 'bl_ui_draw_op.invoke' method that switches the workspace back and forth had broken this functionality.
 
-# v1.0.2 (09.30.2021) - by Marcelo M. Marques
+# v1.0.2 (09.20.2021) - by Marcelo M. Marques
 # Chang: just some pep8 code formatting
 
 # v1.0.1 (09.12.2021) - by Marcelo M. Marques
@@ -189,6 +192,12 @@ def RC_BLINK_OFF():
     """ Time duration for the 'OFF' stage of the blinking mesh cycle, in units of 1/10th of a second """
     package = __package__[0:__package__.find(".")]
     return (bpy.context.preferences.addons[package].preferences.RC_BLINK_OFF)
+
+
+def RC_BLINK_ALT():
+    """ Closing alternative stage of the blinking mesh cycle, meaning to leave it in the 'OFF' stage """
+    package = __package__[0:__package__.find(".")]
+    return (bpy.context.preferences.addons[package].preferences.RC_BLINK_ALT)
 
 
 def RC_ACTION_REMO():
@@ -349,24 +358,34 @@ def get_camera_names(cntx):
     rc = find_collection(cntx.scene.collection, RC_CAMERAS())
     if rc:
         result = []
-        for obj in rc.objects:
-            if obj.type == 'CAMERA' and not obj.hide_select:
-                if get_image(obj):
-                    if get_target(obj):
-                        result.append([rc.name, obj.name])
         # Looking up for children collections
         children = False
         for rch in rc.children:
+            col_included = False
             for obj in rch.objects:
                 if obj.type == 'CAMERA':
                     if get_image(obj):
                         if get_target(obj):
                             children = True
+                            col_included = True
                             if not (obj.hide_select or obj.users_collection[0].hide_select):
                                 result.append([rch.name, obj.name])
-        if not children:
+            if not col_included:
+                result.append([rch.name, ""])
+
+        col_included = False
+        for obj in rc.objects:
+            if obj.type == 'CAMERA' and not obj.hide_select:
+                if get_image(obj):
+                    if get_target(obj):
+                        col_included = True
+                        result.append([rc.name, obj.name])
+        if not (col_included or children):
+            result.append([rc.name, ""])
+
+        if RC_SUBPANELS() == 0 or not children:
             for id in result:
-                id[0] = ''  # Clear the Group name element to prevent drawing any groups at all
+                id[0] = ""  # Clear the Group name element to prevent drawing any groups at all
         return result
     else:
         return None
@@ -433,6 +452,7 @@ class Variables(bpy.types.PropertyGroup):
     OpState8: BoolProperty(default=False)
     OpState9: BoolProperty(default=False)
     OpStateA: BoolProperty(default=False)
+    OpStateB: BoolProperty(default=False)
     OpStatM0: BoolProperty(default=False)
     OpStatM1: BoolProperty(default=False)
     OpStatM2: BoolProperty(default=False)
@@ -804,6 +824,7 @@ def blink_mesh_timer(idx):
     else:
         # Auto stop blinking if meshes are made unavailable or any errors
         context.scene.var.OpStateA = False
+        context.scene.var.OpStateB = False
         if not context.scene.var.MeshVisible:
             # Call it one last time if needed to leave the mesh(es) turned on
             context.scene.var.MeshVisible = blink_mesh_objects()
@@ -824,10 +845,14 @@ class RefCameraPanelbutton_FLSH(bpy.types.Operator):
 
     @classmethod
     def description(cls, context, event):
-        description = "Turns the visibility on/off for mesh(es) in collection '{0}'.\n" +\
-                      "Blinking frequency can be adjusted in the addon Preferences.\n" +\
-                      "Current settings are:  On ({1:.1f} sec), Off ({2:.1f} sec)"
-        return (description.format(RC_MESHES(), RC_BLINK_ON(), RC_BLINK_OFF()))
+        if context.scene.var.OpStateB:
+            description = "Turns the visibility ON for mesh(es) in collection '" + RC_MESHES() + "'"
+        else:
+            description = "Turns the visibility on/off for mesh(es) in collection '{0}'.\n" +\
+                          "Blinking frequency can be adjusted in the addon Preferences.\n" +\
+                          "Current settings are:  On ({1:.1f} sec), Off ({2:.1f} sec)"
+            description = description.format(RC_MESHES(), RC_BLINK_ON(), RC_BLINK_OFF())
+        return description
 
     def invoke(self, context, event):
         # Input validation:
@@ -840,19 +865,50 @@ class RefCameraPanelbutton_FLSH(bpy.types.Operator):
                 self.report(type={'ERROR'}, message="Collection '" + RC_MESHES() + "' not found or all meshes are hidden")
             return {'CANCELLED'}
         else:
-            context.scene.var.OpStateA = not context.scene.var.OpStateA
-            if context.scene.var.OpStateA:
-                if not bpy.app.timers.is_registered(blink_mesh_timer):
-                    bpy.types.Scene.timerObject = functools.partial(blink_mesh_timer, idx)
-                    bpy.app.timers.register(bpy.types.Scene.timerObject, first_interval=0, persistent=False)
-            else:
-                if bpy.app.timers.is_registered(bpy.types.Scene.timerObject):
-                    bpy.app.timers.unregister(bpy.types.Scene.timerObject)
-                    bpy.types.Scene.timerObject = None
+            if not context.scene.var.OpStateA and context.scene.var.OpStateB:
+                # This means it is in the additional stage of mesh turned OFF
+                context.scene.var.OpStateB = False
                 if not context.scene.var.MeshVisible:
                     # Call it one last time if needed to leave the mesh(es) turned on
                     context.scene.var.MeshVisible = blink_mesh_objects()
+            else:
+                context.scene.var.OpStateA = not context.scene.var.OpStateA
+                if context.scene.var.OpStateA:
+                    if not bpy.app.timers.is_registered(blink_mesh_timer):
+                        bpy.types.Scene.timerObject = functools.partial(blink_mesh_timer, idx)
+                        bpy.app.timers.register(bpy.types.Scene.timerObject, first_interval=0, persistent=False)
+                else:
+                    if bpy.app.timers.is_registered(bpy.types.Scene.timerObject):
+                        bpy.app.timers.unregister(bpy.types.Scene.timerObject)
+                        bpy.types.Scene.timerObject = None
+                    if RC_BLINK_ALT():
+                        context.scene.var.OpStateB = True
+                        if context.scene.var.MeshVisible:
+                            # Call it one last time if needed to leave the mesh(es) turned off
+                            blink_mesh_objects()
+                            context.scene.var.MeshVisible = False
+                    else:
+                        context.scene.var.OpStateB = False
+                        if not context.scene.var.MeshVisible:
+                            # Call it one last time if needed to leave the mesh(es) turned on
+                            context.scene.var.MeshVisible = blink_mesh_objects()
         return {'FINISHED'}
+
+
+def save_backup_slot():
+    scn = bpy.context.scene
+    camera = scn.camera
+    target = get_target(camera)
+    scn.var.OpStatM0 = True
+    if len(scn.memory_slots_collection) == 0:
+        backup_slot = scn.memory_slots_collection.add()
+    else:
+        backup_slot = scn.memory_slots_collection[0]
+    backup_slot.CameraLens = camera.data.lens
+    backup_slot.CameraLocation = camera.location
+    backup_slot.CameraRotation = camera.rotation_euler
+    backup_slot.TargetLocation = target.location
+    backup_slot.TargetRotation = target.rotation_euler
 
 
 def restore_memory_slot(slot):
@@ -860,9 +916,10 @@ def restore_memory_slot(slot):
     scn = bpy.context.scene
     camera = scn.camera
     target = get_target(camera)
-    # Create a local copy of the selected memory slot data
+    # Create a local copy of the selected memory slot data because when restoring the backup slot, the logic
+    # may need to first overwrite its data with the current setup on screen before restoring the former setup.
     # Disclaimer: At this point I gave up on trying to create a copy by values (not by reference) of the
-    # propertyGroup values by any other means.  Tried using dict, copy, deepcopy, you name it, but everything failed here.
+    # propertyGroup values by any other means.  Tried using dict, copy, deepcopy etc, but everything failed.
     prop = scn.memory_slots_collection[slot]
     memory_slot = [(prop.CameraLens + 0),
                    (prop.CameraLocation[0] + 0, prop.CameraLocation[1] + 0, prop.CameraLocation[2] + 0),
@@ -884,13 +941,7 @@ def restore_memory_slot(slot):
             break
     # Only save an auto backup of the current setup when it is not already stored in any slot
     if not already_saved:
-        scn.var.OpStatM0 = True
-        backup_slot = scn.memory_slots_collection[0]
-        backup_slot.CameraLens = camera.data.lens
-        backup_slot.CameraLocation = camera.location
-        backup_slot.CameraRotation = camera.rotation_euler
-        backup_slot.TargetLocation = target.location
-        backup_slot.TargetRotation = target.rotation_euler
+        save_backup_slot()
     # Restore the memory slot data over the current setup
     camera.data.lens = memory_slot[0]
     camera.location = memory_slot[1]
@@ -975,18 +1026,19 @@ class RefCameraPanelbutton_MS(bpy.types.Operator):
         scn = bpy.context.scene
         if not scn.var.OpStatM1:
             scn.var.OpStatM1 = True
-            memory_slot = bpy.context.scene.memory_slots_collection.add()  # element[0]
-            memory_slot = bpy.context.scene.memory_slots_collection.add()  # element[1]
+            if len(bpy.context.scene.memory_slots_collection) == 0:
+                memory_slot = bpy.context.scene.memory_slots_collection.add()      # element[0]: Backup
+            memory_slot = bpy.context.scene.memory_slots_collection.add()          # element[1]: Slot 1
             self.save_memory_data(memory_slot)
         else:
             if not scn.var.OpStatM2:
                 scn.var.OpStatM2 = True
-                memory_slot = bpy.context.scene.memory_slots_collection.add()  # element[2]
+                memory_slot = bpy.context.scene.memory_slots_collection.add()      # element[2]: Slot 2
                 self.save_memory_data(memory_slot)
             else:
                 if not scn.var.OpStatM3:
                     scn.var.OpStatM3 = True
-                    memory_slot = bpy.context.scene.memory_slots_collection.add()  # element[3]
+                    memory_slot = bpy.context.scene.memory_slots_collection.add()  # element[3]: Slot 3
                     self.save_memory_data(memory_slot)
         return {'FINISHED'}
 
@@ -1018,7 +1070,7 @@ class RefCameraPanelbutton_MC(bpy.types.Operator):
     # --- Blender interface methods
     @classmethod
     def poll(cls, context):
-        return (is_object_mode(context) and bpy.context.scene.var.OpStatM1)
+        return is_object_mode(context)
 
     def execute(self, context):
         scn = bpy.context.scene
@@ -1027,6 +1079,7 @@ class RefCameraPanelbutton_MC(bpy.types.Operator):
         scn.var.OpStatM2 = False
         scn.var.OpStatM3 = False
         bpy.context.scene.memory_slots_collection.clear()
+        save_backup_slot()
         return {'FINISHED'}
 
 
@@ -1078,13 +1131,12 @@ def SetAdjustmentMode(type='NONE', panel_mode='NPANEL', start_action=False):
     if (start_action or type in {'HORB', 'VORB'}) and panel_mode == 'REMOTE':
         override = bpy.context.copy()
         for area in bpy.context.screen.areas:
-            print(area.type)
             if area.type == 'VIEW_3D':
                 override["area"] = area
                 override["region"] = area.regions[-1]  # Rule of thumb: this region.type == 'WINDOW'
                 break
 
-    # Make sure, that everything is deselected to avoid moving them by accident
+    # Make sure that everything is deselected to avoid moving them by accident
     bpy.ops.object.select_all(action='DESELECT')
     # Now select and set the camera and/or target according to user option
     if var.OpState1:
@@ -1218,9 +1270,9 @@ class SetReferenceCamera(bpy.types.Operator):
             return {'CANCELLED'}
 
     def execute(self, context):
-        # Make sure, that everyting is deselected to avoid moving them by accident
+        # Make sure that everyting is deselected to avoid moving them by accident
         bpy.ops.object.select_all(action='DESELECT')
-        # Make sure, that all cameras and targets are hidden from view to leave a clean scene
+        # Make sure that all cameras and targets are hidden from view to leave a clean scene
         rc = find_collection(context.scene.collection, RC_CAMERAS())
         if rc:
             for obj in rc.objects:
@@ -1249,8 +1301,8 @@ class SetReferenceCamera(bpy.types.Operator):
         # Link the current camera and its target:
         wrk.objects.link(camera)
         wrk.objects.link(get_target(camera))
-        wrk.hide_viewport = False  # Make sure, that the working collection is visible
-        wrk.hide_render = True     # Make sure, that the working collection will not be rendered
+        wrk.hide_viewport = False  # Make sure that the working collection is visible
+        wrk.hide_render = True     # Make sure that the working collection will not be rendered
         set_active_object(camera)  # This line works if the <camera> object is visible in viewport.
         bpy.ops.view3d.object_as_camera()
         # Update current render settings (it determines the camera screen size)
@@ -1265,6 +1317,9 @@ class SetReferenceCamera(bpy.types.Operator):
         # Calls the memory slot clear operator
         if bpy.ops.object.ref_camera_panelbutton_mc.poll():
             bpy.ops.object.ref_camera_panelbutton_mc()
+        # This command below is just to refresh the mesh position after new camera has been loaded
+        # because sometimes Blender was failing to do that by itself leaving the mesh twisted  :P
+        bpy.ops.transform.translate(value=(0, 0, 0))
         return {'FINISHED'}
 
 
@@ -1292,8 +1347,8 @@ class AddCollectionSet(bpy.types.Operator):
                 else:
                     wrk = bpy.data.collections.new(RC_CAMERAS())  # Create a new collection
                 context.scene.collection.children.link(wrk)       # Add it to the current scene
-                wrk.hide_viewport = False  # Make sure, that the working collection is visible
-                wrk.hide_render = True     # Make sure, that the working collection will not be rendered
+                wrk.hide_viewport = False  # Make sure that the working collection is visible
+                wrk.hide_render = True     # Make sure that the working collection will not be rendered
 
         if RC_TARGETS() != "":
             rc = find_collection(context.scene.collection, RC_TARGETS())
@@ -1304,8 +1359,8 @@ class AddCollectionSet(bpy.types.Operator):
                 else:
                     wrk = bpy.data.collections.new(RC_TARGETS())  # Create a new collection
                 context.scene.collection.children.link(wrk)       # Add it to the current scene
-                wrk.hide_viewport = False  # Make sure, that the working collection is visible
-                wrk.hide_render = True     # Make sure, that the working collection will not be rendered
+                wrk.hide_viewport = False  # Make sure that the working collection is visible
+                wrk.hide_render = True     # Make sure that the working collection will not be rendered
 
         if RC_MESHES() != "":
             rc = find_collection(context.scene.collection, RC_MESHES())
@@ -1316,8 +1371,8 @@ class AddCollectionSet(bpy.types.Operator):
                 else:
                     wrk = bpy.data.collections.new(RC_MESHES())  # Create a new collection
                 context.scene.collection.children.link(wrk)      # Add it to the current scene
-                wrk.hide_viewport = False  # Make sure, that the working collection is visible
-                wrk.hide_render = True     # Make sure, that the working collection will not be rendered
+                wrk.hide_viewport = False  # Make sure that the working collection is visible
+                wrk.hide_render = True     # Make sure that the working collection will not be rendered
         return {'FINISHED'}
 
 
@@ -1408,11 +1463,11 @@ class CreateNewCameraSet(bpy.types.Operator, ImportHelper):
             constraint.use_target_z = True
 
             # Set target constraints
-            constraint = target_object.constraints.new('COPY_ROTATION')
-            constraint.target = camera_object
-            constraint.use_x = False
-            constraint.use_y = False
-            constraint.use_z = True
+            # constraint = target_object.constraints.new('COPY_ROTATION')
+            # constraint.target = camera_object
+            # constraint.use_x = False
+            # constraint.use_y = False
+            # constraint.use_z = True
 
             # Link to collection
             camera_rc.objects.link(camera_object)
@@ -1562,6 +1617,7 @@ class OBJECT_PT_CameraLens(bpy.types.Panel):
                 scn_var = bpy.context.scene.var
                 flow = layout.grid_flow(row_major=True, columns=4, even_columns=True, even_rows=True, align=True)
                 flow.scale_y = 1.75
+                blink_mesh_text = "Display Mesh(es)" if scn_var.OpStateB else "Blink Mesh(es)"
                 op = flow.operator(RefCameraPanelbutton_MOVE.bl_idname, text="MOVE", depress=context.scene.var.OpState5)
                 op = flow.operator(RefCameraPanelbutton_ROLL.bl_idname, text="ROLL", depress=context.scene.var.OpState6)
                 op = flow.operator(RefCameraPanelbutton_POV.bl_idname,  text="POV",  depress=context.scene.var.OpState7)
@@ -1572,9 +1628,9 @@ class OBJECT_PT_CameraLens(bpy.types.Panel):
                 op = flow.operator(RefCameraPanelbutton_TILT.bl_idname, text="TILT", depress=context.scene.var.OpState4)
                 flow = layout.grid_flow(row_major=True, columns=2, even_columns=True, even_rows=True, align=True)
                 op = flow.operator(RefCameraPanelbutton_RSET.bl_idname, text="Reset Target")
-                op = flow.operator(RefCameraPanelbutton_LPOS.bl_idname, text="Lock Position",  depress=context.scene.var.OpState8)
-                op = flow.operator(RefCameraPanelbutton_FLSH.bl_idname, text="Blink Mesh(es)", depress=context.scene.var.OpStateA)
-                op = flow.operator(RefCameraPanelbutton_LROT.bl_idname, text="Lock Rotation",  depress=context.scene.var.OpState9)
+                op = flow.operator(RefCameraPanelbutton_LPOS.bl_idname, text="Lock Position", depress=context.scene.var.OpState8)
+                op = flow.operator(RefCameraPanelbutton_FLSH.bl_idname, text=blink_mesh_text, depress=context.scene.var.OpStateA)
+                op = flow.operator(RefCameraPanelbutton_LROT.bl_idname, text="Lock Rotation", depress=context.scene.var.OpState9)
 
             # -- memory slots buttons
             if RC_SUBP_MODE() == 'EXTENDED' and not context.scene.var.RemoVisible:
@@ -1594,8 +1650,11 @@ class OBJECT_PT_CameraLens(bpy.types.Panel):
                 row.scale_x = 0.2
                 box = row.box()
                 sub = box.row()
-                op = sub.operator(RefCameraPanelbutton_MS.bl_idname, text="MS")
-                op = sub.operator(RefCameraPanelbutton_MC.bl_idname, text="MC")
+                col = sub.column()
+                op = col.operator(RefCameraPanelbutton_MS.bl_idname, text="MS")
+                col = sub.column()
+                col.enabled = bpy.context.scene.var.OpStatM1
+                op = col.operator(RefCameraPanelbutton_MC.bl_idname, text="MC")
         return None
 
 
@@ -1624,9 +1683,11 @@ class OBJECT_PT_RefCameras(bpy.types.Panel):
                 layout = self.layout
                 layout.label(text=" Ref Cameras")
             elif ids[0][0] == "":
+                ui_scale = bpy.context.preferences.view.ui_scale
+                ui_scale = 1 if ui_scale < 1 else ui_scale
                 layout = self.layout
                 row = layout.row(align=True)
-                row.alignment = 'LEFT'
+                row.ui_units_x = (context.region.width - (65 * ui_scale)) / (20 * ui_scale)
                 row.label(text=" Ref Cameras")
                 op = row.operator(CreateNewCameraSet.bl_idname, text="", icon='FILE_NEW', emboss=True).collect_name = RC_CAMERAS()
             else:
@@ -1659,54 +1720,48 @@ class OBJECT_PT_RefCameras(bpy.types.Panel):
 
         # If there is data to be displayed let's now populate the subpanels accordingly
         ids.sort()
-        subpanel = 0
-        sub_name = ""
-        showSubPanel = True
+        panel_title = ""
+        panel_count = 0
+        expand_panel = True
+        sub_panels = RC_SUBPANELS()
         for id in ids:
-            if id[0] != "" and id[0] != sub_name:
-                sub_name = id[0]
-                subpanel += 1
-                if subpanel > RC_SUBPANELS():
-                    self.show_message(context, 'ERROR', f"Max number of {RC_SUBPANELS()} collections in '" +
+            if id[0] != "" and id[0] != panel_title and sub_panels:
+                panel_title = id[0]
+                panel_count += 1
+                if panel_count > sub_panels:
+                    self.show_message(context, 'ERROR', f"Max number of {sub_panels} collections in '" +
                                       RC_CAMERAS() + "' reached. More cameras not listed above. Check addon preferences.")
                     break
-
                 box = layout.box()
                 split = box.split(factor=0.9, align=True)
                 row = split.row(align=True)
                 row.alignment = 'LEFT'
-
-                propSubPanel = f"panel_switch_{subpanel:03d}"
-                showSubPanel = scn.get(propSubPanel)
-                if showSubPanel is None:
-                    showSubPanel = True
-
-                if showSubPanel:
-                    row.prop(scn, propSubPanel, icon='TRIA_DOWN', text="", emboss=False)
-                    row.label(text=sub_name.upper())
-                else:
-                    row.prop(scn, propSubPanel, icon='TRIA_RIGHT', text="", emboss=False)
-                    row.label(text=sub_name.upper())
-
+                propSubPanel = f"panel_switch_{panel_count:03d}"
+                expand_panel = scn.get(propSubPanel)
+                if expand_panel is None:
+                    expand_panel = True
+                row.prop(scn, propSubPanel, icon=('TRIA_DOWN' if expand_panel else 'TRIA_RIGHT'), text="", emboss=False)
+                row.label(text=panel_title.upper())
                 row = split.row(align=True)
                 row.alignment = 'RIGHT'
-                op = row.operator(CreateNewCameraSet.bl_idname, text="", icon='FILE_NEW', emboss=True).collect_name = sub_name
+                op = row.operator(CreateNewCameraSet.bl_idname, text="", icon='FILE_NEW', emboss=True).collect_name = panel_title
 
-            if showSubPanel:
-                if id[0] != "":
+            if expand_panel:
+                if id[0] != "" and sub_panels:
                     split = box.split(factor=0.8, align=True)
                 else:
                     split = layout.split(factor=0.8, align=True)
-
-                camera_state = False
-                if context.space_data.type == 'VIEW_3D' and context.mode == 'OBJECT':
-                    if context.scene.camera.name == id[1]:
-                        camera_state = view_is_camera()
-
-                op = split.operator(SetReferenceCamera.bl_idname, text=id[1], depress=camera_state)
-                op.camera_name = id[1]
-                op = split.operator(UnlistReferenceCamera.bl_idname, text="Hide")
-                op.camera_name = id[1]
+                if id[1] != "":
+                    camera_state = False
+                    if context.space_data.type == 'VIEW_3D' and context.mode == 'OBJECT':
+                        if context.scene.camera.name == id[1]:
+                            camera_state = view_is_camera()
+                    op = split.operator(SetReferenceCamera.bl_idname, text=id[1], depress=camera_state)
+                    op.camera_name = id[1]
+                    op = split.operator(UnlistReferenceCamera.bl_idname, text="Hide")
+                    op.camera_name = id[1]
+                else:
+                    split.label(text="        Empty Collection...")
 
     def show_message(self, cntx, icon, msg):
         """ Helper function that shows in this panel a multi-line text with an optional icon
@@ -1845,9 +1900,12 @@ def unregister():
     del bpy.types.Scene.memory_slots_collection
     del bpy.types.Scene.timerObject
     bpy.app.handlers.depsgraph_update_post.remove(after_update)
-    for i in range(RC_SUBPANELS()):
+    for i in range(100):
         propSubPanel = f"panel_switch_{i+1:03d}"
-        delattr(bpy.types.Scene, propSubPanel)
+        try:
+            delattr(bpy.types.Scene, propSubPanel)
+        except:
+            pass
     for cls in reversed(classes):
         unregister_class(cls)
     if DEBUG:
