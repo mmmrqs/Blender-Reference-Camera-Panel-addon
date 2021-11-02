@@ -13,7 +13,7 @@ Feel free to create issues, file requests etc but be aware of that I may not fin
 
 ## Main features
 
-- Can be accessed via Blender's side N-Panel or via a standalone remote control **floating panel**, which can be dragged around the screen at will.
+- Can be accessed via Blender's side N-Panel (see image below) or via a standalone remote control **floating panel** (image above), which can be dragged around the screen at will.
 - Group of buttons to automatically set the transformation orientation and select the camera/target set in one click.
 - Up to 7 camera adjustment modes for **Zoom** (dolly), **Translation** (truck & pedestal), **Rotation** (pan & roll), **Horizontal** (orbit), **Vertical** (orbit), **Tilt** and **Perspective** change.  Three different layout display options.
 - Auto blinking button to turn the active meshe(s) visibility on/off (great to quickly flash the mesh against the background image helping with visual positioning accuracy).
